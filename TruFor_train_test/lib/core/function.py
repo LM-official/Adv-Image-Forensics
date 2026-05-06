@@ -42,8 +42,8 @@ def train(epoch, num_epoch, epoch_iters, base_lr, num_iters,
     global_steps = writer_dict['train_global_steps']
     
     for i_iter, (rgbs, labels) in enumerate(tqdm(trainloader)):
-        rgbs = rgbs.cuda()
-        labels = labels.long().cuda()
+        rgbs = rgbs.mps()
+        labels = labels.long().mps()
 
         losses, *_ = model(labels=labels, rgbs=rgbs)
         loss = losses.mean()
@@ -108,8 +108,8 @@ def validate(config, testloader, model, writer_dict, valid_set="valid"):
         for it, (rgb, label) in enumerate(tqdm(testloader)):
             size = label.size()
 
-            rgb = rgb.cuda()
-            label = label.long().cuda()
+            rgb = rgb.mps()
+            label = label.long().mps()
 
             losses, pred, conf, det = model(labels=label, rgbs=rgb)
             
@@ -217,7 +217,7 @@ def validate(config, testloader, model, writer_dict, valid_set="valid"):
                 avg_det_tnr.update(np.sum(det[target_det<0.5]<0), np.sum(target_det<0.5))
 
 
-    confusion_matrix = torch.from_numpy(confusion_matrix).cuda()
+    confusion_matrix = torch.from_numpy(confusion_matrix).mps()
     confusion_matrix = confusion_matrix.cpu().numpy()
     
     pos = confusion_matrix.sum(1)

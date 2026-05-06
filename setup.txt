@@ -1,0 +1,40 @@
+I am using a MacBook Air m5 with macOS Tahoe 26.4.1
+(follow https://github.com/grip-unina/TruFor/blob/main/TruFor_train_test/README.md)
+
+CLONE:
+git clone https://github.com/grip-unina/TruFor.git
+
+WEIGHT:
+download https://www.grip.unina.it/download/prog/TruFor/TruFor_weights.zip
+unzip and move to /Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/weights/trufor_ph3/best.pth.tar
+in test.py:82 ad weights:
+old:        checkpoint = torch.load(model_state_file, map_location=torch.device(device))
+new:        checkpoint = torch.load(model_state_file, map_location=torch.device(device), weights_only=False)
+
+GPU:
+change "cuda" with "mps" in:
+./test.py:50:                   device = 'cuda:%d' % gpu if gpu >= 0 else 'cpu'
+./lib/core/function.py:45:      rgbs = rgbs.cuda()
+./lib/core/function.py:46:      labels = labels.long().cuda()
+./lib/core/function.py:111:     rgb = rgb.cuda()
+./lib/core/function.py:112:     label = label.long().cuda()
+./lib/core/function.py:220:     confusion_matrix = torch.from_numpy(confusion_matrix).cuda()
+./lib/utils.py:97:              criterion_loc = DiceLoss(ignore_label=ignore_label, smooth=smooth).cuda()
+./lib/utils.py:100:             criterion_loc = BinaryDiceLoss(ignore_label=ignore_label, smooth=smooth).cuda()
+./lib/utils.py:103:             criterion_loc = CrossEntropy(ignore_label=ignore_label, weight=weight).cuda()
+./lib/utils.py:106:             criterion_loc = DiceEntropyLoss(ignore_label=ignore_label, weight=weight, smooth=smooth).cuda()
+./lib/utils.py:114:             criterion_conf = MSE().cuda()
+./lib/utils.py:123:             criterion_det = CrossEntropy().cuda()
+
+VENV SETUP (see requirements.txt):
+python3 -m venv /Users/lorenzo/trufor_py_env
+source /Users/lorenzo/trufor_py_env/bin/activate
+pip install numpy tqdm torch yacs matplotlib timm pandas statsmodels scikit-learn transformers opencv-python scipy
+
+RUN:
+cd /Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/my_scripts
+./run.sh
+
+CLEAN:
+cd /Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/my_scripts
+./cleaner.sh

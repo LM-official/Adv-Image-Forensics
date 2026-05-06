@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# MY IGNORES
+.DS_Store
+weights/
+images/
+output/
+.vscode/
+__pychache__/
+TruFor_train_test/my_scripts/temp/

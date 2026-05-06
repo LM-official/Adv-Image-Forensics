@@ -94,16 +94,16 @@ def get_criterion(config):
         if l == 'LOC':
             if criterion == 'dice':
                 from lib.core.criterion import DiceLoss
-                criterion_loc = DiceLoss(ignore_label=ignore_label, smooth=smooth).cuda()
+                criterion_loc = DiceLoss(ignore_label=ignore_label, smooth=smooth).mps()
             elif criterion == 'binary_dice':
                 from lib.core.criterion import BinaryDiceLoss
-                criterion_loc = BinaryDiceLoss(ignore_label=ignore_label, smooth=smooth).cuda()
+                criterion_loc = BinaryDiceLoss(ignore_label=ignore_label, smooth=smooth).mps()
             elif criterion == 'cross_entropy':
                 from lib.core.criterion import CrossEntropy
-                criterion_loc = CrossEntropy(ignore_label=ignore_label, weight=weight).cuda()
+                criterion_loc = CrossEntropy(ignore_label=ignore_label, weight=weight).mps()
             elif criterion == 'dice_entropy':
                 from lib.core.criterion import DiceEntropyLoss
-                criterion_loc = DiceEntropyLoss(ignore_label=ignore_label, weight=weight, smooth=smooth).cuda()
+                criterion_loc = DiceEntropyLoss(ignore_label=ignore_label, weight=weight, smooth=smooth).mps()
             else:
                 raise ValueError('Localization loss not implemented')
 
@@ -111,7 +111,7 @@ def get_criterion(config):
         elif l == 'CONF':
             if criterion == 'mse':
                 from lib.core.criterion_conf import MSE
-                criterion_conf = MSE().cuda()
+                criterion_conf = MSE().mps()
             else:
                 raise ValueError('Confidence loss not implemented')
 
@@ -120,7 +120,7 @@ def get_criterion(config):
             if detection is not None and not detection == 'none':
                 if criterion == 'cross_entropy':
                     from lib.core.criterion_det import CrossEntropy
-                    criterion_det = CrossEntropy().cuda()
+                    criterion_det = CrossEntropy().mps()
                 else:
                     raise ValueError('Detection loss not implemented')
 
