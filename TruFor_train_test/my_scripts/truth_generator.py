@@ -5,58 +5,58 @@ from    pathlib     import  Path
 
 
 def generate_truth(npz_dir_path: Path, csv_file_path: Path) -> None:
-    '''
+    """
     Generates a csv file with image filenames and empty labels.
-    '''
+    """
 
-    print(f'Generating "{csv_file_path}"...')
+    print(f"Generating '{csv_file_path}'...")
 
     # LYBL = Look Before You Leap, so we check the input before doing anything else
     if not npz_dir_path.is_dir():
-        print(f'ERROR: "{npz_dir_path}" directory not found.')
+        print(f"ERROR: '{npz_dir_path}' directory not found.")
         return
 
-    # glob search only for .npz files
-    # .stem.stem removes the 2 extensions e.g. ".jpg.npz"
-    elements = sorted([Path(npz.stem).stem for npz in npz_dir_path.glob('*.npz')])
+    # Glob search only for .npz files
+    # .stem.stem removes the 2 extensions e.g. '.jpg.npz'
+    elements = sorted([Path(npz.stem).stem for npz in npz_dir_path.glob("*.npz")])
 
-    # check if any images were found
+    # Check if any images were found
     if not elements:
-        print(f'WARNING: No .npz file found in "{npz_dir_path}".')
+        print(f"WARNING: No .npz file found in '{npz_dir_path}'.")
         return
 
 
-    # create the output dir if it doesn't exist
-    # parents = True creates any necessary parent directories
-    # exist_ok = True means that if the dir already exists, it won't raise an error
+    # Create the output dir if it doesn"t exist
+    # Parents = True creates any necessary parent directories
+    # Exist_ok = True means that if the dir already exists, it won"t raise an error
     csv_file_path.parent.mkdir(parents = True, exist_ok = True)
 
-    # write csv
-    with open(csv_file_path, mode = 'w', newline = '', encoding = 'utf-8') as file:
+    # Write csv
+    with open(csv_file_path, mode = "w", newline = "", encoding = "utf-8") as file:
         writer = csv.writer(file)
         
-        # header
-        writer.writerow(['filename', 'label'])
-        # elements
+        # Header
+        writer.writerow(["filename", "label"])
+        # Elements
         for element in elements:
-            writer.writerow([element, ''])
+            writer.writerow([element, ""])
 
-    # messages to user
-    print(f'"{csv_file_path}" generated successfully.')
-    print('WARNING: for each entry after "," append 0 = real or 1 = AI.')
+    # Messages to user
+    print(f"'{csv_file_path}' generated successfully.")
+    print("WARNING: for each entry after ',' append 0 = real or 1 = AI.")
 
 
-if __name__ == '__main__':
-    # initialize the argument parser
-    parser = argparse.ArgumentParser(description = 'Generate a csv file with image filenames and empty labels.')    
+if __name__ == "__main__":
+    # Initialize the argument parser
+    parser = argparse.ArgumentParser(description = "Generate a csv file with image filenames and empty labels.")    
     
-    # flags
-    parser.add_argument('--npz',         type = Path,     default = NPZ_DIR_PATH,       help = f'Directory path containing .npz files. Default: "{NPZ_DIR_PATH}"')
-    parser.add_argument('--output',      type = Path,     default = TEMP_DIR_PATH,      help = f'Output directory path. Default: "{TEMP_DIR_PATH}"')
+    # Flags
+    parser.add_argument("--npz",         type = Path,     default = NPZ_DIR_PATH,       help = f"Directory path containing .npz files. Default: '{NPZ_DIR_PATH}'")
+    parser.add_argument("--output",      type = Path,     default = TEMP_DIR_PATH,      help = f"Output directory path. Default: '{TEMP_DIR_PATH}'")
 
-    # read the command line arguments
+    # Read the command line arguments
     args = parser.parse_args()
 
-    # generate the csv file
+    # Generate the csv file
     TRUTH_FILE_PATH = args.output / TRUTH_FILE_NAME
     generate_truth(args.npz, TRUTH_FILE_PATH)

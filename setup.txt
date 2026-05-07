@@ -35,6 +35,44 @@ RUN:
 cd /Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/my_scripts
 ./run.sh
 
+CODE SUMMARY:
+1. config.py:
+    This is the central configuration file.
+    It contains all environment variables, absolute and relative folder paths (such as images and outputs), confidence thresholds,
+    and model hyperparameters (for example, batch sizes and SVD components).
+2. utils.py:
+    Contains general utility functions shared across multiple files.
+3. truth_generator.py:
+    This is a support utility.
+    It reads all generated .npz files and creates an "empty" CSV file (containing only file names) ready to be manually filled by the user
+    with values 0 (real) or 1 (AI) to establish the ground truth.
+4. performance.py:
+    Evaluates TruFor's predictive effectiveness.
+    It reads the file containing the "ground truth" (the known truth), extracts the machine's predictions,
+    and calculates standard classification metrics such as accuracy, precision, recall (sensitivity), and F1-score,
+    generating the confusion matrix and the list of errors (false positives/negatives).
+5. correlation_regression.py:
+    Handles the univariate statistical analysis.
+    It calculates Pearson and Spearman correlations and applies
+    an Ordinary Least Squares (OLS) linear regression between TruFor's visual anomaly scoresand human evaluation metrics (e.g., realism),
+    saving the reports into text files.
+6. merge_metrics.py:
+    This is the data preparation script.
+    It loads the datasets containing human votes, extracts TruFor's anomaly scores from the .npz files,
+    and merges everything into a single, clean CSV file, aligning the data based on the image name.
+7. masking.py:
+    Manages the visual localization of anomalies.
+    It reads the maps extracted by TruFor (.npz files), binarizes them according to a specific threshold,
+    and applies this mask to the original image using OpenCV, saving an image where only the manipulated part is visible against a black background.
+8. image_to_text.py:
+    Implements the Hugging Face BLIP vision-language model.
+    It analyzes the masked images in batches to automatically generate textual descriptions (captions) of the altered areas
+    and merges these texts into the metrics CSV file.
+9. multimodal_regression.py:
+    Performs advanced multimodal statistical analysis.
+    It uses NLP algorithms (TF-IDF and truncated SVD) to transform the textual descriptions of the anomalies into numerical variables,
+    combines them with TruFor's visual score, and applies a multiple regression model to predict human judgment.
+
 CLEAN:
 cd /Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/my_scripts
 ./cleaner.sh

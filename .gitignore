@@ -129,10 +129,18 @@ dmypy.json
 .pyre/
 
 # MY IGNORES
+# environment
 .DS_Store
-weights/
-images/
-output/
 .vscode/
 __pychache__/
-TruFor_train_test/my_scripts/temp/
+.venv/
+
+# cache
+TruFor_train_test/weights/*
+!TruFor_train_test/weights/.gitkeep
+TruFor_train_test/images/*
+!TruFor_train_test/images/.gitkeep
+TruFor_train_test/output/*
+!TruFor_train_test/output/.gitkeep
+TruFor_train_test/my_scripts/temp/*
+!TruFor_train_test/my_scripts/temp/.gitkeep

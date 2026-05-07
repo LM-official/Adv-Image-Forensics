@@ -1,37 +1,42 @@
 from pathlib import Path
 
 
+# The absolute path to this config.py file.
+SCRIPTS_DIR_PATH                = Path(__file__).resolve().parent
+TEMP_DIR_PATH                   = SCRIPTS_DIR_PATH / "temp"
+
+
 # TruFor
-IMG_DIR_PATH                    = Path('/Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/images/')
-NPZ_DIR_PATH                    = Path('/Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/output/')
+IMG_DIR_PATH                    = SCRIPTS_DIR_PATH.parent / "images"
+NPZ_DIR_PATH                    = SCRIPTS_DIR_PATH.parent / "output"
 
 
-TEMP_DIR_PATH                   = Path('temp/')
 
-# performance
-TRUTH_FILE_NAME                 = 'truth.csv'
-PERFORMANCE_FILE_NAME           = 'performance.txt'
-# from 0.0 to 1.0
-PERFORMANCE_THRESHOLD           = 0.5
+# Performance
+TRUTH_FILE_NAME                 = "truth.csv"
+PERFORMANCE_FILE_NAME           = "performance.txt"
+# From 0.0 to 1.0
+PERFORMANCE_THRESHOLD           = 0.8
 
-# merged metrics
-MERGED_METRICS_FILE_NAME        = 'merged_metrics.csv'
+# Merged metrics
+MERGED_METRICS_FILE_NAME        = "merged_metrics.csv"
 
-# correlation and regression
-CORRELATION_FILE_NAME           = 'correlation_{}.txt'
-REGRESSION_FILE_NAME            = 'regression_{}.txt'
+# Correlation and regression
+CORRELATION_FILE_NAME           = "correlation_{}.txt"
+REGRESSION_FILE_NAME            = "regression_{}.txt"
 
-# mask
-# from 0.0 to 1.0
+# Mask
+# From 0.0 to 1.0
 MASK_THRESHOLD                  = 0.5
-MASKED_DIR_NAME                 = 'masked/'
+MASKED_DIR_NAME                 = "masked/"
+BATCH_SIZE                      = 10
 
-# description
+# Description
 MAX_DESCRIPTION_LENGTH          = 50
 
-# embedding regression
+# Embedding regression
 # SVD (Singular Value Decomposition) components to extract from text
 SVD_COMPONENTS                  = 10
-# max number of different words
+# Max number of different words (features)
 MAX_NUMBER_OF_WORDS             = 500
-MULTIMODAL_REGRESSION_FILE_NAME = 'multimodal_regression_{}.txt'
+MULTIMODAL_REGRESSION_FILE_NAME = "multimodal_regression_{}.txt"
