@@ -6,7 +6,6 @@ import  pandas                              as      pd
 import  statsmodels.api                     as      sm
 from    sklearn.feature_extraction.text     import  TfidfVectorizer
 from    sklearn.decomposition               import  TruncatedSVD
-import  sys
 from    utils                               import  load_target_metrics
 
 
@@ -126,7 +125,7 @@ Total valid samples: {len(Y)}\n
         print(f"ERROR: during OLS regression calculation or saving: {e}")
 
 
-if __name__ == "__main__":
+def main() -> None:
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Run Multimodal Regression using Visual and Textual features.")
     
@@ -144,13 +143,13 @@ if __name__ == "__main__":
     # Load merged metrics
     metrics = load_target_metrics(args.merged_metrics, ["filename", "trufor_score", "manipulated_description", args.metric])
     if metrics is None or metrics.empty:
-        sys.exit(1)
+        return
 
 
     # Extract text features
     features = extract_text_features(metrics["manipulated_description"], MAX_NUMBER_OF_WORDS, args.svd)
     if features is None:
-        sys.exit(1)
+        return
 
 
     # Concatenate the visual anomaly score with the NLP dimensions
@@ -163,3 +162,6 @@ if __name__ == "__main__":
     # OLS regression
     REPORT_FILE_PATH = args.output / MULTIMODAL_REGRESSION_FILE_NAME.format(args.metric)
     compute_regression(X, Y, args.metric, REPORT_FILE_PATH)
+
+if __name__ == "__main__":
+    main()

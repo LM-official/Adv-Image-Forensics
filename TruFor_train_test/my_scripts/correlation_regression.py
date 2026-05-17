@@ -117,7 +117,7 @@ def compute_regression(metrics: pd.DataFrame, target_metric: str, regression_fil
     print(f"Regression calculated successfully.")
 
 
-if __name__ == "__main__":
+def main() -> None:
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description = "Compute performance metrics of TruFor results.")
 
@@ -140,3 +140,6 @@ if __name__ == "__main__":
     REGRESSION_FILE_PATH    = args.output / REGRESSION_FILE_NAME.format(args.metric)
     compute_correlations(metrics, args.metric, CORRELATION_FILE_PATH)
     compute_regression(metrics, args.metric, REGRESSION_FILE_PATH)
+
+if __name__ == "__main__":
+    main()

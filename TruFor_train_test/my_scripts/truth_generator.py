@@ -46,7 +46,7 @@ def generate_truth(npz_dir_path: Path, csv_file_path: Path) -> None:
     print("WARNING: for each entry after ',' append 0 = real or 1 = AI.")
 
 
-if __name__ == "__main__":
+def main() -> None:
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description = "Generate a csv file with image filenames and empty labels.")    
     
@@ -60,3 +60,6 @@ if __name__ == "__main__":
     # Generate the csv file
     TRUTH_FILE_PATH = args.output / TRUTH_FILE_NAME
     generate_truth(args.npz, TRUTH_FILE_PATH)
+
+if __name__ == "__main__":
+    main()

@@ -113,7 +113,7 @@ def create_masked_image_dir(image_dir: Path, npz_dir: Path, threshold: float, ma
     print("Masked images created successfully.")
 
 
-if __name__ == "__main__":
+def main() -> None:
     # To visualize an image:
     # python visualize.py --image images/image.png --output output/image.png.npz
 
@@ -131,3 +131,6 @@ if __name__ == "__main__":
 
     # Create the masked images for all images
     create_masked_image_dir(args.images, args.npz, args.threshold, args.output / MASKED_DIR_NAME)
+
+if __name__ == "__main__":
+    main()

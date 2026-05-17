@@ -3,7 +3,6 @@ from    config          import  TEMP_DIR_PATH, MASKED_DIR_NAME, MERGED_METRICS_F
 import  cv2
 import  pandas          as      pd
 from    pathlib         import  Path
-import  sys
 import  torch
 from    transformers    import  BlipProcessor, BlipForConditionalGeneration
 from    utils           import  load_target_metrics
@@ -171,7 +170,7 @@ def add_description_to_merged_metrics(merged_metrics: Path, descriptions: list[t
         print(f"ERROR: loading or adding description to '{merged_metrics}': {e}")
 
 
-if __name__ == "__main__":
+def main() -> None:
     # To visualize an image:
     # python visualize.py --image images/image.png --output output/image.png.npz
 
@@ -192,7 +191,7 @@ if __name__ == "__main__":
     # Load blip model and processor
     blip = load_blip()
     if blip is None:
-        sys.exit(1)
+        return
     processor, model, device = blip
 
 
@@ -202,3 +201,6 @@ if __name__ == "__main__":
 
     # Update metrics
     add_description_to_merged_metrics(args.merged_metrics, descriptions)
+
+if __name__ == "__main__":
+    main()

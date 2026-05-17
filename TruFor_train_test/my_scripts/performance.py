@@ -226,7 +226,7 @@ False positives :\t{metrics["fp"]}\t(real mistaken for AI)\n"""
     print(f"Performance report saved successfully to '{report_path}'.")
 
 
-if __name__ == "__main__":
+def main() -> None:
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description = "Compute performance metrics of TruFor results.")
 
@@ -253,3 +253,6 @@ if __name__ == "__main__":
     # Save
     PERFORMANCE_FILE_PATH = args.output / PERFORMANCE_FILE_NAME
     save_report(metrics_results, args.npz, PERFORMANCE_FILE_PATH)
+
+if __name__ == "__main__":
+    main()

@@ -3,7 +3,6 @@ from    config      import  NPZ_DIR_PATH, TEMP_DIR_PATH, MERGED_METRICS_FILE_NAM
 import  numpy       as      np
 import  pandas      as      pd
 from    pathlib     import  Path
-import  sys
 
 
 def load_dataset(dataset: list[Path]) -> pd.DataFrame | None:
@@ -96,7 +95,7 @@ def load_scores(npz_dir_path: Path) -> pd.DataFrame | None:
     return pd.DataFrame(trufor_data)
 
 
-if __name__ == "__main__":
+def main() -> None:
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description = "Compute performance metrics of TruFor results.")
 
@@ -112,13 +111,13 @@ if __name__ == "__main__":
     # Load dataset
     metrics = load_dataset(args.dataset)
     if metrics is None or metrics.empty:
-        sys.exit(1)
+        return
         
 
     # Load npz
     trufor = load_scores(args.npz)
     if trufor is None or trufor.empty:
-        sys.exit(1)
+        return
 
 
     # How = "inner" ensures we only keep rows with matching filenames in both dataframes
@@ -137,3 +136,6 @@ if __name__ == "__main__":
     MERGED_METRICS_FILE_PATH.parent.mkdir(parents = True, exist_ok = True)
     # Index = False to avoid writing row numbers
     metrics.to_csv(MERGED_METRICS_FILE_PATH, sep = ",", index = False, encoding = "utf-8")
+
+if __name__ == "__main__":
+    main()
