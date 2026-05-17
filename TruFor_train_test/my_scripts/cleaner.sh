@@ -10,6 +10,9 @@ source config.sh
 echo "Starting cleanup of the environment..."
 
 
+# Remove filtered dataset
+ask_remove "filtered dataset" "rm -f \"${TEMP_DIR}/${FILTERED_DATASET_FILE}\""
+
 # Remove all images in the input directory
 ask_remove "all images in input directory" "rm -rf \"${IMG_DIR}\"/*(N)"
 

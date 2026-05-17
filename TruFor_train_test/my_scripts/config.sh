@@ -40,9 +40,16 @@ export TEMP_DIR="${SCRIPTS_DIR}/temp"
 
 # TruFor paths
 export TRUFOR_ROOT="$(dirname "$SCRIPTS_DIR")"
+export BASE_DIR="$(dirname "$TRUFOR_ROOT")"
 export IMG_DIR="${TRUFOR_ROOT}/images"
 export NPZ_DIR="${TRUFOR_ROOT}/output"
-export BASE_DIR="$(dirname "$TRUFOR_ROOT")"
+
+
+# Dataset paths
+export DATASET_DIR="${TRUFOR_ROOT}/dataset/my_dataset"
+export DATASET_FILE="${DATASET_DIR}/crowdtangle.jsonl"
+export DATASET_IMGS_DIR="${DATASET_DIR}/crowdtangle_media"
+export FILTERED_DATASET_FILE="filtered_dataset.csv"
 
 
 # Venv path

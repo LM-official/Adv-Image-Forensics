@@ -1,15 +1,23 @@
 from pathlib import Path
 
 
-# The absolute path to this config.py file.
-SCRIPTS_DIR_PATH                = Path(__file__).resolve().parent
+# Paths
+CONFIG_FILE_PATH                = Path(__file__).resolve()
+SCRIPTS_DIR_PATH                = CONFIG_FILE_PATH.parent
 TEMP_DIR_PATH                   = SCRIPTS_DIR_PATH / "temp"
 
 
 # TruFor
-IMG_DIR_PATH                    = SCRIPTS_DIR_PATH.parent / "images"
-NPZ_DIR_PATH                    = SCRIPTS_DIR_PATH.parent / "output"
+ROOT_DIR_PATH                   = SCRIPTS_DIR_PATH.parent.parent
+IMG_DIR_PATH                    = ROOT_DIR_PATH / "Trufor_train_test/images"
+NPZ_DIR_PATH                    = ROOT_DIR_PATH / "Trufor_train_test/output"
 
+
+# Dataset
+DATASET_DIR_PATH                = ROOT_DIR_PATH / "Trufor_train_test/dataset/my_dataset"
+DATASET_FILE_PATH               = DATASET_DIR_PATH / "crowdtangle.jsonl"
+DATASET_IMGS_DIR_PATH           = DATASET_DIR_PATH / "crowdtangle_media"
+FILTERED_CSV_FILE_NAME          = "filtered_dataset.csv"
 
 
 # Performance
