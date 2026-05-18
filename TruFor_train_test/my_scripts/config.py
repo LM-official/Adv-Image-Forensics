@@ -11,13 +11,14 @@ TEMP_DIR_PATH                   = SCRIPTS_DIR_PATH / "temp"
 ROOT_DIR_PATH                   = SCRIPTS_DIR_PATH.parent.parent
 IMG_DIR_PATH                    = ROOT_DIR_PATH / "Trufor_train_test/images"
 NPZ_DIR_PATH                    = ROOT_DIR_PATH / "Trufor_train_test/output"
+TRUFOR_RUN_PATH                 = ROOT_DIR_PATH / "TruFor_train_test/test.py"
 
 
 # Dataset
 DATASET_DIR_PATH                = ROOT_DIR_PATH / "Trufor_train_test/dataset/my_dataset"
 DATASET_FILE_PATH               = DATASET_DIR_PATH / "crowdtangle.jsonl"
 DATASET_IMGS_DIR_PATH           = DATASET_DIR_PATH / "crowdtangle_media"
-FILTERED_CSV_FILE_NAME          = "filtered_dataset.csv"
+FILTERED_DATASET_FILE_PATH      = DATASET_DIR_PATH / "filtered_dataset.csv"
 
 
 # Performance
