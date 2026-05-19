@@ -22,29 +22,21 @@ ask_execute "dataset filtering" "python \"${SCRIPTS_DIR}/filter.py\""
 # Run TruFor and update dataset
 ask_execute "TruFor and update dataset" "python \"${SCRIPTS_DIR}/Trufor.py\""
 
-
-# Move to scripts directory
-cd "${SCRIPTS_DIR}"
-
-
-# Generate truth
-#ask_execute "truth file generation" "python truth_generator.py"
-
 # Performance report
-#ask_execute "performance evaluation" "python performance.py"
-
+ask_execute "generate truth file and performance report" "python \"${SCRIPTS_DIR}/performance.py\" --generate_truth"
+ask_execute "performance report" "python \"${SCRIPTS_DIR}/performance.py\""
 
 # Correlation and regression
-ask_execute "correlation and regression evaluation" "python correlation_regression.py --metric \"realismScore\""
+#ask_execute "correlation and regression evaluation" "python correlation_regression.py --metric \"realismScore\""
 
 # Masking image manipulation
-ask_execute "masking manipulated areas" "python masking.py"
+#ask_execute "masking manipulated areas" "python masking.py"
 
 # Generate description
-ask_execute "image description" "python image_to_text.py"
+#ask_execute "image description" "python image_to_text.py"
 
 # Multimodal regression
-ask_execute "multimodal regression" "python multimodal_regression.py --metric \"realismScore\""
+#ask_execute "multimodal regression" "python multimodal_regression.py --metric \"realismScore\""
 
 
 # Deactivate the python virtual environment

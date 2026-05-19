@@ -1,26 +1,9 @@
 import argparse
-from   config   import DATASET_FILE_PATH, DATASET_IMGS_DIR_PATH, FILTERED_DATASET_FILE_PATH, IMG_DIR_PATH
+from   config   import DATASET_FILE, DATASET_IMGS_DIR, FILTERED_DATASET_FILE, IMG_DIR
 import csv
 import hashlib
 import json
 from   pathlib  import Path
-
-
-def build_hash_map(images_dir: Path) -> dict[str, list[Path]] | None:
-    """
-    Scans the images directory and returns a dictionary mapping each filename stem (hash) to the list of matching file paths.
-    """
-
-    if not images_dir.is_dir():
-        print(f"ERROR: images directory '{images_dir}' not found.")
-        return None
-
-
-    hash_map = {}
-    for image in images_dir.iterdir():
-        if image.is_file():
-            hash_map.setdefault(image.stem, []).append(image)
-    return hash_map
 
 
 def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> list[Path] | None:
@@ -67,6 +50,23 @@ def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> list[Path] | N
     return images
 
 
+def build_hash_map(images_dir: Path) -> dict[str, list[Path]] | None:
+    """
+    Scans the images directory and returns a dictionary mapping each filename stem (hash) to the list of matching file paths.
+    """
+
+    if not images_dir.is_dir():
+        print(f"ERROR: images directory '{images_dir}' not found.")
+        return None
+
+
+    hash_map = {}
+    for image in images_dir.iterdir():
+        if image.is_file():
+            hash_map.setdefault(image.stem, []).append(image)
+    return hash_map
+
+
 def filter_jsonl(dataset_path: Path, dataset_images: Path, output_csv: Path, output_images: Path) -> None:
     """
     Filters the JSONL dataset based on the specified criteria and saves the filtered records to a new CSV file.
@@ -74,7 +74,7 @@ def filter_jsonl(dataset_path: Path, dataset_images: Path, output_csv: Path, out
     """
 
     if not dataset_path.is_file() or not dataset_images.is_dir():
-        print(f"ERROR: dataset file or images directory not found.")
+        print(f"ERROR: dataset '{dataset_path}' or images directory '{dataset_images}' not found.")
         return None
 
 
@@ -94,6 +94,7 @@ def filter_jsonl(dataset_path: Path, dataset_images: Path, output_csv: Path, out
     output_images.mkdir(parents=True, exist_ok=True)
 
 
+    # Filter
     print("Filtering dataset...")
     try:
         # buffering=1<<16 (64KB) reduces the number of disk writes significantly on large outputs compared to the default line-by-line flushing
@@ -145,16 +146,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Filter dataset")
 
     # Flags
-    parser.add_argument("--dataset",        type=Path, default=DATASET_FILE_PATH,          help=f"Input dataset file path. Default: '{DATASET_FILE_PATH}'")
-    parser.add_argument("--dataset_images", type=Path, default=DATASET_IMGS_DIR_PATH,      help=f"Directory path where the dataset images are stored. Default: '{DATASET_IMGS_DIR_PATH}'")
-    parser.add_argument("--output_csv",     type=Path, default=FILTERED_DATASET_FILE_PATH, help=f"Output file path for csv. Default: '{FILTERED_DATASET_FILE_PATH}'")
-    parser.add_argument("--output_images",  type=Path, default=IMG_DIR_PATH,               help=f"Output directory path for the images. Default: '{IMG_DIR_PATH}'")
+    parser.add_argument("--dataset",        type=Path, default=DATASET_FILE,          help=f"Input dataset file path. Default: '{DATASET_FILE}'")
+    parser.add_argument("--dataset_images", type=Path, default=DATASET_IMGS_DIR,      help=f"Directory path where the dataset images are stored. Default: '{DATASET_IMGS_DIR}'")
+    parser.add_argument("--output_csv",     type=Path, default=FILTERED_DATASET_FILE, help=f"Output file path for csv. Default: '{FILTERED_DATASET_FILE}'")
+    parser.add_argument("--output_images",  type=Path, default=IMG_DIR,               help=f"Output directory path for the images. Default: '{IMG_DIR}'")
     args = parser.parse_args()
 
     # Process dataset
     filter_jsonl(args.dataset, args.dataset_images, args.output_csv, args.output_images)
     return None
-
 
 if __name__ == "__main__":
     main()

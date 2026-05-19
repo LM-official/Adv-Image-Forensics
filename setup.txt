@@ -6,7 +6,7 @@ git clone https://github.com/grip-unina/TruFor.git
 
 WEIGHT:
 download https://www.grip.unina.it/download/prog/TruFor/TruFor_weights.zip
-unzip and move to /Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/weights/trufor_ph3/best.pth.tar
+unzip and move to TruFor/TruFor_train_test/weights/trufor_ph3/best.pth.tar
 in test.py:82 ad weights:
 old:        checkpoint = torch.load(model_state_file, map_location=torch.device(device))
 new:        checkpoint = torch.load(model_state_file, map_location=torch.device(device), weights_only=False)
@@ -27,13 +27,12 @@ change "cuda" with "mps" in:
 ./lib/utils.py:123:             criterion_det = CrossEntropy().cuda()
 
 VENV SETUP (see requirements.txt):
-python3 -m venv /Users/lorenzo/trufor_py_env
-source /Users/lorenzo/trufor_py_env/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install numpy tqdm torch yacs matplotlib timm pandas statsmodels scikit-learn transformers opencv-python scipy
 
 RUN:
-cd /Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/my_scripts
-./run.sh
+TruFor/TruFor_train_test/my_scripts/run.sh
 
 CODE SUMMARY:
 1. config.py:
@@ -42,24 +41,23 @@ CODE SUMMARY:
     and model hyperparameters (for example, batch sizes and SVD components).
 2. utils.py:
     Contains general utility functions shared across multiple files.
-3. truth_generator.py:
-    This is a support utility.
-    It reads all generated .npz files and creates an "empty" CSV file (containing only file names) ready to be manually filled by the user
-    with values 0 (real) or 1 (AI) to establish the ground truth.
-4. performance.py:
-    Evaluates TruFor's predictive effectiveness.
-    It reads the file containing the "ground truth" (the known truth), extracts the machine's predictions,
-    and calculates standard classification metrics such as accuracy, precision, recall (sensitivity), and F1-score,
-    generating the confusion matrix and the list of errors (false positives/negatives).
-5. correlation_regression.py:
+3. filter.py
+    Filters a JSONL dataset by verifying if posts have a score and valid photos matching local files via SHA256 URL hashes.
+    It then exports valid records to a CSV and creates symlinks for the corresponding images to optimize disk space.
+4. trufor.py
+    Automates the execution of the TruFor forensic model on a directory of images using a subprocess.
+    It extracts the generated anomaly scores from the output .npz files and merges them into your existing CSV dataset using pandas.
+5. performance.py:
+    Evaluates TruFor's detection capabilities.
+    It generates (if needed) a ground truth CSV template for manual labeling,
+    then uses pandas to compute accuracy, precision, recall, and F1-score based on a threshold, saving a detailed report.
+
+# TO UPDATE
+6. correlation_regression.py:
     Handles the univariate statistical analysis.
     It calculates Pearson and Spearman correlations and applies
     an Ordinary Least Squares (OLS) linear regression between TruFor's visual anomaly scoresand human evaluation metrics (e.g., realism),
     saving the reports into text files.
-6. merge_metrics.py:
-    This is the data preparation script.
-    It loads the datasets containing human votes, extracts TruFor's anomaly scores from the .npz files,
-    and merges everything into a single, clean CSV file, aligning the data based on the image name.
 7. masking.py:
     Manages the visual localization of anomalies.
     It reads the maps extracted by TruFor (.npz files), binarizes them according to a specific threshold,
@@ -74,5 +72,4 @@ CODE SUMMARY:
     combines them with TruFor's visual score, and applies a multiple regression model to predict human judgment.
 
 CLEAN:
-cd /Users/lorenzo/Tirocinio/TruFor/TruFor_train_test/my_scripts
-./cleaner.sh
+TruFor/TruFor_train_test/my_scripts/cleaner.sh

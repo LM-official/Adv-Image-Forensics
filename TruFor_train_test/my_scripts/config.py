@@ -1,51 +1,51 @@
 from pathlib import Path
 
 
-# Paths
-CONFIG_FILE_PATH                = Path(__file__).resolve()
-SCRIPTS_DIR_PATH                = CONFIG_FILE_PATH.parent
-TEMP_DIR_PATH                   = SCRIPTS_DIR_PATH / "temp"
-
-
-# TruFor
-ROOT_DIR_PATH                   = SCRIPTS_DIR_PATH.parent.parent
-IMG_DIR_PATH                    = ROOT_DIR_PATH / "Trufor_train_test/images"
-NPZ_DIR_PATH                    = ROOT_DIR_PATH / "Trufor_train_test/output"
-TRUFOR_RUN_PATH                 = ROOT_DIR_PATH / "TruFor_train_test/test.py"
+# Primary directories
+# Get the current working directory
+SCRIPTS_DIR                = Path(__file__).resolve().parent
+TRUFOR_DIR                 = SCRIPTS_DIR.parent
+ROOT_DIR                   = TRUFOR_DIR.parent
+TEMP_DIR                   = SCRIPTS_DIR / "temp"
 
 
 # Dataset
-DATASET_DIR_PATH                = ROOT_DIR_PATH / "Trufor_train_test/dataset/my_dataset"
-DATASET_FILE_PATH               = DATASET_DIR_PATH / "crowdtangle.jsonl"
-DATASET_IMGS_DIR_PATH           = DATASET_DIR_PATH / "crowdtangle_media"
-FILTERED_DATASET_FILE_PATH      = DATASET_DIR_PATH / "filtered_dataset.csv"
+DATASET_DIR                = TRUFOR_DIR / "dataset/my_dataset"
+DATASET_FILE               = DATASET_DIR / "crowdtangle.jsonl"
+DATASET_IMGS_DIR           = DATASET_DIR / "crowdtangle_media"
+FILTERED_DATASET_FILE      = TEMP_DIR / "filtered_dataset.csv"
+
+
+# TruFor
+TRUFOR_RUN                 = TRUFOR_DIR / "test.py"
+IMG_DIR                    = TRUFOR_DIR / "images"
+NPZ_DIR                    = TRUFOR_DIR / "output"
 
 
 # Performance
-TRUTH_FILE_NAME                 = "truth.csv"
-PERFORMANCE_FILE_NAME           = "performance.txt"
+TRUTH_FILE                 = TEMP_DIR / "truth.csv"
 # From 0.0 to 1.0
-PERFORMANCE_THRESHOLD           = 0.8
+PERFORMANCE_THRESHOLD      = 0.5
+PERFORMANCE_FILE           = TEMP_DIR / "performance.txt"
 
-# Merged metrics
-MERGED_METRICS_FILE_NAME        = "merged_metrics.csv"
+
 
 # Correlation and regression
-CORRELATION_FILE_NAME           = "correlation_{}.txt"
-REGRESSION_FILE_NAME            = "regression_{}.txt"
+#CORRELATION_FILE_NAME           = "correlation_{}.txt"
+#REGRESSION_FILE_NAME            = "regression_{}.txt"
 
 # Mask
 # From 0.0 to 1.0
-MASK_THRESHOLD                  = 0.5
-MASKED_DIR_NAME                 = "masked/"
-BATCH_SIZE                      = 10
+#MASK_THRESHOLD                  = 0.5
+#MASKED_DIR_NAME                 = "masked/"
+#BATCH_SIZE                      = 10
 
 # Description
-MAX_DESCRIPTION_LENGTH          = 50
+#MAX_DESCRIPTION_LENGTH          = 50
 
 # Embedding regression
 # SVD (Singular Value Decomposition) components to extract from text
-SVD_COMPONENTS                  = 10
+#SVD_COMPONENTS                  = 10
 # Max number of different words (features)
-MAX_NUMBER_OF_WORDS             = 500
-MULTIMODAL_REGRESSION_FILE_NAME = "multimodal_regression_{}.txt"
+#MAX_NUMBER_OF_WORDS             = 500
+#MULTIMODAL_REGRESSION_FILE_NAME = "multimodal_regression_{}.txt"

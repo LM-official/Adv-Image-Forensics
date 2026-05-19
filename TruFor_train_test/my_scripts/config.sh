@@ -30,53 +30,43 @@ ask_remove() {
 }
 
 
-# Environment variables
-
-# My scripts directory
-# Get the directory of the current script
+# Primary directories
+# Get the current working directory
 export SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]:-$0}" )" >/dev/null 2>&1 && pwd )"
+export TRUFOR_DIR="$(dirname "$SCRIPTS_DIR")"
+export ROOT_DIR="$(dirname "$TRUFOR_DIR")"
 export TEMP_DIR="${SCRIPTS_DIR}/temp"
 
 
-# TruFor paths
-export TRUFOR_ROOT="$(dirname "$SCRIPTS_DIR")"
-export BASE_DIR="$(dirname "$TRUFOR_ROOT")"
-export IMG_DIR="${TRUFOR_ROOT}/images"
-export NPZ_DIR="${TRUFOR_ROOT}/output"
+# Venv
+export VENV_PATH="${ROOT_DIR}/.venv/bin/activate"
 
 
-# Dataset paths
+# Dataset
 export DATASET_DIR="${TRUFOR_ROOT}/dataset/my_dataset"
 export DATASET_FILE="${DATASET_DIR}/crowdtangle.jsonl"
 export DATASET_IMGS_DIR="${DATASET_DIR}/crowdtangle_media"
-export FILTERED_DATASET_FILE="filtered_dataset.csv"
+export FILTERED_DATASET_FILE="${TEMP_DIR}/filtered_dataset.csv"
 
 
-# Venv path
-export VENV_PATH="$BASE_DIR/.venv/bin/activate"
+# TruFor
+export IMG_DIR="${TRUFOR_DIR}/images"
+export NPZ_DIR="${TRUFOR_DIR}/output"
 
 
 # Performance
-export TRUTH_FILE="truth.csv"
-export PERFORMANCE_FILE="performance.txt"
+export TRUTH_FILE="${TEMP_DIR}/truth.csv"
+export PERFORMANCE_FILE="${TEMP_DIR}/performance.txt"
 
-# Merged metrics
-export MERGED_METRICS_FILE="merged_metrics.csv"
 
 # Correlation and regression
-export CORRELATION_FILE_PREFIX="correlation_"
-export REGRESSION_FILE_PREFIX="regression_"
+#export CORRELATION_FILE_PREFIX="correlation_"
+#export REGRESSION_FILE_PREFIX="regression_"
 
 # Mask
-export MASKED_DIR="masked"
+#export MASKED_DIR="masked"
 
 # Description
 
 # Multimodal regression
-export MULTIMODAL_REGRESSION_FILE_PREFIX="multimodal_regression_"
-
-
-# Dataset paths
-export GENIMAGENET_RATINGS="/Users/lorenzo/Tirocinio/GenImageNet/data/ratings"
-export CSV_ASSIGNMENT="${GENIMAGENET_RATINGS}/GenImageNet_assignmentLevel.csv"
-export CSV_IMAGE="${GENIMAGENET_RATINGS}/GenImageNet_imageLevel.csv"
+#export MULTIMODAL_REGRESSION_FILE_PREFIX="multimodal_regression_"
