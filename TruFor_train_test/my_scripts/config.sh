@@ -60,8 +60,8 @@ export PERFORMANCE_FILE="${TEMP_DIR}/performance.txt"
 
 
 # Correlation and regression
-#export CORRELATION_FILE_PREFIX="correlation_"
-#export REGRESSION_FILE_PREFIX="regression_"
+export CORRELATION_FILE="${TEMP_DIR}/correlation.txt"
+export REGRESSION_FILE="${TEMP_DIR}/regression.txt"
 
 # Mask
 #export MASKED_DIR="masked"

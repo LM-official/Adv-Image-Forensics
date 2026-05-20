@@ -25,11 +25,11 @@ ask_remove "'${TRUTH_FILE}'" "rm -f \"${TRUTH_FILE}\""
 # Remove performance file
 ask_remove "'${PERFORMANCE_FILE}'" "rm -f \"${PERFORMANCE_FILE}\""
 
-# Remove all correlation files
-#ask_remove "all '${CORRELATION_FILE_PREFIX}' files" "rm -f \"${TEMP_DIR}/${CORRELATION_FILE_PREFIX}\"*.txt(N)"
+# Remove correlation file
+ask_remove "'${CORRELATION_FILE}'" "rm -f \"${CORRELATION_FILE}\""
 
-# Remove all regression files
-#ask_remove "all '${REGRESSION_FILE_PREFIX}' files" "rm -f \"${TEMP_DIR}/${REGRESSION_FILE_PREFIX}\"*.txt(N)"
+# Remove regression file
+ask_remove "'${REGRESSION_FILE}'" "rm -f \"${REGRESSION_FILE}\""
 
 # Remove all masked images
 #ask_remove "all masked images" "rm -f \"${TEMP_DIR}/${MASKED_DIR}\"/*(N)"

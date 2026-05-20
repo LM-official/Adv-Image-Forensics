@@ -29,10 +29,9 @@ PERFORMANCE_THRESHOLD      = 0.5
 PERFORMANCE_FILE           = TEMP_DIR / "performance.txt"
 
 
-
 # Correlation and regression
-#CORRELATION_FILE_NAME           = "correlation_{}.txt"
-#REGRESSION_FILE_NAME            = "regression_{}.txt"
+CORRELATION_FILE           = TEMP_DIR / "correlation.txt"
+REGRESSION_FILE            = TEMP_DIR / "regression.txt"
 
 # Mask
 # From 0.0 to 1.0
