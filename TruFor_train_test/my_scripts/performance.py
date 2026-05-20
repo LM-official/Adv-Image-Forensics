@@ -2,58 +2,7 @@ import argparse
 from   config  import FILTERED_DATASET_FILE, PERFORMANCE_THRESHOLD, TRUTH_FILE, PERFORMANCE_FILE
 import pandas  as     pd
 from   pathlib import Path
-from   utils   import load_csv
-
-
-def save_report(metrics: dict, report: Path) -> None:
-    """
-    Generates a performance report and saves it to a text file.
-    """
-
-    if not metrics:
-        print("ERROR: No metrics to report.")
-        return None
-
-
-    print("Generating performance report...")
-    # Report
-    text = (
-        f"TruFor performance report\n"
-        f"Total files analyzed: {metrics['total']}\n"
-        f"Threshold: {metrics['threshold']:.2f}\n\n"
-        f"Accuracy  :\t{metrics['accuracy']:.2%}\t(percentage of correct predictions)\n"
-        f"Precision :\t{metrics['precision']:.2%}\t(reliability when it claims 'It is AI')\n"
-        f"Recall    :\t{metrics['recall']:.2%}\t(sensitivity, ability to detect all AI images)\n"
-        f"F1-score  :\t{metrics['f1_score']:.4f}\t(final harmonic mean)\n\n"
-        f"Confusion matrix:\n"
-        f"True positives  :\t{metrics['tp']}\n"
-        f"True negatives  :\t{metrics['tn']}\n"
-        f"False negatives :\t{metrics['fn']}\t(AI mistaken for real)\n"
-        f"False positives :\t{metrics['fp']}\t(real mistaken for AI)\n"
-    )
-
-    lines = []
-    if metrics["fn_list"]:
-        lines.append("\nList of false negatives:")
-        for filename, score in metrics["fn_list"]:
-            lines.append(f"  '{filename}', score: {score:.4f}")
-
-    if metrics["fp_list"]:
-        lines.append("\nList of false positives:")
-        for filename, score in metrics["fp_list"]:
-            lines.append(f"  '{filename}', score: {score:.4f}")
-
-    if lines:
-        text += "\n".join(lines)
-
-
-    # Save
-    # Create the output directories if they don't exist
-    report.parent.mkdir(parents=True, exist_ok=True)
-    with open(report, mode="w", encoding="utf-8") as file:
-        file.write(text)
-    print(f"Performance report saved to '{report}'.")
-    return None
+from   utils   import load_csv, save_report
 
 
 def generate_truth(dataset: Path, truth: Path) -> None:
@@ -70,9 +19,8 @@ def generate_truth(dataset: Path, truth: Path) -> None:
     print("Genetating truth template...")
     # Load dataset
     df = load_csv(dataset, ["filename"])
-    if df is None or df.empty:
-        print(f"ERROR: loading dataset '{dataset}'.")
-        return
+    if df is None:
+        return None
 
     # Create the output directories if they don't exist
     truth.parent.mkdir(parents=True, exist_ok=True)
@@ -98,8 +46,7 @@ def compute_performance(dataset: Path, truth: Path, threshold: float, performanc
 
     # Load truth
     df = load_csv(truth, ["filename", "label"])
-    if df is None or df.empty:
-        print(f"ERROR: loading truth file '{truth}'.")
+    if df is None:
         return None
     # Validate labels must all be 0 or 1
     invalid = ~df["label"].isin([0, 1])
@@ -110,8 +57,7 @@ def compute_performance(dataset: Path, truth: Path, threshold: float, performanc
 
     # Load scores
     df_score = load_csv(dataset, ["filename", "trufor_score"])
-    if df_score is None or df_score.empty:
-        print(f"ERROR: No valid data to analyze.")
+    if df_score is None:
         return None
     
 
@@ -135,8 +81,8 @@ def compute_performance(dataset: Path, truth: Path, threshold: float, performanc
     fn = int(((df["label"] == 1) & (df["prediction"] == 0)).sum())   # false negatives (AI -> mistakenly passed as real)
     
     # Build fp/fn lists
-    fp_mask = (df["label"] == 0) & (df["prediction"] == 1)
-    fn_mask = (df["label"] == 1) & (df["prediction"] == 0)
+    fp_list = df.loc[(df["label"] == 0) & (df["prediction"] == 1), ["filename", "trufor_score"]].values.tolist()
+    fn_list = df.loc[(df["label"] == 1) & (df["prediction"] == 0), ["filename", "trufor_score"]].values.tolist()
 
     """
     accuracy:
@@ -178,25 +124,42 @@ def compute_performance(dataset: Path, truth: Path, threshold: float, performanc
 
     print("Performance metrics computed successfully.")
 
-    report = {
-        "total":     len(df),
-        "threshold": threshold,
-        "tp": tp, "tn": tn, "fp": fp, "fn": fn,
-        "accuracy":  accuracy,
-        "precision": precision,
-        "recall":    recall,
-        "f1_score":  f1_score,
-        "fp_list":   df.loc[fp_mask, ["filename", "trufor_score"]].values.tolist(),
-        "fn_list":   df.loc[fn_mask, ["filename", "trufor_score"]].values.tolist(),
-    }
+    # Report
+    report = (
+        f"TruFor performance report\n"
+        f"Total files analyzed: {len(df)}\n"
+        f"Threshold: {threshold:.2f}\n\n"
+        f"Accuracy  :\t{accuracy:.2%}\t(percentage of correct predictions)\n"
+        f"Precision :\t{precision:.2%}\t(reliability when it claims 'It is AI')\n"
+        f"Recall    :\t{recall:.2%}\t(sensitivity, ability to detect all AI images)\n"
+        f"F1-score  :\t{f1_score:.4f}\t(final harmonic mean)\n\n"
+        f"Confusion matrix:\n"
+        f"True positives  :\t{tp}\n"
+        f"True negatives  :\t{tn}\n"
+        f"False positives :\t{fp}\t(real mistaken for AI)\n"
+        f"False negatives :\t{fn}\t(AI mistaken for real)\n"
+    )
 
+    lines = []
+    if fp_list:
+        lines.append("\nList of false positives:")
+        for filename, score in fp_list:
+            lines.append(f"  '{filename}', score: {score:.4f}")
+    if fn_list:
+        lines.append("\nList of false negatives:")
+        for filename, score in fn_list:
+            lines.append(f"  '{filename}', score: {score:.4f}")
+    if lines:
+        report += "\n".join(lines)
+
+    # Save
     save_report(report, performance)
     return None
 
 
 def main() -> None:
     # Initialize the argument parser
-    parser = argparse.ArgumentParser(description = "Compute performance metrics of TruFor results.")
+    parser = argparse.ArgumentParser(description="Compute performance metrics of TruFor results.")
 
     # Flags
     parser.add_argument("--dataset",        type=Path,  default=FILTERED_DATASET_FILE, help=f"Path to the dataset file. Default: '{FILTERED_DATASET_FILE}'")

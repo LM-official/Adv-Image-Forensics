@@ -33,7 +33,8 @@ def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> list[Path] | N
         # Reject the entire post if ANY media item is not a photo
         if item.get("type") != "photo":
             return None
-        if not (image_url := item.get("full")):
+        image_url = item.get("full")
+        if not image_url:
             return None
 
         # Hash the URL to find the corresponding file
@@ -50,31 +51,31 @@ def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> list[Path] | N
     return images
 
 
-def build_hash_map(images_dir: Path) -> dict[str, list[Path]] | None:
+def build_hash_map(images: Path) -> dict[str, list[Path]] | None:
     """
     Scans the images directory and returns a dictionary mapping each filename stem (hash) to the list of matching file paths.
     """
 
-    if not images_dir.is_dir():
-        print(f"ERROR: images directory '{images_dir}' not found.")
+    if not images.is_dir():
+        print(f"ERROR: images directory '{images}' not found.")
         return None
 
 
     hash_map = {}
-    for image in images_dir.iterdir():
+    for image in images.iterdir():
         if image.is_file():
             hash_map.setdefault(image.stem, []).append(image)
     return hash_map
 
 
-def filter_jsonl(dataset_path: Path, dataset_images: Path, output_csv: Path, output_images: Path) -> None:
+def filter_jsonl(dataset: Path, dataset_images: Path, output_csv: Path, output_images: Path) -> None:
     """
     Filters the JSONL dataset based on the specified criteria and saves the filtered records to a new CSV file.
     It also creates symlinks for the valid images in the output directory.
     """
 
-    if not dataset_path.is_file() or not dataset_images.is_dir():
-        print(f"ERROR: dataset '{dataset_path}' or images directory '{dataset_images}' not found.")
+    if not dataset.is_file() or not dataset_images.is_dir():
+        print(f"ERROR: dataset '{dataset}' or images directory '{dataset_images}' not found.")
         return None
 
 
@@ -98,7 +99,7 @@ def filter_jsonl(dataset_path: Path, dataset_images: Path, output_csv: Path, out
     print("Filtering dataset...")
     try:
         # buffering=1<<16 (64KB) reduces the number of disk writes significantly on large outputs compared to the default line-by-line flushing
-        with open(dataset_path, mode="r", encoding="utf-8") as input, \
+        with open(dataset, mode="r", encoding="utf-8") as input, \
              open(output_csv, mode="w", encoding="utf-8", newline="", buffering=1 << 16) as output:
 
             # Define the CSV columns

@@ -27,7 +27,7 @@ ask_execute "generate truth file and performance report" "python \"${SCRIPTS_DIR
 ask_execute "performance report" "python \"${SCRIPTS_DIR}/performance.py\""
 
 # Correlation and regression
-ask_execute "correlation and regression evaluation" "python \"${SCRIPTS_DIR}/correlation_regression.py\""
+ask_execute "correlation and regression" "python \"${SCRIPTS_DIR}/correlation_regression.py\""
 
 # Masking image manipulation
 #ask_execute "masking manipulated areas" "python masking.py"

@@ -51,13 +51,11 @@ CODE SUMMARY:
     Evaluates TruFor's detection capabilities.
     It generates (if needed) a ground truth CSV template for manual labeling,
     then uses pandas to compute accuracy, precision, recall, and F1-score based on a threshold, saving a detailed report.
-
-# TO UPDATE
 6. correlation_regression.py:
-    Handles the univariate statistical analysis.
-    It calculates Pearson and Spearman correlations and applies
-    an Ordinary Least Squares (OLS) linear regression between TruFor's visual anomaly scoresand human evaluation metrics (e.g., realism),
-    saving the reports into text files.
+    Snalyzes the relationship between TruFor anomaly scores and Crowdtangle scores.
+    It uses scipy for Pearson and Spearman correlations, and statsmodels for Ordinary Least Squares (OLS) linear regression, exporting detailed text reports.
+    
+# TO UPDATE
 7. masking.py:
     Manages the visual localization of anomalies.
     It reads the maps extracted by TruFor (.npz files), binarizes them according to a specific threshold,

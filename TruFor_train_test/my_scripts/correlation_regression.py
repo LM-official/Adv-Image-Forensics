@@ -3,7 +3,7 @@ from   config          import FILTERED_DATASET_FILE, CORRELATION_FILE, REGRESSIO
 from   pathlib         import Path
 from   scipy.stats     import pearsonr, spearmanr
 import statsmodels.api as     sm
-from   utils           import load_csv
+from   utils           import load_csv, save_report
 
 
 def compute_correlations(dataset: Path, correlation: Path) -> None:
@@ -17,18 +17,15 @@ def compute_correlations(dataset: Path, correlation: Path) -> None:
     # Load dataset
     df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
     if df is None:
-        print(f"ERROR: Failed to load values from dataset.")
         return None
-    # Drop NaN values
-    df = df.dropna()
     # Pearson requires at least 2 unique values in each variable to compute correlation, otherwise it will return NaN.
-    if df.empty or df["trufor_score"].nunique() <= 1 or df["crowdtangle_score"].nunique() <= 1:
+    if df["trufor_score"].nunique() <= 1 or df["crowdtangle_score"].nunique() <= 1:
         print("ERROR: Not enough valid data points after dropping NaN values or insufficient variability in the data.")
         return None
 
     
     # Correlation
-    print(f"Calculating correlation between TruFor score and Crowdtangle score...")
+    print(f"Calculating correlation between TruFor scores and Crowdtangle scores...")
     
     """
     Pearson Correlation: Measures linearity. It asks, 'Do these data points form a perfectly straight line?'
@@ -43,22 +40,19 @@ def compute_correlations(dataset: Path, correlation: Path) -> None:
     """
     # Spearman correlation (measures monotonic relationship / rank-based)
     spearman_corr, p_value_s = spearmanr(df["trufor_score"], df["crowdtangle_score"])
+    print(f"Correlation calculated successfully.")
     
 
     # Report
-    text = (
-        "Correlation analysis between TruFor score and Crowdtangle score:\n"
+    report = (
+        "Correlation analysis between TruFor scores and Crowdtangle scores:\n"
         f"Rows analyzed: {len(df)}\n"
         f"Pearson correlation: {pearson_corr:.3f} (p-value: {p_value_p:.3e})\n"
         f"Spearman correlation: {spearman_corr:.3f} (p-value: {p_value_s:.3e})"
     )
 
     # Save
-    # Create output directory if it doesn"t exist
-    correlation.parent.mkdir(parents=True, exist_ok=True)
-    with open(correlation, mode="w", encoding="utf-8") as file:
-        file.write(text)
-    print(f"Correlation calculated successfully.")
+    save_report(report, correlation)
     return None
 
 
@@ -73,16 +67,14 @@ def compute_regression(dataset: Path, regression: Path) -> None:
     # Load dataset
     df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
     if df is None:
-        print(f"ERROR: Failed to load values from dataset.")
         return None
-    df = df.dropna()
-    if df.empty or df["trufor_score"].nunique() <= 1 or df["crowdtangle_score"].nunique() <= 1:
+    if df["trufor_score"].nunique() <= 1 or df["crowdtangle_score"].nunique() <= 1:
         print("ERROR: Not enough valid data points or insufficient variability in the data.")
         return None
 
 
     # Regression
-    print("Calculating regression between TruFor Score and Crowdtangle score...")
+    print("Calculating regression between TruFor Scores and Crowdtangle scores...")
     
     # Independent variable (X): What we use to predict
     X = df["trufor_score"]
@@ -109,33 +101,29 @@ def compute_regression(dataset: Path, regression: Path) -> None:
     """
     # Define and fit the Ordinary Least Squares (OLS) model
     model = sm.OLS(Y, X).fit()
+    print(f"Regression calculated successfully.")
     
 
     # Report
-    text = (
-        "Regression analysis between TruFor Score and Crowdtangle Score:\n"
+    report = (
+        "Regression analysis between TruFor scores and Crowdtangle scores:\n"
         f"{model.summary().as_text()}"
     )
 
-
     # Save
-    # Create output directory if it doesn"t exist
-    regression.parent.mkdir(parents=True, exist_ok=True)
-    with open(regression, mode="w", encoding="utf-8") as file:
-        file.write(text)
+    save_report(report, regression)
 
-    print(f"Regression calculated successfully.")
     return None
 
 
 def main() -> None:
     # Initialize the argument parser
-    parser = argparse.ArgumentParser(description = "Compute performance dataset of TruFor results.")
+    parser = argparse.ArgumentParser(description="Compute correlation and regression between TruFor scores and Crowdtangle scores.")
 
     # Flags
     parser.add_argument("--dataset",     type=Path, default=FILTERED_DATASET_FILE, help=f"Path to the dataset file. Default: '{FILTERED_DATASET_FILE}'")
-    parser.add_argument("--correlation", type=Path, default=CORRELATION_FILE,      help=f"Path to save the correlation report. Default: '{CORRELATION_FILE}'")
-    parser.add_argument("--regression",  type=Path, default=REGRESSION_FILE,       help=f"Path to save the regression report. Default: '{REGRESSION_FILE}'")
+    parser.add_argument("--correlation", type=Path, default=CORRELATION_FILE,      help=f"Path to text file to save the correlation report. Default: '{CORRELATION_FILE}'")
+    parser.add_argument("--regression",  type=Path, default=REGRESSION_FILE,       help=f"Path to text file to save the regression report. Default: '{REGRESSION_FILE}'")
     args = parser.parse_args()
 
 

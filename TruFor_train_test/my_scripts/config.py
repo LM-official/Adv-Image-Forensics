@@ -33,18 +33,15 @@ PERFORMANCE_FILE           = TEMP_DIR / "performance.txt"
 CORRELATION_FILE           = TEMP_DIR / "correlation.txt"
 REGRESSION_FILE            = TEMP_DIR / "regression.txt"
 
+
 # Mask
 # From 0.0 to 1.0
-#MASK_THRESHOLD                  = 0.5
-#MASKED_DIR_NAME                 = "masked/"
-#BATCH_SIZE                      = 10
-
-# Description
-#MAX_DESCRIPTION_LENGTH          = 50
-
-# Embedding regression
-# SVD (Singular Value Decomposition) components to extract from text
-#SVD_COMPONENTS                  = 10
-# Max number of different words (features)
-#MAX_NUMBER_OF_WORDS             = 500
-#MULTIMODAL_REGRESSION_FILE_NAME = "multimodal_regression_{}.txt"
+MASK_THRESHOLD             = 0.5
+MASKED_DIR                 = TEMP_DIR / "masked"
+BATCH_SIZE                 = 10
+# Anomaly description
+MAX_DESCRIPTION_LENGTH     = 50
+# Multimodal regression
+SVD_COMPONENTS             = 10
+MAX_NUMBER_OF_WORDS        = 500
+MULTIMODAL_REGRESSION_FILE = TEMP_DIR / "multimodal_regression.txt"
