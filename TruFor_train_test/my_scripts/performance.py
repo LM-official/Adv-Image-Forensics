@@ -16,7 +16,7 @@ def generate_truth(dataset: Path, truth: Path) -> None:
         return None
 
 
-    print("Genetating truth template...")
+    print("Generating truth template...")
     # Load dataset
     df = load_csv(dataset, ["filename"])
     if df is None:
@@ -64,7 +64,7 @@ def compute_performance(dataset: Path, truth: Path, threshold: float, performanc
     # Merge
     df = pd.merge(df, df_score, on="filename", how="inner")
     if df is None or df.empty:
-        print(f"ERROR: No valid data after merging scores and truth.")
+        print("ERROR: No valid data after merging scores and truth.")
         return None
 
 
@@ -104,7 +104,7 @@ def compute_performance(dataset: Path, truth: Path, threshold: float, performanc
 
     """
     recall (sensitivity):
-    Measures the model"s ability to discover all actual positive instances.
+    Measures the model's ability to discover all actual positive instances.
     'Out of all the true positive cases in the dataset, how many did the model successfully find?'
     A high recall indicates a low rate of false negatives (missed detections).
     """
@@ -165,7 +165,7 @@ def main() -> None:
     parser.add_argument("--dataset",        type=Path,  default=FILTERED_DATASET_FILE, help=f"Path to the dataset file. Default: '{FILTERED_DATASET_FILE}'")
     parser.add_argument("--threshold",      type=float, default=PERFORMANCE_THRESHOLD, help=f"Threshold for classifying an image as AI. Range: 0.0 to 1.0. Default: '{PERFORMANCE_THRESHOLD}'.")
     parser.add_argument("--truth",          type=Path,  default=TRUTH_FILE,            help=f"Path to the truth CSV file (filename, label). Default: '{TRUTH_FILE}'")
-    parser.add_argument("--generate_truth", action="store_true",                       help=f"Generate an empty truth template CSV. Default: '{TRUTH_FILE}'")
+    parser.add_argument("--generate-truth", action="store_true",                       help=f"Generate an empty truth template CSV. Default: '{TRUTH_FILE}'")
     parser.add_argument("--performance",    type=Path,  default=PERFORMANCE_FILE,      help=f"Output performance file path. Default: '{PERFORMANCE_FILE}'")
     args = parser.parse_args()
 

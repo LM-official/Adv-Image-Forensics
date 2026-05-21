@@ -1,11 +1,37 @@
-import numpy   as np
+from   config  import NPZ_COLS
+import numpy   as     np
 import pandas  as     pd
 from   pathlib import Path
 
 
+def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | None = None) -> None:
+    """
+    Merges a DataFrame into the dataset CSV and saves it back to the same file.
+    Merges on the 'filename' column.
+
+    Args:
+        dataset: Path to the dataset CSV file.
+        data:    DataFrame to merge into the dataset.
+        rename:  Optional mapping to rename columns before merging.
+    """
+
+    df = load_csv(dataset)
+    if df is None:
+        return None
+    
+
+    # Update
+    print(f"Updating dataset '{dataset}'...")
+    if rename:
+        data = data.rename(columns=rename)
+    df = pd.merge(df, data, on="filename", how="inner")
+    df.to_csv(dataset, index=False, encoding="utf-8")
+    print("Dataset updated successfully.")
+
+
 def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None:
     """
-    Loads the target columns from a csv file. If columns is None, loads all columns.ù
+    Loads the target columns from a csv file. If columns is None, loads all columns.
     
     By default loads all columns.
     """
@@ -31,42 +57,65 @@ def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None
 
 def load_npz(npz: Path, columns: set[str]) -> pd.DataFrame | None:
     """
-    Loads the target columns from all .npz files in a directory.
-    Each row corresponds to one .npz file, with the filename (without extensions) as an additional column.
+    Loads the target columns from a .npz file.
     Columns can be "map", "imgsize", "score", "conf".
+    Args:
+        npz:     Path to the .npz file.
+        columns: Set of column names to extract.
+    Returns:
+        A single-row DataFrame with the requested columns, or None on failure.
     """
-
-    VALID_COLS = frozenset(("map", "imgsize", "score", "conf"))
-    if not npz.is_dir() or not columns or any(col not in VALID_COLS for col in columns):
-        print(f"ERROR: '{npz}' is not a valid directory or columns are invalid. Expected columns: {VALID_COLS}")
+    if not npz.is_file() or not columns or any(col not in NPZ_COLS for col in columns):
+        print(f"ERROR: Invalid .npz file or columns {columns}. Expected a non-empty subset of: {NPZ_COLS}")
         return None
 
 
     columns = sorted(columns)
-    # Extract values from .npz files
-    print(f"Extracting values from .npz files in '{npz}'...")
-    result = []
-    for item in npz.glob("*.npz"):
-        try:
-            # Use context manager to ensure the file is properly closed after reading
-            with np.load(item) as data:
-                # .stem.stem removes the 2 extensions e.g. '.jpg.npz'
-                row = {"filename": Path(item.stem).stem}
+    # Extract values
+    try:
+        # Use context manager to ensure the file is properly closed after reading
+        with np.load(npz) as data:
+            result = {}
+            for col in columns:
+                value = data[col]
+                result[col] = float(value) if value.ndim == 0 else value.tolist()
+        return pd.DataFrame([result])
+    except Exception as e:
+        print(f"ERROR: reading '{npz}': {e}")
+        return None
 
-                # Load only the necessary columns
-                for col in columns:
-                    value = data[col]
-                    # Scalar values (score) -> float, arrays (map, conf, imgsize) -> list
-                    row[col] = float(value) if value.ndim == 0 else value.tolist()
-                result.append(row)
-        except Exception as e:
-            print(f"ERROR: reading '{item}': {e}")
-            continue
+
+def load_npzs(npzs: Path, columns: set[str]) -> pd.DataFrame | None:
+    """
+    Loads the target columns from all .npz files in a directory.
+    Each row corresponds to one .npz file, with the filename (without extension) as an additional column.
+    Columns can be "map", "imgsize", "score", "conf".
+    Args:
+        npzs:    Path to the directory containing .npz files.
+        columns: Set of column names to extract.
+    Returns:
+        A DataFrame where each row is one .npz file, or None on failure.
+    """
+
+    if not npzs.is_dir():
+        print(f"ERROR: Invalid directory '{npzs}'.")
+        return None
+
+    # Extracting values
+    print(f"Extracting values from .npz files in '{npzs}'...")
+    result = []
+    for item in npzs.glob("*.npz"):
+        df = load_npz(item, columns)
+        if df is not None:
+            # .stem.stem removes the 2 extensions e.g. '.jpg.npz'
+            row = {"filename": Path(item.stem).stem, **df.iloc[0].to_dict()}
+            result.append(row)
 
     if not result:
-        print(f"ERROR: No valid .npz files found in '{npz}'.")
+        print(f"ERROR: No valid .npz files found in '{npzs}'.")
         return None
-    print(f"Values extracted successfully.")
+
+    print(f"Values extracted successfully from '{npzs}'.")
     return pd.DataFrame(result)
 
 

@@ -52,22 +52,16 @@ CODE SUMMARY:
     It generates (if needed) a ground truth CSV template for manual labeling,
     then uses pandas to compute accuracy, precision, recall, and F1-score based on a threshold, saving a detailed report.
 6. correlation_regression.py:
-    Snalyzes the relationship between TruFor anomaly scores and Crowdtangle scores.
+    Analyzes the relationship between TruFor anomaly scores and Crowdtangle scores.
     It uses scipy for Pearson and Spearman correlations, and statsmodels for Ordinary Least Squares (OLS) linear regression, exporting detailed text reports.
-    
-# TO UPDATE
-7. masking.py:
-    Manages the visual localization of anomalies.
-    It reads the maps extracted by TruFor (.npz files), binarizes them according to a specific threshold,
-    and applies this mask to the original image using OpenCV, saving an image where only the manipulated part is visible against a black background.
-8. image_to_text.py:
-    Implements the Hugging Face BLIP vision-language model.
-    It analyzes the masked images in batches to automatically generate textual descriptions (captions) of the altered areas
-    and merges these texts into the metrics CSV file.
-9. multimodal_regression.py:
-    Performs advanced multimodal statistical analysis.
-    It uses NLP algorithms (TF-IDF and truncated SVD) to transform the textual descriptions of the anomalies into numerical variables,
-    combines them with TruFor's visual score, and applies a multiple regression model to predict human judgment.
+7. anomaly_regression.py:
+    Runs a three-step multimodal pipeline (each step can be skipped via --skip-mask / --skip-describe / --skip-regression):
+    - Step 1 (masking): reads the anomaly maps from TruFor's .npz files, binarizes them at a threshold,
+      and uses OpenCV to keep only the manipulated region of each original image, saving the result as a compressed PNG.
+    - Step 2 (description): loads the Hugging Face BLIP vision-language model and captions the masked images in batches,
+      merging the generated textual descriptions of the altered areas into the dataset CSV.
+    - Step 3 (regression): turns the descriptions into numerical features with TF-IDF (optionally compressed with truncated SVD,
+      toggled by --no-svd), combines them with TruFor's visual score, and fits an OLS regression to predict the Crowdtangle score.
 
 CLEAN:
 TruFor/TruFor_train_test/my_scripts/cleaner.sh

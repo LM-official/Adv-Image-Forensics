@@ -20,23 +20,17 @@ echo " - Python virtual environment activated."
 ask_execute "dataset filtering" "python \"${SCRIPTS_DIR}/filter.py\""
 
 # Run TruFor and update dataset
-ask_execute "TruFor and update dataset" "python \"${SCRIPTS_DIR}/Trufor.py\""
+ask_execute "TruFor and update dataset" "python \"${SCRIPTS_DIR}/trufor.py\""
 
 # Performance report
-ask_execute "generate truth file and performance report" "python \"${SCRIPTS_DIR}/performance.py\" --generate_truth"
-ask_execute "performance report" "python \"${SCRIPTS_DIR}/performance.py\""
+ask_execute "generate truth file and performance report" "python \"${SCRIPTS_DIR}/performance.py\" --generate-truth"
+# ask_execute "performance report" "python \"${SCRIPTS_DIR}/performance.py\""
 
 # Correlation and regression
 ask_execute "correlation and regression" "python \"${SCRIPTS_DIR}/correlation_regression.py\""
 
-# Masking image manipulation
-#ask_execute "masking manipulated areas" "python masking.py"
-
-# Generate description
-#ask_execute "image description" "python image_to_text.py"
-
-# Multimodal regression
-#ask_execute "multimodal regression" "python multimodal_regression.py --metric \"realismScore\""
+# Masking - generating descriptions - anomaly regression
+ask_execute "anomaly regression" "python \"${SCRIPTS_DIR}/anomaly_regression.py\""
 
 
 # Deactivate the python virtual environment

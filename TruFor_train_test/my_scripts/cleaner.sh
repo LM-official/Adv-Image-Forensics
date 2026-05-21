@@ -32,17 +32,15 @@ ask_remove "'${CORRELATION_FILE}'" "rm -f \"${CORRELATION_FILE}\""
 ask_remove "'${REGRESSION_FILE}'" "rm -f \"${REGRESSION_FILE}\""
 
 # Remove all masked images
-#ask_remove "all masked images" "rm -f \"${TEMP_DIR}/${MASKED_DIR}\"/*(N)"
+ask_remove "all masked images" "rm -rf \"${MASKED_DIR}\"/*(N)"
 
-# Remove merged metrics file
-#ask_remove "'${MERGED_METRICS_FILE}'" "rm -f \"${TEMP_DIR}/${MERGED_METRICS_FILE}\""
+# Remove anomaly regression file
+ask_remove "'${ANOMALY_REGRESSION_FILE}'" "rm -f \"${ANOMALY_REGRESSION_FILE}\""
 
-# Remove multimodal regression files
-#ask_remove "all '${MULTIMODAL_REGRESSION_FILE_PREFIX}' files" "rm -f \"${TEMP_DIR}/${MULTIMODAL_REGRESSION_FILE_PREFIX}\"*.txt(N)"
 
 # Cache cleanup
-#ask_remove "Python cache" "rm -rf \"${SCRIPTS_DIR}\"/__pycache__"
-#ask_remove "Hugging Face cache" "rm -rf \"${HOME}\"/.cache/huggingface"
+ask_remove "Python cache" "rm -rf \"${SCRIPTS_DIR}\"/__pycache__"
+ask_remove "Hugging Face cache" "rm -rf \"${HOME}\"/.cache/huggingface"
 
 
 echo "Cleanup completed."

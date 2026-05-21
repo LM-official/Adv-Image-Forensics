@@ -21,7 +21,7 @@ def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> list[Path] | N
 
     # Must have a score
     if data.get("score") is None:
-        return
+        return None
 
     # Must have at least one media item
     media = data.get("media")
@@ -51,7 +51,7 @@ def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> list[Path] | N
     return images
 
 
-def build_hash_map(images: Path) -> dict[str, list[Path]] | None:
+def _build_hash_map(images: Path) -> dict[str, list[Path]] | None:
     """
     Scans the images directory and returns a dictionary mapping each filename stem (hash) to the list of matching file paths.
     """
@@ -81,7 +81,7 @@ def filter_jsonl(dataset: Path, dataset_images: Path, output_csv: Path, output_i
 
     # Build the hash map
     print("Indexing images directory...")
-    hash_map = build_hash_map(dataset_images)
+    hash_map = _build_hash_map(dataset_images)
     if hash_map is None:
         return None
 
@@ -148,9 +148,9 @@ def main() -> None:
 
     # Flags
     parser.add_argument("--dataset",        type=Path, default=DATASET_FILE,          help=f"Input dataset file path. Default: '{DATASET_FILE}'")
-    parser.add_argument("--dataset_images", type=Path, default=DATASET_IMGS_DIR,      help=f"Directory path where the dataset images are stored. Default: '{DATASET_IMGS_DIR}'")
-    parser.add_argument("--output_csv",     type=Path, default=FILTERED_DATASET_FILE, help=f"Output file path for csv. Default: '{FILTERED_DATASET_FILE}'")
-    parser.add_argument("--output_images",  type=Path, default=IMG_DIR,               help=f"Output directory path for the images. Default: '{IMG_DIR}'")
+    parser.add_argument("--dataset-images", type=Path, default=DATASET_IMGS_DIR,      help=f"Directory path where the dataset images are stored. Default: '{DATASET_IMGS_DIR}'")
+    parser.add_argument("--output-csv",     type=Path, default=FILTERED_DATASET_FILE, help=f"Output file path for csv. Default: '{FILTERED_DATASET_FILE}'")
+    parser.add_argument("--output-images",  type=Path, default=IMG_DIR,               help=f"Output directory path for the images. Default: '{IMG_DIR}'")
     args = parser.parse_args()
 
     # Process dataset

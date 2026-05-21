@@ -43,7 +43,7 @@ export VENV_PATH="${ROOT_DIR}/.venv/bin/activate"
 
 
 # Dataset
-export DATASET_DIR="${TRUFOR_ROOT}/dataset/my_dataset"
+export DATASET_DIR="${TRUFOR_DIR}/dataset/my_dataset"
 export DATASET_FILE="${DATASET_DIR}/crowdtangle.jsonl"
 export DATASET_IMGS_DIR="${DATASET_DIR}/crowdtangle_media"
 export FILTERED_DATASET_FILE="${TEMP_DIR}/filtered_dataset.csv"
@@ -63,10 +63,8 @@ export PERFORMANCE_FILE="${TEMP_DIR}/performance.txt"
 export CORRELATION_FILE="${TEMP_DIR}/correlation.txt"
 export REGRESSION_FILE="${TEMP_DIR}/regression.txt"
 
+
 # Mask
-#export MASKED_DIR="masked"
-
-# Description
-
+export MASKED_DIR="${TEMP_DIR}/masked"
 # Multimodal regression
-#export MULTIMODAL_REGRESSION_FILE_PREFIX="multimodal_regression_"
+export ANOMALY_REGRESSION_FILE="${TEMP_DIR}/anomaly_regression.txt"
