@@ -1,5 +1,5 @@
 import argparse
-from   config     import IMG_DIR, NPZ_DIR, TRUFOR_RUN, FILTERED_DATASET_FILE
+from   config     import IMGS_DIR, NPZ_DIR, TRUFOR_RUN, FILTERED_DATASET_FILE
 from   pathlib    import Path
 import subprocess
 import sys
@@ -9,6 +9,14 @@ from   utils      import load_npzs, update_dataset
 def run_trufor(images: Path, npz: Path, trufor_run: Path) -> bool:
     """
     Runs TruFor on the specified input and output directories.
+
+    Args:
+        images:     Directory containing the input images to analyze.
+        npz:        Directory where the resulting .npz files will be saved.
+        trufor_run: Path to the TruFor entry-point script (test.py).
+
+    Returns:
+        True if TruFor completed successfully, False otherwise (invalid paths or subprocess error).
     """
 
     if not images.is_dir() or not npz.is_dir() or not trufor_run.is_file():
@@ -44,11 +52,21 @@ def run_trufor(images: Path, npz: Path, trufor_run: Path) -> bool:
 
 
 def main() -> None:
+    """
+    Runs TruFor on the input images and updates the dataset CSV with the resulting scores.
+
+    Args:
+        None (arguments are read from the command line via argparse).
+
+    Returns:
+        None.
+    """
+    
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Run TruFor and update dataset with scores")
 
     # Flags
-    parser.add_argument("--images",     type=Path, default=IMG_DIR,               help=f"Directory path where the images are stored. Default: '{IMG_DIR}'")
+    parser.add_argument("--images",     type=Path, default=IMGS_DIR,               help=f"Directory path where the images are stored. Default: '{IMGS_DIR}'")
     parser.add_argument("--npz",        type=Path, default=NPZ_DIR,               help=f"Directory path where the npz files will be saved. Default: '{NPZ_DIR}'")
     parser.add_argument("--trufor-run", type=Path, default=TRUFOR_RUN,            help=f"Path to the TruFor run file. Default: '{TRUFOR_RUN}'")
     parser.add_argument("--dataset",    type=Path, default=FILTERED_DATASET_FILE, help=f"Path to the dataset file. Default: '{FILTERED_DATASET_FILE}'")

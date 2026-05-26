@@ -1,5 +1,5 @@
 import argparse
-from   config                          import (IMG_DIR, NPZ_DIR, MASK_THRESHOLD, MASKED_DIR,
+from   config                          import (IMGS_DIR, NPZ_DIR, MASK_THRESHOLD, MASKED_DIR,
                                                BATCH_SIZE, MAX_DESCRIPTION_TOKENS, FILTERED_DATASET_FILE,
                                                MAX_NUMBER_OF_WORDS, SVD_COMPONENTS, ANOMALY_REGRESSION_FILE)
 import cv2
@@ -18,11 +18,20 @@ from   utils                           import load_npz, update_dataset, load_csv
 # Step 1: masking
 def mask_images(images: Path, npz: Path, threshold: float, masked: Path) -> None:
     """
-    Creates a masked image for every .npz file in npz_dir, using the matching original image in images.
-    Masked images are saved as PNG in masked.
+    Creates a masked image for every .npz file in `npz`, using the matching original image in `images`.
+    Masked images are saved as PNG in `masked`.
 
-    PNG is used because it is lossless AND, being mostly black (only the manipulated
-    region is visible), it compresses extremely well: this keeps the masks folder small on disk.
+    PNG is used because it is lossless AND, being mostly black (only the manipulated region is visible),
+    it compresses well: this keeps the masks folder small on disk.
+
+    Args:
+        images:    Directory containing the original input images.
+        npz:       Directory containing the TruFor .npz files with the anomaly maps.
+        threshold: Binarization threshold in [0.0, 1.0] applied to the anomaly map.
+        masked:    Output directory where the masked PNG images are saved.
+
+    Returns:
+        None.
     """
 
     if not images.is_dir() or not npz.is_dir():
@@ -79,6 +88,12 @@ def mask_images(images: Path, npz: Path, threshold: float, masked: Path) -> None
 def load_blip() -> tuple[BlipProcessor, BlipForConditionalGeneration, torch.device] | None:
     """
     Loads the Hugging Face BLIP processor and model for image captioning.
+
+    Args:
+        None.
+
+    Returns:
+        A tuple (processor, model, device) ready for inference, or None if loading failed.
     """
 
     print("Loading Hugging Face model (BLIP)...")
@@ -105,10 +120,19 @@ def load_blip() -> tuple[BlipProcessor, BlipForConditionalGeneration, torch.devi
         return None
 
 
-def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGeneration, device: torch.device, batch: list[Path], max_length: int) -> list[tuple[str, str]] | None:
+def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGeneration, device: torch.device, batch: list[Path], max_token: int) -> list[tuple[str, str]] | None:
     """
     Passes a batch of masked images to the BLIP model to get textual descriptions of the manipulated area.
-    Returns a list of tuples containing the image filename stem and its generated description.
+
+    Args:
+        processor:  BLIP processor used to prepare the images for the model.
+        model:      BLIP model that generates the captions.
+        device:     Torch device on which the model and inputs live (cpu, cuda or mps).
+        batch:      List of paths to the masked images in the current batch.
+        max_token:  Maximum number of tokens in each generated description.
+
+    Returns:
+        A list of (filename_stem, description) tuples, or None on failure or empty batch.
     """
 
     if not batch:
@@ -136,7 +160,7 @@ def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGe
         # Process the entire batch of images and move the input tensors to the model's device
         inputs = processor(images=loads, return_tensors="pt").to(device)
         # Generate the predictions
-        out = model.generate(**inputs, max_new_tokens=max_length)
+        out = model.generate(**inputs, max_new_tokens=max_token)
 
         # Decode the output tensors into a list of readable text strings
         batch_descriptions = processor.batch_decode(out, skip_special_tokens=True)
@@ -147,12 +171,24 @@ def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGe
         return None
 
 
-def describe_images(processor: BlipProcessor, model: BlipForConditionalGeneration, device: torch.device, masked: Path, batch_size: int, max_length: int, dataset: Path) -> None:
+def describe_images(processor: BlipProcessor, model: BlipForConditionalGeneration, device: torch.device, masked: Path, batch_size: int, max_token: int, dataset: Path) -> None:
     """
     Iterates over all masked images in masked_dir in chunks (batches) and generates textual descriptions.
+
+    Args:
+        processor:  BLIP processor used to prepare the images for the model.
+        model:      BLIP model that generates the captions.
+        device:     Torch device on which the model and inputs live (cpu, cuda or mps).
+        masked:     Directory containing the masked images to describe.
+        batch_size: Number of images processed simultaneously per batch.
+        max_token:  Maximum number of tokens in each generated description.
+        dataset:    Path to the dataset CSV to merge the descriptions into.
+
+    Returns:
+        None.
     """
 
-    if not masked.is_dir() or batch_size <= 0 or max_length <= 0:
+    if not masked.is_dir() or batch_size <= 0 or max_token <= 0:
         print(f"ERROR: '{masked}' is not a valid directory or batch size is not positive.")
         return None
 
@@ -173,7 +209,7 @@ def describe_images(processor: BlipProcessor, model: BlipForConditionalGeneratio
         print(f"Processing batch {i // batch_size + 1}/{(len_images + batch_size - 1) // batch_size}...", end="\r")
 
         # Generate the descriptions for the batch
-        batch_results = _describe_images_batch(processor, model, device, batch, max_length)
+        batch_results = _describe_images_batch(processor, model, device, batch, max_token)
         if not batch_results:
             print(f"WARNING: No descriptions generated for batch {i // batch_size + 1}.")
             continue
@@ -190,9 +226,18 @@ def extract_text_features(descriptions: pd.Series, max_words: int, svd_component
     Converts the text descriptions into a numerical feature matrix.
 
     TF-IDF (Term Frequency - Inverse Document Frequency) always runs: it turns each description string into a numeric vector (a row of word weights).
-    SVD (Singular Value Decomposition) is optional (use_svd): when enabled it compresses the wide, sparse TF-IDF matrix into
-    a few dense latent-concept columns, which avoids multicollinearity in the regression.
+    SVD (Singular Value Decomposition) is optional (`use_svd`):
+    when enabled it compresses the wide, sparse TF-IDF matrix into a few dense latent-concept columns, which avoids multicollinearity in the regression.
     When disabled the raw TF-IDF columns are used directly.
+
+    Args:
+        descriptions:   Series of textual descriptions, one per sample.
+        max_words:      Maximum size of the TF-IDF vocabulary.
+        svd_components: Target number of SVD components (only used when use_svd is True).
+        use_svd:        If True apply TruncatedSVD on top of TF-IDF, otherwise return raw TF-IDF features.
+
+    Returns:
+        A DataFrame of numerical features indexed like descriptions, or None on invalid input or failure.
     """
 
     if descriptions is None or descriptions.empty or descriptions.nunique() <= 1 or max_words <= 0:
@@ -248,8 +293,16 @@ def _compute_regression(X: pd.DataFrame, Y: pd.Series, target_metric: str, repor
     """
     Fits an Ordinary Least Squares (OLS) regression to evaluate how well the combined visual
     (trufor_score) and textual features (X) predict the target metric (Y), and saves the report.
-    """
 
+    Args:
+        X:             Design matrix with the independent variables (visual + textual features).
+        Y:             Series with the dependent variable (target metric to predict).
+        target_metric: Name of the target metric, used only in the report.
+        report:        Output file path where the regression summary will be written.
+
+    Returns:
+        None.
+    """
 
     print(f"Computing regression to predict '{target_metric}'...")
     try:
@@ -277,6 +330,7 @@ def _compute_regression(X: pd.DataFrame, Y: pd.Series, target_metric: str, repor
 
         # Save
         save_report(text, report)
+        return None
 
     except Exception as e:
         print(f"ERROR: during OLS regression calculation or saving: {e}")
@@ -286,6 +340,16 @@ def regression(dataset: Path, max_words: int, svd_components: int, use_svd: bool
     """
     Loads the dataset, builds the feature matrix from the anomaly descriptions and the trufor score,
     and runs an OLS regression predicting the crowdtangle score.
+
+    Args:
+        dataset:        Path to the dataset CSV (must contain trufor_score, anomaly_txt, crowdtangle_score).
+        max_words:      Maximum size of the TF-IDF vocabulary.
+        svd_components: Target number of SVD components (only used when use_svd is True).
+        use_svd:        If True apply SVD on top of TF-IDF, otherwise use the raw TF-IDF features.
+        report:         Output file path where the regression summary will be written.
+
+    Returns:
+        None.
     """
 
     # Load only the columns needed for the regression (load_csv drops rows with missing values)
@@ -311,13 +375,26 @@ def regression(dataset: Path, max_words: int, svd_components: int, use_svd: bool
 
 
 def main() -> None:
+    """
+    Runs the three optional steps:
+    1. masking,
+    2. anomaly description,
+    3. regression on the descriptions.
+
+    Args:
+        None (arguments are read from the command line via argparse).
+
+    Returns:
+        None.
+    """
+
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Mask images, describe the anomaly and run a regression on the descriptions.")
 
     # Flags
     # Mask
     parser.add_argument("--skip-mask",       action="store_true",                                  help="Skip step 1 (masking).")
-    parser.add_argument("--images",          type=Path,           default=IMG_DIR,                 help=f"Original images directory. Default: '{IMG_DIR}'")
+    parser.add_argument("--images",          type=Path,           default=IMGS_DIR,                 help=f"Original images directory. Default: '{IMGS_DIR}'")
     parser.add_argument("--npz",             type=Path,           default=NPZ_DIR,                 help=f"Directory containing the TruFor .npz files. Default: '{NPZ_DIR}'")
     parser.add_argument("--threshold",       type=float,          default=MASK_THRESHOLD,          help=f"Binarization threshold (0.0 to 1.0). Default: {MASK_THRESHOLD}")
     parser.add_argument("--masked",          type=Path,           default=MASKED_DIR,              help=f"Output directory for the masked images. Default: '{MASKED_DIR}'")
@@ -325,7 +402,7 @@ def main() -> None:
     # Describe
     parser.add_argument("--skip-describe",   action="store_true",                                  help="Skip step 2 (anomaly description).")
     parser.add_argument("--batch-size",      type=int,            default=BATCH_SIZE,              help=f"Number of images captioned simultaneously. Default: {BATCH_SIZE}")
-    parser.add_argument("--max-length",      type=int,            default=MAX_DESCRIPTION_TOKENS,  help=f"Maximum number of tokens in the generated descriptions. Default: {MAX_DESCRIPTION_TOKENS}")
+    parser.add_argument("--max-token",       type=int,            default=MAX_DESCRIPTION_TOKENS,  help=f"Maximum number of tokens in the generated descriptions. Default: {MAX_DESCRIPTION_TOKENS}")
     parser.add_argument("--dataset",         type=Path,           default=FILTERED_DATASET_FILE,   help=f"Dataset csv file. Default: '{FILTERED_DATASET_FILE}'")
 
     # Regression
@@ -350,7 +427,7 @@ def main() -> None:
         blip = load_blip()
         if blip is not None:
             processor, model, device = blip
-            describe_images(processor, model, device, args.masked, args.batch_size, args.max_length, args.dataset)
+            describe_images(processor, model, device, args.masked, args.batch_size, args.max_token, args.dataset)
 
 
     # Step 3: Regression on the descriptions

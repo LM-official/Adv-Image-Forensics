@@ -7,6 +7,7 @@ from   pathlib import Path
 def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | None = None) -> None:
     """
     Merges a DataFrame into the dataset CSV and saves it back to the same file.
+
     Merges on the 'filename' column.
 
     Args:
@@ -32,24 +33,29 @@ def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | N
 def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None:
     """
     Loads the target columns from a csv file. If columns is None, loads all columns.
-    
-    By default loads all columns.
+
+    Args:
+        csv:     Path to the CSV file to load.
+        columns: List of column names to load, or None to load every column.
+
+    Returns:
+        A DataFrame with the requested columns and no missing values, or None on failure / empty result.
     """
 
     print(f"Loading '{csv}'...")
     try:
         # Load only the necessary columns
-        metrics = pd.read_csv(csv, sep=",", encoding="utf-8", usecols=columns)
-        if metrics is None or metrics.empty:
+        df = pd.read_csv(csv, sep=",", encoding="utf-8", usecols=columns)
+        if df is None or df.empty:
             print(f"ERROR: No valid data found in '{csv}'.")
             return None
-        metrics.dropna(inplace=True)
-        if metrics is None or metrics.empty:
+        df.dropna(inplace=True)
+        if df is None or df.empty:
             print(f"ERROR: No valid data found in '{csv}' after dropping NaN values.")
             return None
 
         print(f"'{csv}' loaded successfully.")
-        return metrics
+        return df
     except Exception as e:
         print(f"ERROR: loading '{csv}': {e}")
         return None
@@ -58,13 +64,17 @@ def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None
 def load_npz(npz: Path, columns: set[str]) -> pd.DataFrame | None:
     """
     Loads the target columns from a .npz file.
+
     Columns can be "map", "imgsize", "score", "conf".
+
     Args:
         npz:     Path to the .npz file.
         columns: Set of column names to extract.
+
     Returns:
         A single-row DataFrame with the requested columns, or None on failure.
     """
+    
     if not npz.is_file() or not columns or any(col not in NPZ_COLS for col in columns):
         print(f"ERROR: Invalid .npz file or columns {columns}. Expected a non-empty subset of: {NPZ_COLS}")
         return None
@@ -89,7 +99,9 @@ def load_npzs(npzs: Path, columns: set[str]) -> pd.DataFrame | None:
     """
     Loads the target columns from all .npz files in a directory.
     Each row corresponds to one .npz file, with the filename (without extension) as an additional column.
+
     Columns can be "map", "imgsize", "score", "conf".
+
     Args:
         npzs:    Path to the directory containing .npz files.
         columns: Set of column names to extract.
@@ -122,6 +134,13 @@ def load_npzs(npzs: Path, columns: set[str]) -> pd.DataFrame | None:
 def save_report(text: str, path: Path) -> None:
     """
     Saves the given text to a file at the specified path.
+
+    Args:
+        text: Content to write to the file. If empty, the function does nothing.
+        path: Destination file path; parent directories are created automatically.
+
+    Returns:
+        None.
     """
     
     if not text:

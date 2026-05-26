@@ -14,11 +14,14 @@ DATASET_DIR             = TRUFOR_DIR / "dataset/my_dataset"
 DATASET_FILE            = DATASET_DIR / "crowdtangle.jsonl"
 DATASET_IMGS_DIR        = DATASET_DIR / "crowdtangle_media"
 FILTERED_DATASET_FILE   = TEMP_DIR / "filtered_dataset.csv"
+# CrowdTangle/Meta named the downloaded files.
+# This must match the char_limit used at download time, otherwise every URL->file lookup silently misses.
+CHAR_LIMIT              = 64
 
 
 # TruFor
 TRUFOR_RUN              = TRUFOR_DIR / "test.py"
-IMG_DIR                 = TRUFOR_DIR / "images"
+IMGS_DIR                = TRUFOR_DIR / "images"
 NPZ_DIR                 = TRUFOR_DIR / "output"
 NPZ_COLS                = frozenset(("map", "imgsize", "score", "conf"))
 
@@ -44,5 +47,5 @@ BATCH_SIZE              = 15
 MAX_DESCRIPTION_TOKENS  = 50
 # Multimodal regression
 SVD_COMPONENTS          = 10
-MAX_NUMBER_OF_WORDS     = 500
+MAX_NUMBER_OF_WORDS     = 100
 ANOMALY_REGRESSION_FILE = TEMP_DIR / "anomaly_regression.txt"

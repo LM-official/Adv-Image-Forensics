@@ -9,6 +9,13 @@ def generate_truth(dataset: Path, truth: Path) -> None:
     """
     Generates an empty labels CSV template from the dataset.
     The user fills the 'label' column manually (0 = Real, 1 = AI) before running compute_performance.
+
+    Args:
+        dataset: Path to the dataset CSV (must contain the 'filename' column).
+        truth:   Output path where the empty truth template CSV is saved.
+
+    Returns:
+        None.
     """
 
     if not dataset.is_file():
@@ -33,10 +40,19 @@ def generate_truth(dataset: Path, truth: Path) -> None:
     return None
 
 
-def compute_performance(dataset: Path, truth: Path, threshold: float, performance: Path) -> None:
+def compute_performance(dataset: Path, truth: Path, threshold: float, report: Path) -> None:
     """
-    Loads the dataset and generate the truth file.
-    Computes and save accuracy, precision, recall and F1-score
+    Loads the dataset and truth file, classifies each sample using the given threshold,
+    then computes and saves accuracy, precision, recall and F1-score.
+
+    Args:
+        dataset:   Path to the dataset CSV (must contain trufor_score).
+        truth:     Path to the truth CSV with the 'label' column filled (0 = Real, 1 = AI).
+        threshold: Decision threshold in [0.0, 1.0]: trufor_score > threshold is predicted as AI.
+        report:    Output file path where the performance report is written.
+
+    Returns:
+        None.
     """
 
     if not dataset.is_file() or not (0.0 <= threshold <= 1.0):
@@ -125,7 +141,7 @@ def compute_performance(dataset: Path, truth: Path, threshold: float, performanc
     print("Performance metrics computed successfully.")
 
     # Report
-    report = (
+    text = (
         f"TruFor performance report\n"
         f"Total files analyzed: {len(df)}\n"
         f"Threshold: {threshold:.2f}\n\n"
@@ -150,14 +166,24 @@ def compute_performance(dataset: Path, truth: Path, threshold: float, performanc
         for filename, score in fn_list:
             lines.append(f"  '{filename}', score: {score:.4f}")
     if lines:
-        report += "\n".join(lines)
+        text += "\n".join(lines)
 
     # Save
-    save_report(report, performance)
+    save_report(text, report)
     return None
 
 
 def main() -> None:
+    """
+    Optionally generates the truth template and then computes the performance metrics of the TruFor results.
+
+    Args:
+        None (arguments are read from the command line via argparse).
+
+    Returns:
+        None.
+    """
+    
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Compute performance metrics of TruFor results.")
 

@@ -1,48 +1,80 @@
 import argparse
-from   config   import DATASET_FILE, DATASET_IMGS_DIR, FILTERED_DATASET_FILE, IMG_DIR
+from   config   import CHAR_LIMIT, DATASET_FILE, DATASET_IMGS_DIR, FILTERED_DATASET_FILE, IMGS_DIR
 import csv
 import hashlib
 import json
 from   pathlib  import Path
 
 
-def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> list[Path] | None:
+def url_to_stem(url: str, char_limit: int = CHAR_LIMIT) -> str:
+    """
+    Reproduces the filename stem (no extension) that CrowdTangle/Meta's assigns to a media URL
+
+    Args:
+        url:        Media URL to hash.
+        char_limit: Number of leading hex characters to keep (see config.CHAR_LIMIT).
+
+    Returns:
+        The truncated sha256 hex digest used as the on-disk filename stem.
+    """
+
+    return hashlib.sha256(url.encode()).hexdigest()[:char_limit]
+
+
+def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Path]] | None:
     """
     Checks if a post is valid based on the specified filters and returns the list of image paths if valid.
 
     A post is valid if:
     - It has a score
     - All its media items are photos and have a matching file in the hash map
+
+    Args:
+        data:     Parsed JSON object representing a single post.
+        hash_map: Mapping from URL sha256 hash (filename stem) to the list of matching image paths.
+
+    Returns:
+        A list of image paths associated with the post, or None if the post does not pass the filters.
     """
 
     if not isinstance(data, dict) or len(data) == 0 or not hash_map:
+        print(f"ERROR: invalid post data or empty hash map.")
         return None
 
 
     # Must have a score
     if data.get("score") is None:
+        print(f"DEBUG: post '{data.get('id')}' rejected for missing score.")
         return None
 
     # Must have at least one media item
     media = data.get("media")
     if not media or not isinstance(media, list) or len(media) == 0:
+        print(f"DEBUG: post '{data.get('id')}' rejected for missing media.")
         return None
 
     images = []
     for item in media:
         # Reject the entire post if ANY media item is not a photo
         if item.get("type") != "photo":
+            print(f"DEBUG: post '{data.get('id')}' rejected for non-photo media item.")
             return None
-        image_url = item.get("full")
+        image_url = item.get("url") or item.get("full")
         if not image_url:
+            print(f"DEBUG: post '{data.get('id')}' rejected for missing image URL.")
             return None
 
-        # Hash the URL to find the corresponding file
-        url_hash = hashlib.sha256(image_url.encode("utf-8")).hexdigest()
+        # Hash the URL the same way the file was named on disk
+        url_hash = url_to_stem(image_url)
 
         # Dictionary lookup
         founds = hash_map.get(url_hash, [])
         if not founds:
+            print(f"DEBUG: post '{data.get('id')}' rejected for missing image file for URL '{image_url}' (hash '{url_hash}').")
+            return None
+        # With a full-length hash this is always a single file; more than one means a truncated-hash collision (different URLs sharing a stem)
+        if len(founds) > 1:
+            print(f"WARNING: hash collision for stem '{url_hash}': {founds}")
             return None
 
         # Append all found images
@@ -54,6 +86,12 @@ def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> list[Path] | N
 def _build_hash_map(images: Path) -> dict[str, list[Path]] | None:
     """
     Scans the images directory and returns a dictionary mapping each filename stem (hash) to the list of matching file paths.
+
+    Args:
+        images: Directory containing the dataset images named after their URL hash.
+
+    Returns:
+        A dict mapping filename stem to the list of file paths, or None if the directory is invalid.
     """
 
     if not images.is_dir():
@@ -71,7 +109,17 @@ def _build_hash_map(images: Path) -> dict[str, list[Path]] | None:
 def filter_jsonl(dataset: Path, dataset_images: Path, output_csv: Path, output_images: Path) -> None:
     """
     Filters the JSONL dataset based on the specified criteria and saves the filtered records to a new CSV file.
+    
     It also creates symlinks for the valid images in the output directory.
+
+    Args:
+        dataset:        Path to the input JSONL dataset file.
+        dataset_images: Directory containing the original dataset images.
+        output_csv:     Output CSV file path for the filtered records.
+        output_images:  Output directory where symlinks to the kept images are created.
+
+    Returns:
+        None.
     """
 
     if not dataset.is_file() or not dataset_images.is_dir():
@@ -99,18 +147,18 @@ def filter_jsonl(dataset: Path, dataset_images: Path, output_csv: Path, output_i
     print("Filtering dataset...")
     try:
         # buffering=1<<16 (64KB) reduces the number of disk writes significantly on large outputs compared to the default line-by-line flushing
-        with open(dataset, mode="r", encoding="utf-8") as input, \
-             open(output_csv, mode="w", encoding="utf-8", newline="", buffering=1 << 16) as output:
+        with open(dataset, mode="r", encoding="utf-8") as infile, \
+             open(output_csv, mode="w", encoding="utf-8", newline="", buffering=1 << 16) as outfile:
 
             # Define the CSV columns
             cols = ["id", "crowdtangle_score", "filename"]
             # Initialize the CSV DictWriter
-            writer = csv.DictWriter(output, fieldnames=cols)
+            writer = csv.DictWriter(outfile, fieldnames=cols)
             # Write the header
             writer.writeheader()
 
 
-            for line in input:
+            for line in infile:
                 try:
                     data = json.loads(line)
                 except json.JSONDecodeError as e:
@@ -130,9 +178,9 @@ def filter_jsonl(dataset: Path, dataset_images: Path, output_csv: Path, output_i
                         "filename":           image.stem
                     })
 
-                    # Create symlinks for the images                    
+                    # Create a symlink for the image
                     symlink = output_images / image.name
-                    if not symlink.exists():
+                    if not (symlink.exists() or symlink.is_symlink()):
                         symlink.symlink_to(resolved_images_dir / image.name)
 
         print(f"Dataset filtered successfully.\nOutput saved to: '{output_csv}'.")
@@ -140,9 +188,19 @@ def filter_jsonl(dataset: Path, dataset_images: Path, output_csv: Path, output_i
     except Exception as e:
         print(f"ERROR: processing dataset: {e}")
         return None
-
+    
 
 def main() -> None:
+    """
+    Filters the dataset, producing the filtered CSV and the symlinked images directory.
+
+    Args:
+        None (arguments are read from the command line via argparse).
+
+    Returns:
+        None.
+    """
+    
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Filter dataset")
 
@@ -150,7 +208,7 @@ def main() -> None:
     parser.add_argument("--dataset",        type=Path, default=DATASET_FILE,          help=f"Input dataset file path. Default: '{DATASET_FILE}'")
     parser.add_argument("--dataset-images", type=Path, default=DATASET_IMGS_DIR,      help=f"Directory path where the dataset images are stored. Default: '{DATASET_IMGS_DIR}'")
     parser.add_argument("--output-csv",     type=Path, default=FILTERED_DATASET_FILE, help=f"Output file path for csv. Default: '{FILTERED_DATASET_FILE}'")
-    parser.add_argument("--output-images",  type=Path, default=IMG_DIR,               help=f"Output directory path for the images. Default: '{IMG_DIR}'")
+    parser.add_argument("--output-images",  type=Path, default=IMGS_DIR,               help=f"Output directory path for the images. Default: '{IMGS_DIR}'")
     args = parser.parse_args()
 
     # Process dataset

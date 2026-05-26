@@ -6,9 +6,16 @@ import statsmodels.api as     sm
 from   utils           import load_csv, save_report
 
 
-def compute_correlations(dataset: Path, correlation: Path) -> None:
+def compute_correlation(dataset: Path, report: Path) -> None:
     """
     Calculates Pearson and Spearman correlations between TruFor score and Crowdtangle score.
+
+    Args:
+        dataset: Path to the dataset CSV (must contain trufor_score and crowdtangle_score).
+        report:  Output file path where the correlation report will be written.
+
+    Returns:
+        None.
     """
     
     if not dataset.is_file():
@@ -44,7 +51,7 @@ def compute_correlations(dataset: Path, correlation: Path) -> None:
     
 
     # Report
-    report = (
+    text = (
         "Correlation analysis between TruFor scores and Crowdtangle scores:\n"
         f"Rows analyzed: {len(df)}\n"
         f"Pearson correlation: {pearson_corr:.3f} (p-value: {p_value_p:.3e})\n"
@@ -52,13 +59,20 @@ def compute_correlations(dataset: Path, correlation: Path) -> None:
     )
 
     # Save
-    save_report(report, correlation)
+    save_report(text, report)
     return None
 
 
-def compute_regression(dataset: Path, regression: Path) -> None:
+def compute_regression(dataset: Path, report: Path) -> None:
     """
     Calculates Ordinary Least Squares (OLS) regression between TruFor score and Crowdtangle score.
+
+    Args:
+        dataset: Path to the dataset CSV (must contain trufor_score and crowdtangle_score).
+        report:  Output file path where the regression report will be written.
+
+    Returns:
+        None.
     """
     
     if not dataset.is_file():
@@ -105,18 +119,27 @@ def compute_regression(dataset: Path, regression: Path) -> None:
     
 
     # Report
-    report = (
+    text = (
         "Regression analysis between TruFor scores and Crowdtangle scores:\n"
         f"{model.summary().as_text()}"
     )
 
     # Save
-    save_report(report, regression)
-
+    save_report(text, report)
     return None
 
 
 def main() -> None:
+    """
+    Runs correlation and OLS regression between TruFor scores and Crowdtangle scores.
+
+    Args:
+        None (arguments are read from the command line via argparse).
+
+    Returns:
+        None.
+    """
+    
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Compute correlation and regression between TruFor scores and Crowdtangle scores.")
 
@@ -128,7 +151,7 @@ def main() -> None:
 
 
     # Correlation
-    compute_correlations(args.dataset, args.correlation)
+    compute_correlation(args.dataset, args.correlation)
     
     # Regression
     compute_regression(args.dataset, args.regression)
