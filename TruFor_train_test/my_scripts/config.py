@@ -21,6 +21,10 @@ CHAR_LIMIT              = 64
 
 # TruFor
 TRUFOR_RUN              = TRUFOR_DIR / "test.py"
+# Number of images to process per batch
+TRUFOR_BATCH_SIZE       = 50
+# Wait time (seconds) after each batch
+WAIT                    = 180
 IMGS_DIR                = TRUFOR_DIR / "images"
 NPZ_DIR                 = TRUFOR_DIR / "output"
 NPZ_COLS                = frozenset(("map", "imgsize", "score", "conf"))

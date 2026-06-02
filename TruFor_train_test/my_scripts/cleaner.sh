@@ -17,7 +17,8 @@ ask_remove "'${FILTERED_DATASET_FILE}'" "rm -f \"${FILTERED_DATASET_FILE}\""
 ask_remove "all images in input directory" "rm -rf \"${IMG_DIR}\"/*(N)"
 
 # Remove all .npz files in the output directory
-ask_remove "all .npz files in output directory" "rm -rf \"${NPZ_DIR}\"/*.npz(N)"
+# Warning: compute all .npz is expensive
+# ask_remove "all .npz files in output directory" "rm -rf \"${NPZ_DIR}\"/*.npz(N)"
 
 # Remove truth file
 ask_remove "'${TRUTH_FILE}'" "rm -f \"${TRUTH_FILE}\""

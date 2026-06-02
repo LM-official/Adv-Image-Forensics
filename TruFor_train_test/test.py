@@ -28,7 +28,7 @@ if path not in sys.path:
     sys.path.insert(0, path)
 
 from lib.config import config, update_config
-from lib.utils import get_model
+from lib.utils import get_model, get_device
 from dataset.dataset_test import TestDataset
 
 parser = argparse.ArgumentParser(description='Test TruFor')
@@ -47,10 +47,11 @@ output  = args.output
 gpu     = args.gpu
 save_np = args.save_np
 
-device = 'mps:%d' % gpu if gpu >= 0 else 'cpu'
+# Auto-select CUDA / MPS / CPU (gpu < 0 forces CPU); portable across machines.
+device = get_device(gpu)
 
-if device != 'cpu':
-    # cudnn setting
+if device.type == 'cuda':
+    # cudnn setting (only applies to CUDA)
     import torch.backends.cudnn as cudnn
     cudnn.benchmark = config.CUDNN.BENCHMARK
     cudnn.deterministic = config.CUDNN.DETERMINISTIC

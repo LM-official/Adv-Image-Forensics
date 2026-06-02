@@ -25,7 +25,12 @@ def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | N
     print(f"Updating dataset '{dataset}'...")
     if rename:
         data = data.rename(columns=rename)
+    # Drop columns already present in the dataset (except the merge key) so the incoming values replace the old ones instead of producing _x/_y duplicates
+    overlap = [col for col in data.columns if col != "filename" and col in df.columns]
+    df = df.drop(columns=overlap)
     df = pd.merge(df, data, on="filename", how="inner")
+    # Keep the dataset dense: drop any row that has an empty/null value
+    df = df.dropna()
     df.to_csv(dataset, index=False, encoding="utf-8")
     print("Dataset updated successfully.")
 
@@ -48,10 +53,6 @@ def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None
         df = pd.read_csv(csv, sep=",", encoding="utf-8", usecols=columns)
         if df is None or df.empty:
             print(f"ERROR: No valid data found in '{csv}'.")
-            return None
-        df.dropna(inplace=True)
-        if df is None or df.empty:
-            print(f"ERROR: No valid data found in '{csv}' after dropping NaN values.")
             return None
 
         print(f"'{csv}' loaded successfully.")

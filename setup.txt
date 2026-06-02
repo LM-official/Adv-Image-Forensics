@@ -11,20 +11,9 @@ in test.py:82 ad weights:
 old:        checkpoint = torch.load(model_state_file, map_location=torch.device(device))
 new:        checkpoint = torch.load(model_state_file, map_location=torch.device(device), weights_only=False)
 
-GPU:
-change "cuda" with "mps" in:
-./test.py:50:                   device = 'cuda:%d' % gpu if gpu >= 0 else 'cpu'
-./lib/core/function.py:45:      rgbs = rgbs.cuda()
-./lib/core/function.py:46:      labels = labels.long().cuda()
-./lib/core/function.py:111:     rgb = rgb.cuda()
-./lib/core/function.py:112:     label = label.long().cuda()
-./lib/core/function.py:220:     confusion_matrix = torch.from_numpy(confusion_matrix).cuda()
-./lib/utils.py:97:              criterion_loc = DiceLoss(ignore_label=ignore_label, smooth=smooth).cuda()
-./lib/utils.py:100:             criterion_loc = BinaryDiceLoss(ignore_label=ignore_label, smooth=smooth).cuda()
-./lib/utils.py:103:             criterion_loc = CrossEntropy(ignore_label=ignore_label, weight=weight).cuda()
-./lib/utils.py:106:             criterion_loc = DiceEntropyLoss(ignore_label=ignore_label, weight=weight, smooth=smooth).cuda()
-./lib/utils.py:114:             criterion_conf = MSE().cuda()
-./lib/utils.py:123:             criterion_det = CrossEntropy().cuda()
+GPU/CPU:
+The device is selected dynamically by get_device() in ./lib/utils.py: it prefers CUDA, then Apple MPS, then CPU.
+test.py takes --gpu (default 0, use -1 to force CPU); all tensor/model placement goes through .to(device) / .to(DEVICE).
 
 VENV SETUP (see requirements.txt):
 python3 -m venv .venv
@@ -45,8 +34,9 @@ CODE SUMMARY:
     Filters a JSONL dataset by verifying if posts have a score and valid photos matching local files via SHA256 URL hashes.
     It then exports valid records to a CSV and creates symlinks for the corresponding images to optimize disk space.
 4. trufor.py
-    Automates the execution of the TruFor forensic model on a directory of images using a subprocess.
-    It extracts the generated anomaly scores from the output .npz files and merges them into your existing CSV dataset using pandas.
+    Runs the TruFor forensic model over the images directory in batches with a WAIT-second cool-down between batches;
+    images whose .npz already exists are skipped by test.py, so an interrupted run resumes on re-launch.
+    It then extracts the anomaly scores from the output .npz files and merges them into your CSV dataset using pandas.
 5. performance.py:
     Evaluates TruFor's detection capabilities.
     It generates (if needed) a ground truth CSV template for manual labeling,

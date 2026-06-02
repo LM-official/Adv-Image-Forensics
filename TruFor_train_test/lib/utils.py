@@ -29,6 +29,24 @@ import matplotlib.pyplot as plt
 import itertools
 
 
+def get_device(gpu: int = 0) -> torch.device:
+    """
+    Picks the compute device dynamically so the code is portable across machines:
+    prefer CUDA, then Apple MPS, then CPU. Pass gpu < 0 to force CPU; when CUDA is
+    available `gpu` selects the device index.
+    """
+    if gpu is not None and gpu < 0:
+        return torch.device('cpu')
+    if torch.cuda.is_available():
+        return torch.device('cuda:%d' % max(gpu, 0))
+    if getattr(torch.backends, 'mps', None) is not None and torch.backends.mps.is_available():
+        return torch.device('mps')
+    return torch.device('cpu')
+
+
+# Default device, resolved once at import for the training-side helpers below.
+DEVICE = get_device()
+
 
 def adjust_learning_rate(optimizer, base_lr, max_iters, cur_iters, power=0.9):
     lr = base_lr*((1-float(cur_iters)/max_iters)**(power))
@@ -94,16 +112,16 @@ def get_criterion(config):
         if l == 'LOC':
             if criterion == 'dice':
                 from lib.core.criterion import DiceLoss
-                criterion_loc = DiceLoss(ignore_label=ignore_label, smooth=smooth).mps()
+                criterion_loc = DiceLoss(ignore_label=ignore_label, smooth=smooth).to(DEVICE)
             elif criterion == 'binary_dice':
                 from lib.core.criterion import BinaryDiceLoss
-                criterion_loc = BinaryDiceLoss(ignore_label=ignore_label, smooth=smooth).mps()
+                criterion_loc = BinaryDiceLoss(ignore_label=ignore_label, smooth=smooth).to(DEVICE)
             elif criterion == 'cross_entropy':
                 from lib.core.criterion import CrossEntropy
-                criterion_loc = CrossEntropy(ignore_label=ignore_label, weight=weight).mps()
+                criterion_loc = CrossEntropy(ignore_label=ignore_label, weight=weight).to(DEVICE)
             elif criterion == 'dice_entropy':
                 from lib.core.criterion import DiceEntropyLoss
-                criterion_loc = DiceEntropyLoss(ignore_label=ignore_label, weight=weight, smooth=smooth).mps()
+                criterion_loc = DiceEntropyLoss(ignore_label=ignore_label, weight=weight, smooth=smooth).to(DEVICE)
             else:
                 raise ValueError('Localization loss not implemented')
 
@@ -111,7 +129,7 @@ def get_criterion(config):
         elif l == 'CONF':
             if criterion == 'mse':
                 from lib.core.criterion_conf import MSE
-                criterion_conf = MSE().mps()
+                criterion_conf = MSE().to(DEVICE)
             else:
                 raise ValueError('Confidence loss not implemented')
 
@@ -120,7 +138,7 @@ def get_criterion(config):
             if detection is not None and not detection == 'none':
                 if criterion == 'cross_entropy':
                     from lib.core.criterion_det import CrossEntropy
-                    criterion_det = CrossEntropy().mps()
+                    criterion_det = CrossEntropy().to(DEVICE)
                 else:
                     raise ValueError('Detection loss not implemented')
 

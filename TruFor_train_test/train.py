@@ -38,6 +38,7 @@ from lib.config import config, update_config
 from lib.core.function import train, validate
 from lib.utils import get_model, get_optimizer
 from lib.utils import create_logger, FullModel, adjust_learning_rate
+from lib.utils import DEVICE
 
 from dataset.data_core import myDataset
 import albumentations
@@ -104,7 +105,11 @@ def main():
 
     # model
     model = get_model(config)
-    model = torch.nn.DataParallel(model, device_ids=gpus).cuda()
+    # DataParallel + .cuda() only on CUDA; MPS/CPU run on the single auto-selected device.
+    if torch.cuda.is_available():
+        model = torch.nn.DataParallel(model, device_ids=gpus).cuda()
+    else:
+        model = model.to(DEVICE)
     model = FullModel(model, config)
 
     # optimizer

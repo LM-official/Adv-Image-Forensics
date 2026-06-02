@@ -27,6 +27,7 @@ from torch.nn import functional as F
 from lib.utils import AverageMeter
 from lib.utils import get_confusion_matrix, get_confusion_matrix_1ch
 from lib.utils import adjust_learning_rate as default_adjust_learning_rate
+from lib.utils import DEVICE
 
 def train(epoch, num_epoch, epoch_iters, base_lr, num_iters,
           trainloader, optimizer, model, writer_dict,
@@ -42,8 +43,8 @@ def train(epoch, num_epoch, epoch_iters, base_lr, num_iters,
     global_steps = writer_dict['train_global_steps']
     
     for i_iter, (rgbs, labels) in enumerate(tqdm(trainloader)):
-        rgbs = rgbs.mps()
-        labels = labels.long().mps()
+        rgbs = rgbs.to(DEVICE)
+        labels = labels.long().to(DEVICE)
 
         losses, *_ = model(labels=labels, rgbs=rgbs)
         loss = losses.mean()
@@ -108,8 +109,8 @@ def validate(config, testloader, model, writer_dict, valid_set="valid"):
         for it, (rgb, label) in enumerate(tqdm(testloader)):
             size = label.size()
 
-            rgb = rgb.mps()
-            label = label.long().mps()
+            rgb = rgb.to(DEVICE)
+            label = label.long().to(DEVICE)
 
             losses, pred, conf, det = model(labels=label, rgbs=rgb)
             
@@ -217,7 +218,7 @@ def validate(config, testloader, model, writer_dict, valid_set="valid"):
                 avg_det_tnr.update(np.sum(det[target_det<0.5]<0), np.sum(target_det<0.5))
 
 
-    confusion_matrix = torch.from_numpy(confusion_matrix).mps()
+    confusion_matrix = torch.from_numpy(confusion_matrix).to(DEVICE)
     confusion_matrix = confusion_matrix.cpu().numpy()
     
     pos = confusion_matrix.sum(1)

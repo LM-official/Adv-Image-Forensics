@@ -136,13 +136,9 @@ __pychache__/
 .venv/
 
 # cache
+!.gitkeep
 TruFor_train_test/weights/*
-!TruFor_train_test/weights/.gitkeep
 TruFor_train_test/dataset/my_dataset/*
-!TruFor_train_test/dataset/my_dataset/.gitkeep
 TruFor_train_test/images/*
-!TruFor_train_test/images/.gitkeep
 TruFor_train_test/output/*
-!TruFor_train_test/output/.gitkeep
 TruFor_train_test/my_scripts/temp/*
-!TruFor_train_test/my_scripts/temp/.gitkeep

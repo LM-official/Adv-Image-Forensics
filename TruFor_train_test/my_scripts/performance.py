@@ -36,7 +36,7 @@ def generate_truth(dataset: Path, truth: Path) -> None:
 
     # Save
     df.to_csv(truth, index=False, encoding="utf-8")
-    print(f"Truth template saved to '{truth}'.\nFill the 'label' column (0 = Real, 1 = AI).")
+    print(f"Truth template saved to '{truth}'.\nFill the 'label' column (0 = Real, 1 = Altered).")
     return None
 
 
