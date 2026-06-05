@@ -1,12 +1,15 @@
 import argparse
-from   config          import FILTERED_DATASET_FILE, CORRELATION_FILE, REGRESSION_FILE
-from   pathlib         import Path
-from   scipy.stats     import pearsonr, spearmanr
-import statsmodels.api as     sm
-from   utils           import load_csv, save_report
+import matplotlib
+matplotlib.use("Agg")  # Non-interactive backend: render straight to file, no display needed
+import matplotlib.pyplot as     plt
+from   config            import FILTERED_DATASET_FILE, CORRELATION_FILE, REGRESSION_FILE, DISTRIBUTION_FILE, DISTRIBUTION_PLOT_FILE
+from   pathlib           import Path
+from   scipy.stats       import pearsonr, spearmanr
+import statsmodels.api   as     sm
+from   utils             import load_csv, save_report
 
 
-def compute_correlation(dataset: Path, report: Path) -> None:
+def correlation(dataset: Path, report: Path) -> None:
     """
     Calculates Pearson and Spearman correlations between TruFor score and Crowdtangle score.
 
@@ -17,10 +20,10 @@ def compute_correlation(dataset: Path, report: Path) -> None:
     Returns:
         None.
     """
-    
     if not dataset.is_file():
         print(f"ERROR: Dataset '{dataset}' not found.")
         return None
+    
     # Load dataset
     df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
     if df is None:
@@ -63,7 +66,7 @@ def compute_correlation(dataset: Path, report: Path) -> None:
     return None
 
 
-def compute_regression(dataset: Path, report: Path) -> None:
+def regression(dataset: Path, report: Path) -> None:
     """
     Calculates Ordinary Least Squares (OLS) regression between TruFor score and Crowdtangle score.
 
@@ -74,10 +77,10 @@ def compute_regression(dataset: Path, report: Path) -> None:
     Returns:
         None.
     """
-    
     if not dataset.is_file():
         print(f"ERROR: Dataset '{dataset}' not found.")
         return None
+    
     # Load dataset
     df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
     if df is None:
@@ -129,9 +132,94 @@ def compute_regression(dataset: Path, report: Path) -> None:
     return None
 
 
+def distribution(dataset: Path, report: Path, plot: Path) -> None:
+    """
+    Analyzes the distribution of the Crowdtangle score: whether it is centered on zero and how many outliers it has.
+
+    Args:
+        dataset: Path to the dataset CSV (must contain crowdtangle_score).
+        report:  Output file path where the distribution report will be written.
+        plot:    Output image path where the histogram + boxplot figure will be saved.
+
+    Returns:
+        None.
+    """
+    if not dataset.is_file():
+        print(f"ERROR: Dataset '{dataset}' not found.")
+        return None
+    
+    # Load dataset
+    df = load_csv(dataset, ["crowdtangle_score"])
+    if df is None:
+        return None
+    if df["crowdtangle_score"].nunique() <= 1:
+        print("ERROR: Not enough valid data points or insufficient variability in the data.")
+        return None
+
+
+    # Distribution
+    print("Analyzing the distribution of Crowdtangle scores...")
+    scores = df["crowdtangle_score"]
+    del df
+
+    """
+    A distribution is 'centered on zero' when its median sits close to 0.
+    Comparing the median with the mean reveals how strongly extreme values drag the average, while the skewness quantifies the asymmetry of the tails.
+    Tukey fences flag outliers as the points lying farther than 1.5 * IQR (inter-quartile range) from the quartiles.
+    """
+    # Quartiles and Tukey fences (IQR-based outlier bounds)
+    q1, q3 = scores.quantile([0.25, 0.75])
+    iqr = q3 - q1
+    low_fence, high_fence = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+    outliers = scores[(scores < low_fence) | (scores > high_fence)]
+    print("Distribution analyzed successfully.")
+
+
+    # Report
+    len_score, len_outliers = len(scores), len(outliers)
+    text = (
+        "Distribution analysis of Crowdtangle scores:\n"
+        f"Rows analyzed: {len_score}\n"
+        f"{scores.describe().to_string()}\n"
+        f"Median: {scores.median():.3f} (mean: {scores.mean():.3f})\n"
+        f"Skewness: {scores.skew():.3f}\n"
+        f"Tukey fences: [{low_fence:.3f}, {high_fence:.3f}]\n"
+        f"Outliers: {len_outliers} ({100 * len_outliers / len_score:.1f}%)"
+    )
+
+    # Save
+    save_report(text, report)
+
+
+    # Plot: histogram clipped to the fences (the bulk) + boxplot over the full range (the outliers)
+    print("Plotting the distribution...")
+    # One row, two side-by-side subplots sharing the same figure
+    _, (ax_hist, ax_box) = plt.subplots(1, 2, figsize=(10, 4))
+    # Histogram: clip to the fences so the outliers don't squash the bulk into a single bar
+    scores.clip(low_fence, high_fence).hist(bins=40, ax=ax_hist)
+    # Reference line at zero to judge the centering
+    ax_hist.axvline(0, color="r", ls="--")
+    ax_hist.set_title("Histogram (clipped to fences)")
+    # Boxplot: full range (no clip) so the outliers are visible as separate points
+    ax_box.boxplot(scores, vert=False)
+    # Same zero reference for comparison
+    ax_box.axvline(0, color="r", ls="--")
+    ax_box.set_title("Boxplot (full range)")
+    # Prevent titles/labels from overlapping
+    plt.tight_layout()
+    # Create the output directories if they don't exist
+    plot.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(plot, dpi=120)
+    # Free the figure from memory
+    plt.close()
+    print(f"Plot saved to '{plot}'.")
+    return None
+
+
 def main() -> None:
     """
     Runs correlation and OLS regression between TruFor scores and Crowdtangle scores.
+    Calculates the distribution of Crowdtangle scores and plots it.
 
     Args:
         None (arguments are read from the command line via argparse).
@@ -141,20 +229,25 @@ def main() -> None:
     """
     
     # Initialize the argument parser
-    parser = argparse.ArgumentParser(description="Compute correlation and regression between TruFor scores and Crowdtangle scores.")
+    parser = argparse.ArgumentParser(description="Compute correlation, regression and the Crowdtangle score distribution.")
 
     # Flags
-    parser.add_argument("--dataset",     type=Path, default=FILTERED_DATASET_FILE, help=f"Path to the dataset file. Default: '{FILTERED_DATASET_FILE}'")
-    parser.add_argument("--correlation", type=Path, default=CORRELATION_FILE,      help=f"Path to text file to save the correlation report. Default: '{CORRELATION_FILE}'")
-    parser.add_argument("--regression",  type=Path, default=REGRESSION_FILE,       help=f"Path to text file to save the regression report. Default: '{REGRESSION_FILE}'")
+    parser.add_argument("--dataset",           type=Path, default=FILTERED_DATASET_FILE,  help=f"Path to the dataset file. Default: '{FILTERED_DATASET_FILE}'")
+    parser.add_argument("--correlation",       type=Path, default=CORRELATION_FILE,       help=f"Path to text file to save the correlation report. Default: '{CORRELATION_FILE}'")
+    parser.add_argument("--regression",        type=Path, default=REGRESSION_FILE,        help=f"Path to text file to save the regression report. Default: '{REGRESSION_FILE}'")
+    parser.add_argument("--distribution",      type=Path, default=DISTRIBUTION_FILE,      help=f"Path to text file to save the distribution report. Default: '{DISTRIBUTION_FILE}'")
+    parser.add_argument("--distribution-plot", type=Path, default=DISTRIBUTION_PLOT_FILE, help=f"Path to image file to save the distribution plot. Default: '{DISTRIBUTION_PLOT_FILE}'")
     args = parser.parse_args()
 
 
     # Correlation
-    compute_correlation(args.dataset, args.correlation)
-    
+    correlation(args.dataset, args.correlation)
+
     # Regression
-    compute_regression(args.dataset, args.regression)
+    regression(args.dataset, args.regression)
+
+    # Distribution
+    distribution(args.dataset, args.distribution, args.distribution_plot)
 
 if __name__ == "__main__":
     main()

@@ -23,11 +23,11 @@ ask_execute "dataset filtering" "python \"${SCRIPTS_DIR}/filter.py\""
 ask_execute "TruFor and update dataset" "python \"${SCRIPTS_DIR}/trufor.py\""
 
 # Performance report
-ask_execute "generate truth file and performance report" "python \"${SCRIPTS_DIR}/performance.py\" --generate-truth"
+ask_execute "performance report (and generate truth file)" "python \"${SCRIPTS_DIR}/performance.py\" --generate-truth"
 # ask_execute "performance report" "python \"${SCRIPTS_DIR}/performance.py\""
 
-# Correlation and regression
-ask_execute "correlation and regression" "python \"${SCRIPTS_DIR}/correlation_regression.py\""
+# General statistics
+ask_execute "general statistics" "python \"${SCRIPTS_DIR}/general_stats.py\""
 
 # Masking - generating descriptions - anomaly regression
 ask_execute "anomaly regression" "python \"${SCRIPTS_DIR}/anomaly_regression.py\""

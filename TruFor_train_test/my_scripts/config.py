@@ -42,6 +42,11 @@ CORRELATION_FILE        = TEMP_DIR / "correlation.txt"
 REGRESSION_FILE         = TEMP_DIR / "regression.txt"
 
 
+# Distribution
+DISTRIBUTION_FILE       = TEMP_DIR / "distribution.txt"
+DISTRIBUTION_PLOT_FILE  = TEMP_DIR / "distribution.png"
+
+
 # Mask
 # From 0.0 to 1.0
 MASK_THRESHOLD          = 0.5
