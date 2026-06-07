@@ -5,7 +5,7 @@ from   pathlib import Path
 from   utils   import load_csv, save_report
 
 
-def generate_truth(dataset: Path, truth: Path) -> None:
+def generate_truth(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_FILE) -> None:
     """
     Generates an empty labels CSV template from the dataset.
     The user fills the 'label' column manually (0 = Real, 1 = AI) before running compute_performance.
@@ -40,7 +40,7 @@ def generate_truth(dataset: Path, truth: Path) -> None:
     return None
 
 
-def compute_performance(dataset: Path, truth: Path, threshold: float, report: Path) -> None:
+def compute_performance(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_FILE, threshold: float = PERFORMANCE_THRESHOLD, report: Path = PERFORMANCE_FILE) -> None:
     """
     Loads the dataset and truth file, classifies each sample using the given threshold,
     then computes and saves accuracy, precision, recall and F1-score.
@@ -178,27 +178,24 @@ def main() -> None:
     Optionally generates the truth template and then computes the performance metrics of the TruFor results.
 
     Args:
-        None (arguments are read from the command line via argparse).
+        None (paths come from config.py; run mode and threshold are flags).
 
     Returns:
         None.
     """
-    
+
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Compute performance metrics of TruFor results.")
-
     # Flags
-    parser.add_argument("--dataset",        type=Path,  default=FILTERED_DATASET_FILE, help=f"Path to the dataset file. Default: '{FILTERED_DATASET_FILE}'")
+    # Paths come from config.py (the project backbone)
     parser.add_argument("--threshold",      type=float, default=PERFORMANCE_THRESHOLD, help=f"Threshold for classifying an image as AI. Range: 0.0 to 1.0. Default: '{PERFORMANCE_THRESHOLD}'.")
-    parser.add_argument("--truth",          type=Path,  default=TRUTH_FILE,            help=f"Path to the truth CSV file (filename, label). Default: '{TRUTH_FILE}'")
-    parser.add_argument("--generate-truth", action="store_true",                       help=f"Generate an empty truth template CSV. Default: '{TRUTH_FILE}'")
-    parser.add_argument("--performance",    type=Path,  default=PERFORMANCE_FILE,      help=f"Output performance file path. Default: '{PERFORMANCE_FILE}'")
+    parser.add_argument("--generate-truth",             action="store_true",           help="Generate an empty truth template CSV before computing performance.")
     args = parser.parse_args()
 
 
     if args.generate_truth:
         # Generate truth template
-        generate_truth(args.dataset, args.truth)
+        generate_truth()
 
         # Pause until the user confirms they have filled the truth file
         while True:
@@ -207,8 +204,8 @@ def main() -> None:
                 break
 
 
-    # Compute performance
-    compute_performance(args.dataset, args.truth, args.threshold, args.performance)
+    # Compute performance (paths default from config; threshold comes from the flag)
+    compute_performance(threshold=args.threshold)
 
 if __name__ == "__main__":
     main()

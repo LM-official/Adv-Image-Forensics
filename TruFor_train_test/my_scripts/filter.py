@@ -1,4 +1,3 @@
-import argparse
 from   config   import CHAR_LIMIT, DATASET_FILE, DATASET_IMGS_DIR, FILTERED_DATASET_FILE, IMGS_DIR
 import csv
 import hashlib
@@ -6,7 +5,7 @@ import json
 from   pathlib  import Path
 
 
-def url_to_stem(url: str, char_limit: int = CHAR_LIMIT) -> str:
+def _url_to_stem(url: str, char_limit: int = CHAR_LIMIT) -> str:
     """
     Reproduces the filename stem (no extension) that CrowdTangle/Meta's assigns to a media URL
 
@@ -18,10 +17,11 @@ def url_to_stem(url: str, char_limit: int = CHAR_LIMIT) -> str:
         The truncated sha256 hex digest used as the on-disk filename stem.
     """
 
+
     return hashlib.sha256(url.encode()).hexdigest()[:char_limit]
 
 
-def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Path]] | None:
+def _is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Path]] | None:
     """
     Checks if a post is valid based on the specified filters and returns the list of image paths if valid.
 
@@ -37,8 +37,8 @@ def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Pat
         A list of image paths associated with the post, or None if the post does not pass the filters.
     """
 
-    if not isinstance(data, dict) or len(data) == 0 or not hash_map:
-        print(f"ERROR: invalid post data or empty hash map.")
+    if not isinstance(data, dict) or len(data) == 0:
+        print(f"ERROR: invalid post data.")
         return None
 
 
@@ -65,7 +65,7 @@ def is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Pat
             return None
 
         # Hash the URL the same way the file was named on disk
-        url_hash = url_to_stem(image_url)
+        url_hash = _url_to_stem(image_url)
 
         # Dictionary lookup
         founds = hash_map.get(url_hash, [])
@@ -94,10 +94,6 @@ def _build_hash_map(images: Path) -> dict[str, list[Path]] | None:
         A dict mapping filename stem to the list of file paths, or None if the directory is invalid.
     """
 
-    if not images.is_dir():
-        print(f"ERROR: images directory '{images}' not found.")
-        return None
-
 
     hash_map = {}
     for image in images.iterdir():
@@ -106,7 +102,7 @@ def _build_hash_map(images: Path) -> dict[str, list[Path]] | None:
     return hash_map
 
 
-def filter_jsonl(dataset: Path, dataset_images: Path, output_csv: Path, output_images: Path) -> None:
+def filter_jsonl(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR, output_csv: Path = FILTERED_DATASET_FILE, output_images: Path = IMGS_DIR) -> None:
     """
     Filters the JSONL dataset based on the specified criteria and saves the filtered records to a new CSV file.
     
@@ -166,7 +162,7 @@ def filter_jsonl(dataset: Path, dataset_images: Path, output_csv: Path, output_i
                     continue
 
                 # Filters
-                images = is_valid_post(data, hash_map)
+                images = _is_valid_post(data, hash_map)
                 if not images:
                     continue
 
@@ -195,24 +191,14 @@ def main() -> None:
     Filters the dataset, producing the filtered CSV and the symlinked images directory.
 
     Args:
-        None (arguments are read from the command line via argparse).
+        None (paths come from config.py, the project backbone).
 
     Returns:
         None.
     """
-    
-    # Initialize the argument parser
-    parser = argparse.ArgumentParser(description="Filter dataset")
 
-    # Flags
-    parser.add_argument("--dataset",        type=Path, default=DATASET_FILE,          help=f"Input dataset file path. Default: '{DATASET_FILE}'")
-    parser.add_argument("--dataset-images", type=Path, default=DATASET_IMGS_DIR,      help=f"Directory path where the dataset images are stored. Default: '{DATASET_IMGS_DIR}'")
-    parser.add_argument("--output-csv",     type=Path, default=FILTERED_DATASET_FILE, help=f"Output file path for csv. Default: '{FILTERED_DATASET_FILE}'")
-    parser.add_argument("--output-images",  type=Path, default=IMGS_DIR,               help=f"Output directory path for the images. Default: '{IMGS_DIR}'")
-    args = parser.parse_args()
-
-    # Process dataset
-    filter_jsonl(args.dataset, args.dataset_images, args.output_csv, args.output_images)
+    # Process dataset (every path defaults from config.py)
+    filter_jsonl()
     return None
 
 if __name__ == "__main__":

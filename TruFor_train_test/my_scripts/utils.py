@@ -33,6 +33,7 @@ def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | N
     df = df.dropna()
     df.to_csv(dataset, index=False, encoding="utf-8")
     print("Dataset updated successfully.")
+    return None
 
 
 def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None:

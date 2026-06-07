@@ -1,4 +1,3 @@
-import argparse
 import matplotlib
 matplotlib.use("Agg")  # Non-interactive backend: render straight to file, no display needed
 import matplotlib.pyplot as     plt
@@ -9,7 +8,7 @@ import statsmodels.api   as     sm
 from   utils             import load_csv, save_report
 
 
-def correlation(dataset: Path, report: Path) -> None:
+def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATION_FILE) -> None:
     """
     Calculates Pearson and Spearman correlations between TruFor score and Crowdtangle score.
 
@@ -66,7 +65,7 @@ def correlation(dataset: Path, report: Path) -> None:
     return None
 
 
-def regression(dataset: Path, report: Path) -> None:
+def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_FILE) -> None:
     """
     Calculates Ordinary Least Squares (OLS) regression between TruFor score and Crowdtangle score.
 
@@ -132,7 +131,7 @@ def regression(dataset: Path, report: Path) -> None:
     return None
 
 
-def distribution(dataset: Path, report: Path, plot: Path) -> None:
+def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUTION_FILE, plot: Path = DISTRIBUTION_PLOT_FILE) -> None:
     """
     Analyzes the distribution of the Crowdtangle score: whether it is centered on zero and how many outliers it has.
 
@@ -193,18 +192,21 @@ def distribution(dataset: Path, report: Path, plot: Path) -> None:
 
     # Plot: histogram clipped to the fences (the bulk) + boxplot over the full range (the outliers)
     print("Plotting the distribution...")
-    # One row, two side-by-side subplots sharing the same figure
+    # One figure with two charts (1, 2). ax_hist to the left and ax_box to the right. size 10x4
     _, (ax_hist, ax_box) = plt.subplots(1, 2, figsize=(10, 4))
+    
     # Histogram: clip to the fences so the outliers don't squash the bulk into a single bar
     scores.clip(low_fence, high_fence).hist(bins=40, ax=ax_hist)
-    # Reference line at zero to judge the centering
+    # Reference red line at zero to judge the centering
     ax_hist.axvline(0, color="r", ls="--")
     ax_hist.set_title("Histogram (clipped to fences)")
+
     # Boxplot: full range (no clip) so the outliers are visible as separate points
     ax_box.boxplot(scores, vert=False)
-    # Same zero reference for comparison
+    # Reference red line at zero to judge the centering
     ax_box.axvline(0, color="r", ls="--")
     ax_box.set_title("Boxplot (full range)")
+
     # Prevent titles/labels from overlapping
     plt.tight_layout()
     # Create the output directories if they don't exist
@@ -222,32 +224,21 @@ def main() -> None:
     Calculates the distribution of Crowdtangle scores and plots it.
 
     Args:
-        None (arguments are read from the command line via argparse).
+        None (paths come from config.py, the project backbone).
 
     Returns:
         None.
     """
-    
-    # Initialize the argument parser
-    parser = argparse.ArgumentParser(description="Compute correlation, regression and the Crowdtangle score distribution.")
 
-    # Flags
-    parser.add_argument("--dataset",           type=Path, default=FILTERED_DATASET_FILE,  help=f"Path to the dataset file. Default: '{FILTERED_DATASET_FILE}'")
-    parser.add_argument("--correlation",       type=Path, default=CORRELATION_FILE,       help=f"Path to text file to save the correlation report. Default: '{CORRELATION_FILE}'")
-    parser.add_argument("--regression",        type=Path, default=REGRESSION_FILE,        help=f"Path to text file to save the regression report. Default: '{REGRESSION_FILE}'")
-    parser.add_argument("--distribution",      type=Path, default=DISTRIBUTION_FILE,      help=f"Path to text file to save the distribution report. Default: '{DISTRIBUTION_FILE}'")
-    parser.add_argument("--distribution-plot", type=Path, default=DISTRIBUTION_PLOT_FILE, help=f"Path to image file to save the distribution plot. Default: '{DISTRIBUTION_PLOT_FILE}'")
-    args = parser.parse_args()
-
-
+    # Inputs and outputs default from config.py
     # Correlation
-    correlation(args.dataset, args.correlation)
+    correlation()
 
     # Regression
-    regression(args.dataset, args.regression)
+    regression()
 
     # Distribution
-    distribution(args.dataset, args.distribution, args.distribution_plot)
+    distribution()
 
 if __name__ == "__main__":
     main()

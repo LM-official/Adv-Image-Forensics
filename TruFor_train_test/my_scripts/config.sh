@@ -50,7 +50,7 @@ export FILTERED_DATASET_FILE="${TEMP_DIR}/filtered_dataset.csv"
 
 
 # TruFor
-export IMG_DIR="${TRUFOR_DIR}/images"
+export IMGS_DIR="${TRUFOR_DIR}/images"
 export NPZ_DIR="${TRUFOR_DIR}/output"
 
 
@@ -59,9 +59,11 @@ export TRUTH_FILE="${TEMP_DIR}/truth.csv"
 export PERFORMANCE_FILE="${TEMP_DIR}/performance.txt"
 
 
-# Correlation and regression
+# General analysis
 export CORRELATION_FILE="${TEMP_DIR}/correlation.txt"
 export REGRESSION_FILE="${TEMP_DIR}/regression.txt"
+export DISTRIBUTION_FILE="${TEMP_DIR}/distribution.txt"
+export DISTRIBUTION_PLOT_FILE="${TEMP_DIR}/distribution.png"
 
 
 # Mask

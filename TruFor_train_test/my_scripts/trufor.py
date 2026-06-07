@@ -1,5 +1,5 @@
 import argparse
-from   config     import TRUFOR_BATCH_SIZE, IMGS_DIR, NPZ_DIR, TRUFOR_RUN, FILTERED_DATASET_FILE, WAIT
+from   config     import TRUFOR_BATCH_SIZE, IMGS_DIR, NPZ_DIR, TRUFOR_RUN, FILTERED_DATASET_FILE, TRUFOR_WAIT
 from   pathlib    import Path
 import subprocess
 import sys
@@ -8,7 +8,7 @@ import time
 from   utils      import load_npzs, update_dataset
 
 
-def _run_trufor_batch(images: Path, npz: Path, trufor_run: Path) -> bool:
+def _run_trufor_batch(images: Path, npz: Path, trufor_run: Path) -> None:
     """
     Runs TruFor on the specified input and output directories.
 
@@ -40,13 +40,13 @@ def _run_trufor_batch(images: Path, npz: Path, trufor_run: Path) -> bool:
             check=True,
             cwd=trufor_run.parent
         )
-        return True
+        return None
     except subprocess.CalledProcessError as e:
         print(f"ERROR: {e}")
-        return False
+        return None
 
 
-def run_trufor(images: Path, npz: Path, trufor_run: Path, batch_size: int, wait: int = WAIT) -> bool:
+def run_trufor(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, trufor_run: Path = TRUFOR_RUN, batch_size: int = TRUFOR_BATCH_SIZE, wait: int = TRUFOR_WAIT) -> None:
     """
     Runs TruFor in chunks of `batch_size` images, writing every output straight into `npz`,
     and waits `wait` seconds between batches to let the machine cool down.
@@ -67,12 +67,22 @@ def run_trufor(images: Path, npz: Path, trufor_run: Path, batch_size: int, wait:
         True if every batch completed successfully, False otherwise.
     """
 
-    if not images.is_dir() or not trufor_run.is_file() or batch_size <= 0 or wait < 0:
-        print("ERROR: Invalid images directory, TruFor run file, batch size, or wait time.")
-        return False
+    if not images.is_dir() or not trufor_run.is_file():
+        print("ERROR: Invalid images directory or TruFor run file.")
+        return None
 
     # Create the output directory if it doesn't exist
     npz.mkdir(parents=True, exist_ok=True)
+
+
+    # No batch
+    if batch_size <= 0:
+        _run_trufor_batch(images, npz, trufor_run)
+        return None
+    if wait < 0:
+        print("ERROR: Wait time cannot be negative.")
+        return None
+
 
     # TruFor skips already analyzed images
     image_files   = [p for p in images.iterdir() if p.is_file()]
@@ -89,16 +99,14 @@ def run_trufor(images: Path, npz: Path, trufor_run: Path, batch_size: int, wait:
             staging = Path(tmp)
             for image in batch:
                 (staging / image.name).symlink_to(image.absolute())
-            if not _run_trufor_batch(staging, npz, trufor_run):
-                print(f"ERROR: batch {i} failed, stopping.")
-                return False
+            _run_trufor_batch(staging, npz, trufor_run)
 
         # Wait between batches (not after the last one)
         if i < batches and wait > 0:
             time.sleep(wait)
 
-    print("All batches completed successfully.")
-    return True
+    print("Batches completed.")
+    return None
 
 
 def main() -> None:
@@ -106,40 +114,33 @@ def main() -> None:
     Runs TruFor on the input images and updates the dataset CSV with the resulting scores.
 
     Args:
-        None (arguments are read from the command line via argparse).
+        None (paths come from config.py; batch size and wait are per-run CLI flags).
 
     Returns:
         None.
     """
-    
+
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Run TruFor and update dataset with scores")
-
     # Flags
-    parser.add_argument("--images",     type=Path, default=IMGS_DIR,              help=f"Directory path where the images are stored. Default: '{IMGS_DIR}'")
-    parser.add_argument("--npz",        type=Path, default=NPZ_DIR,               help=f"Directory path where the npz files will be saved. Default: '{NPZ_DIR}'")
-    parser.add_argument("--trufor-run", type=Path, default=TRUFOR_RUN,            help=f"Path to the TruFor run file. Default: '{TRUFOR_RUN}'")
-    parser.add_argument("--dataset",    type=Path, default=FILTERED_DATASET_FILE, help=f"Path to the dataset file. Default: '{FILTERED_DATASET_FILE}'")
-    parser.add_argument("--batch-size", type=int,  default=TRUFOR_BATCH_SIZE,     help=f"Images per TruFor invocation. Default: {TRUFOR_BATCH_SIZE}")
-    parser.add_argument("--wait",       type=int,  default=WAIT,                  help=f"Seconds to wait between batches. Default: {WAIT}")
+    # Paths come from config.py (the project backbone)
+    parser.add_argument("--batch-size", type=int, default=TRUFOR_BATCH_SIZE, help=f"Images per TruFor invocation. Default: {TRUFOR_BATCH_SIZE}")
+    parser.add_argument("--wait",       type=int, default=TRUFOR_WAIT,       help=f"Seconds to wait between batches. Default: {TRUFOR_WAIT}")
     args = parser.parse_args()
 
-    # Run TruFor in batches
-    if not run_trufor(args.images, args.npz, args.trufor_run, args.batch_size, args.wait):
-        return None
-    # Fast for testing
-    # _run_trufor_batch(args.images, args.npz, args.trufor_run):
-    
+    # Run TruFor in batches (paths default from config; batch size and wait come from the flags)
+    run_trufor(batch_size=args.batch_size, wait=args.wait)
+
     # Divide the update in batched is useless because the bottleneck is running TruFor
     # Run TruFor on a big dataset is very expensive, so the dataset should be small so divide in batches is not necessary
-    
+
     # Load TruFor scores from all .npz files
-    scores = load_npzs(args.npz, {"score"})
+    scores = load_npzs(NPZ_DIR, {"score"})
     if scores is None:
         return None
-    
+
     # Update dataset
-    update_dataset(args.dataset, scores, rename={"score": "trufor_score"})
+    update_dataset(FILTERED_DATASET_FILE, scores, rename={"score": "trufor_score"})
     return None
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ echo "Starting cleanup of the environment..."
 ask_remove "'${FILTERED_DATASET_FILE}'" "rm -f \"${FILTERED_DATASET_FILE}\""
 
 # Remove all images in the input directory
-ask_remove "all images in input directory" "rm -rf \"${IMG_DIR}\"/*(N)"
+ask_remove "all images in input directory" "rm -rf \"${IMGS_DIR}\"/*(N)"
 
 # Remove all .npz files in the output directory
 # Warning: compute all .npz is expensive
@@ -26,14 +26,14 @@ ask_remove "'${TRUTH_FILE}'" "rm -f \"${TRUTH_FILE}\""
 # Remove performance file
 ask_remove "'${PERFORMANCE_FILE}'" "rm -f \"${PERFORMANCE_FILE}\""
 
-# Remove correlation file
+# Remove general analysis files
 ask_remove "'${CORRELATION_FILE}'" "rm -f \"${CORRELATION_FILE}\""
-
-# Remove regression file
 ask_remove "'${REGRESSION_FILE}'" "rm -f \"${REGRESSION_FILE}\""
+ask_remove "'${DISTRIBUTION_FILE}'" "rm -f \"${DISTRIBUTION_FILE}\""
+ask_remove "'${DISTRIBUTION_PLOT_FILE}'" "rm -f \"${DISTRIBUTION_PLOT_FILE}\""
 
 # Remove all masked images
-ask_remove "all masked images" "rm -rf \"${MASKED_DIR}\"/*(N)"
+ask_remove "all masked images" "rm -rf \"${MASKED_DIR}\""
 
 # Remove anomaly regression file
 ask_remove "'${ANOMALY_REGRESSION_FILE}'" "rm -f \"${ANOMALY_REGRESSION_FILE}\""

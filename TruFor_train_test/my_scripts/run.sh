@@ -23,8 +23,19 @@ ask_execute "dataset filtering" "python \"${SCRIPTS_DIR}/filter.py\""
 ask_execute "TruFor and update dataset" "python \"${SCRIPTS_DIR}/trufor.py\""
 
 # Performance report
-ask_execute "performance report (and generate truth file)" "python \"${SCRIPTS_DIR}/performance.py\" --generate-truth"
-# ask_execute "performance report" "python \"${SCRIPTS_DIR}/performance.py\""
+read "confirm?Run performance report? (y/n): "
+if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    read "confirm?Generate truth file? (y/n): "
+    echo " - Running performance report..."
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        python "${SCRIPTS_DIR}/performance.py" --generate-truth
+    else
+        python "${SCRIPTS_DIR}/performance.py"
+    fi
+    echo " - Performance report done."
+else
+    echo " - Performance report skipped."
+fi
 
 # General statistics
 ask_execute "general statistics" "python \"${SCRIPTS_DIR}/general_stats.py\""

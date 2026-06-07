@@ -1,157 +1,14 @@
 import argparse
 import subprocess
 import sys
-from   config                          import (IMGS_DIR, NPZ_DIR, MASKED_DIR, BATCH_SIZE,
-                                               MAX_DESCRIPTION_TOKENS, FILTERED_DATASET_FILE,
+from   config                          import (SCRIPTS_DIR, FILTERED_DATASET_FILE,
                                                MAX_NUMBER_OF_WORDS, SVD_COMPONENTS, ANOMALY_REGRESSION_FILE)
-import cv2
 import pandas                          as     pd
 from   pathlib                         import Path
 from   sklearn.feature_extraction.text import TfidfVectorizer
 from   sklearn.decomposition           import PCA, TruncatedSVD
 import statsmodels.api                 as     sm
-import torch
-from   transformers                    import BlipProcessor, BlipForConditionalGeneration
-from   utils                           import update_dataset, load_csv, save_report
-
-# Step 1: masking
-MASK_SCRIPT = Path(__file__).resolve().parent / "mask.py"
-
-
-# Step 2: describing anomaly
-def load_blip() -> tuple[BlipProcessor, BlipForConditionalGeneration, torch.device] | None:
-    """
-    Loads the Hugging Face BLIP processor and model for image captioning.
-
-    Args:
-        None.
-
-    Returns:
-        A tuple (processor, model, device) ready for inference, or None if loading failed.
-    """
-
-    print("Loading Hugging Face model (BLIP)...")
-    try:
-        # Check for hardware acceleration (MPS for Apple Silicon, CUDA for Nvidia GPUs) and set the device accordingly
-        device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
-        # Use float32 for better accuracy
-        torch_dtype = torch.float32
-        print(f"Using device: {device} in {torch_dtype} precision.")
-
-        # Processor is responsible for preparing the input data (images) in the format expected by the model
-        processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-        # Model is the actual neural network that generates the caption based on the processed input
-        model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base", torch_dtype=torch_dtype)
-
-        # Move the model to the selected device for faster inference
-        model.to(device)
-
-        print("BLIP model loaded successfully.")
-        return processor, model, device
-
-    except Exception as e:
-        print(f"ERROR: loading BLIP model: {e}")
-        return None
-
-
-def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGeneration, device: torch.device, batch: list[Path], max_token: int) -> list[tuple[str, str]] | None:
-    """
-    Passes a batch of masked images to the BLIP model to get textual descriptions of the manipulated area.
-
-    Args:
-        processor:  BLIP processor used to prepare the images for the model.
-        model:      BLIP model that generates the captions.
-        device:     Torch device on which the model and inputs live (cpu, cuda or mps).
-        batch:      List of paths to the masked images in the current batch.
-        max_token:  Maximum number of tokens in each generated description.
-
-    Returns:
-        A list of (filename_stem, description) tuples, or None on failure or empty batch.
-    """
-
-    if not batch:
-        print("ERROR: empty image batch for description.")
-        return None
-
-
-    try:
-        loads, names = [], []
-        # Load all images in the batch
-        for image_path in batch:
-            # Force the image to be read in color mode
-            image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-            if image is None:
-                print(f"ERROR: '{image_path}' image not found or corrupted.")
-                continue
-            # Hugging Face processors accept numpy arrays directly in RGB format
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            loads.append(image)
-            names.append(image_path.stem)
-        if not loads:
-            return None
-
-
-        # Process the entire batch of images and move the input tensors to the model's device
-        inputs = processor(images=loads, return_tensors="pt").to(device)
-        # Generate the predictions
-        out = model.generate(**inputs, max_new_tokens=max_token)
-
-        # Decode the output tensors into a list of readable text strings
-        batch_descriptions = processor.batch_decode(out, skip_special_tokens=True)
-        return list(zip(names, batch_descriptions))
-
-    except Exception as e:
-        print(f"ERROR: generating description: {e}")
-        return None
-
-
-def describe_images(processor: BlipProcessor, model: BlipForConditionalGeneration, device: torch.device, masked: Path, batch_size: int, max_token: int, dataset: Path) -> None:
-    """
-    Iterates over all masked images in masked_dir in chunks (batches) and generates textual descriptions.
-
-    Args:
-        processor:  BLIP processor used to prepare the images for the model.
-        model:      BLIP model that generates the captions.
-        device:     Torch device on which the model and inputs live (cpu, cuda or mps).
-        masked:     Directory containing the masked images to describe.
-        batch_size: Number of images processed simultaneously per batch.
-        max_token:  Maximum number of tokens in each generated description.
-        dataset:    Path to the dataset CSV to merge the descriptions into.
-
-    Returns:
-        None.
-    """
-
-    if not masked.is_dir() or batch_size <= 0 or max_token <= 0:
-        print(f"ERROR: '{masked}' is not a valid directory or batch size is not positive.")
-        return None
-
-
-    # Get image paths, excluding hidden files
-    images = [path for path in masked.iterdir() if not path.name.startswith(".")]
-    if not images:
-        print(f"WARNING: No valid masked images found in '{masked}'.")
-        return None
-    len_images = len(images)
-
-    # Generating descriptions
-    print(f"Describing masked images in folder: '{masked}'...")
-    descriptions = []
-    # Process images in chunks of size = batch_size
-    for i in range(0, len_images, batch_size):
-        batch = images[i:i + batch_size]
-        print(f"Processing batch {i // batch_size + 1}/{(len_images + batch_size - 1) // batch_size}...", end="\r")
-
-        # Generate the descriptions for the batch
-        batch_results = _describe_images_batch(processor, model, device, batch, max_token)
-        if not batch_results:
-            print(f"WARNING: No descriptions generated for batch {i // batch_size + 1}.")
-            continue
-
-        descriptions.extend(batch_results)
-
-    update_dataset(dataset, pd.DataFrame(descriptions, columns=["filename", "anomaly_txt"]))
-    return None
+from   utils                           import load_csv, save_report
 
 
 # Step 3: regression on the descriptions
@@ -331,18 +188,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Mask images, describe the anomaly and run a regression on the descriptions.")
 
     # Flags
-    # Mask (delegated to mask.py via subprocess; tuning flags live in mask.py)
+    # Mask (delegated to mask.py via subprocess; mask.py sources its dirs and tuning knobs from config.py)
     parser.add_argument("--skip-mask",       action="store_true",                                  help="Skip step 1 (masking).")
-    parser.add_argument("--images",          type=Path,           default=IMGS_DIR,                help=f"Original images directory. Default: '{IMGS_DIR}'")
-    parser.add_argument("--npz",             type=Path,           default=NPZ_DIR,                 help=f"Directory containing the TruFor .npz files. Default: '{NPZ_DIR}'")
-    parser.add_argument("--masked",          type=Path,           default=MASKED_DIR,              help=f"Output directory for the masked images. Default: '{MASKED_DIR}'")
 
-    # Describe
+    # Describe (delegated to describe.py via subprocess; describe.py sources its params from config.py)
     parser.add_argument("--skip-describe",   action="store_true",                                  help="Skip step 2 (anomaly description).")
-    parser.add_argument("--batch-size",      type=int,            default=BATCH_SIZE,              help=f"Number of images captioned simultaneously. Default: {BATCH_SIZE}")
-    parser.add_argument("--max-token",       type=int,            default=MAX_DESCRIPTION_TOKENS,  help=f"Maximum number of tokens in the generated descriptions. Default: {MAX_DESCRIPTION_TOKENS}")
-    parser.add_argument("--dataset",         type=Path,           default=FILTERED_DATASET_FILE,   help=f"Dataset csv file. Default: '{FILTERED_DATASET_FILE}'")
-
+    
     # Regression
     parser.add_argument("--skip-regression", action="store_true",                                  help="Skip step 3 (regression).")
     parser.add_argument("--max-words",       type=int,            default=MAX_NUMBER_OF_WORDS,     help=f"Maximum number of TF-IDF words. Default: {MAX_NUMBER_OF_WORDS}")
@@ -351,33 +202,28 @@ def main() -> None:
     parser.add_argument("--no-svd",          dest="use_svd",      action="store_false",            help="Disable SVD: use the raw TF-IDF features in the regression.")
     parser.set_defaults(use_svd=True)
     parser.add_argument("--report",          type=Path,           default=ANOMALY_REGRESSION_FILE, help=f"Output file for the regression report. Default: '{ANOMALY_REGRESSION_FILE}'")
-
     args = parser.parse_args()
 
 
-    # Step 1: Masking
+    # Masking (mask.py reads images/npz/masked and its tuning knobs from config.py)
     if not args.skip_mask:
-        command = [
-            sys.executable, str(MASK_SCRIPT),
-            "--images", str(args.images),
-            "--npz",    str(args.npz),
-            "--masked", str(args.masked)
-        ]
+        command = [sys.executable, str(SCRIPTS_DIR / "mask.py")]
         try:
             subprocess.run(command, check=True)
         except subprocess.CalledProcessError as e:
-            print(f"ERROR: Masking step failed: {e}")
+            print(f"ERROR: Masking failed: {e}")
             return None
 
-    '''# Step 2: Anomaly description
+    # Anomaly description (describe.py reads its params from config.py)
     if not args.skip_describe:
-        blip = load_blip()
-        if blip is not None:
-            processor, model, device = blip
-            describe_images(processor, model, device, args.masked, args.batch_size, args.max_token, args.dataset)
+        command = [sys.executable, str(SCRIPTS_DIR / "describe.py")]
+        try:
+            subprocess.run(command, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Description failed: {e}")
+            return None
 
-
-    # Step 3: Regression on the descriptions
+    '''# Step 3: Regression on the descriptions
     if not args.skip_regression:
         regression(args.dataset, args.max_words, args.svd_components, args.use_svd, args.report)'''
 
