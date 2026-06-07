@@ -1,87 +1,21 @@
 import argparse
-from   config                          import (IMGS_DIR, NPZ_DIR, MASK_THRESHOLD, MASKED_DIR,
-                                               BATCH_SIZE, MAX_DESCRIPTION_TOKENS, FILTERED_DATASET_FILE,
+import subprocess
+import sys
+from   config                          import (IMGS_DIR, NPZ_DIR, MASKED_DIR, BATCH_SIZE,
+                                               MAX_DESCRIPTION_TOKENS, FILTERED_DATASET_FILE,
                                                MAX_NUMBER_OF_WORDS, SVD_COMPONENTS, ANOMALY_REGRESSION_FILE)
 import cv2
-import gc
-import numpy                           as     np
 import pandas                          as     pd
 from   pathlib                         import Path
 from   sklearn.feature_extraction.text import TfidfVectorizer
-from   sklearn.decomposition           import TruncatedSVD
+from   sklearn.decomposition           import PCA, TruncatedSVD
 import statsmodels.api                 as     sm
 import torch
 from   transformers                    import BlipProcessor, BlipForConditionalGeneration
-from   utils                           import load_npz, update_dataset, load_csv, save_report
-
+from   utils                           import update_dataset, load_csv, save_report
 
 # Step 1: masking
-def mask_images(images: Path, npz: Path, threshold: float, masked: Path) -> None:
-    """
-    Creates a masked image for every .npz file in `npz`, using the matching original image in `images`.
-    Masked images are saved as PNG in `masked`.
-
-    PNG is used because it is lossless AND, being mostly black (only the manipulated region is visible),
-    it compresses well: this keeps the masks folder small on disk.
-
-    Args:
-        images:    Directory containing the original input images.
-        npz:       Directory containing the TruFor .npz files with the anomaly maps.
-        threshold: Binarization threshold in [0.0, 1.0] applied to the anomaly map.
-        masked:    Output directory where the masked PNG images are saved.
-
-    Returns:
-        None.
-    """
-
-    if not images.is_dir() or not npz.is_dir():
-        print("ERROR: invalid input directories for creating masked images.")
-        return
-
-
-    # Maximum PNG compression (0 = none, 9 = max): smaller files at the cost of a bit of CPU
-    png_params = [cv2.IMWRITE_PNG_COMPRESSION, 9]
-
-    # Create the output directory if it doesn't exist
-    masked.mkdir(parents=True, exist_ok = True)
-
-    # Masking
-    print(f"Creating masked images for all images in '{images}'...")
-    for item in npz.glob("*.npz"):
-        # TruFor appends .npz to the original filename, so .stem is the original image name (with extension)
-        image_name = item.stem
-
-        # Load image
-        image = cv2.imread(images / image_name)
-        if image is None:
-            print(f"ERROR: '{image_name}' image not found or corrupted at path.")
-            continue
-        
-        # Load anomaly map
-        anomaly_df = load_npz(item, {"map"})
-        if anomaly_df is None:
-            continue
-        anomaly = np.array(anomaly_df["map"].iloc[0])
-        # Resize the map to match the image pixels (width, height)
-        # cv2.resize expects (width, height), while numpy shape is (height, width)
-        anomaly = cv2.resize(anomaly, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
-
-        # Binarization: cv2 requires the mask to be uint8 format (0 or 255) for bitwise operations
-        binary_mask = (anomaly >= threshold).astype(np.uint8) * 255
-        # Apply the mask using OpenCV's optimized native function
-        image =  cv2.bitwise_and(image, image, mask=binary_mask)
-
-        # Force deletion of the anomaly map and run garbage collection to free up memory immediately
-        del anomaly
-        gc.collect()
-
-        if image is None:
-            continue
-        # Save as compressed PNG
-        cv2.imwrite(masked / f"{Path(image_name).stem}.png", image, png_params)
-
-    print(f"Masked images successfully saved to '{masked}'.")
-    return None
+MASK_SCRIPT = Path(__file__).resolve().parent / "mask.py"
 
 
 # Step 2: describing anomaly
@@ -155,7 +89,7 @@ def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGe
             names.append(image_path.stem)
         if not loads:
             return None
-        
+
 
         # Process the entire batch of images and move the input tensors to the model's device
         inputs = processor(images=loads, return_tensors="pt").to(device)
@@ -250,7 +184,7 @@ def extract_text_features(descriptions: pd.Series, max_words: int, svd_component
         # TF-IDF
         # Ignore common english words and limit the vocabulary to the most frequent words
         # Extracts both single words (unigrams) and pairs of words (bigrams)
-        vectorizer = TfidfVectorizer(stop_words="english", max_features=max_words, ngram_range=(1, 2))
+        vectorizer = TfidfVectorizer(stop_words="english", max_features=max_words)
         # Build the weight matrix (rows = descriptions, columns = words)
         tfidf_matrix = vectorizer.fit_transform(descriptions)
 
@@ -272,10 +206,15 @@ def extract_text_features(descriptions: pd.Series, max_words: int, svd_component
             print("ERROR: Not enough data to extract SVD features.")
             return None
         print(f"Applying SVD (reducing to {actual_components} components)...")
+        actual_components= 60
         # TruncatedSVD decomposes the TF-IDF matrix and keeps only the top components,
         # reducing dimensionality while preserving as much variance as possible (random_state for reproducibility)
         svd = TruncatedSVD(n_components=actual_components, random_state=42)
-        svd_features = svd.fit_transform(tfidf_matrix)
+        #svd = PCA(n_components=0.9, svd_solver="full", random_state=42)
+        svd_features = svd.fit_transform(tfidf_matrix.toarray())
+        #actual_components = svd.n_components_
+        # PCA
+
 
         print("Extracted text features successfully.")
         return pd.DataFrame(
@@ -311,10 +250,10 @@ def _compute_regression(X: pd.DataFrame, Y: pd.Series, target_metric: str, repor
 
         # If the rank of X is less than its number of columns there is perfect multicollinearity:
         # The design matrix is singular and the OLS model cannot be fitted
-        if np.linalg.matrix_rank(X.values) < X.shape[1]:
-            print(f"ERROR: Multicollinearity detected. The design matrix is singular for '{target_metric}'. "
-                  f"Try enabling SVD or lowering the number of TF-IDF words.")
-            return None
+        #if np.linalg.matrix_rank(X.values) < X.shape[1]:
+        #   print(f"ERROR: Multicollinearity detected. The design matrix is singular for '{target_metric}'. "
+        #          f"Try enabling SVD or lowering the number of TF-IDF words.")
+        #    return None
 
         # Define and fit the Ordinary Least Squares (OLS) model
         model = sm.OLS(Y, X).fit()
@@ -377,7 +316,7 @@ def regression(dataset: Path, max_words: int, svd_components: int, use_svd: bool
 def main() -> None:
     """
     Runs the three optional steps:
-    1. masking,
+    1. masking (delegated to mask.py via subprocess),
     2. anomaly description,
     3. regression on the descriptions.
 
@@ -392,13 +331,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Mask images, describe the anomaly and run a regression on the descriptions.")
 
     # Flags
-    # Mask
+    # Mask (delegated to mask.py via subprocess; tuning flags live in mask.py)
     parser.add_argument("--skip-mask",       action="store_true",                                  help="Skip step 1 (masking).")
-    parser.add_argument("--images",          type=Path,           default=IMGS_DIR,                 help=f"Original images directory. Default: '{IMGS_DIR}'")
+    parser.add_argument("--images",          type=Path,           default=IMGS_DIR,                help=f"Original images directory. Default: '{IMGS_DIR}'")
     parser.add_argument("--npz",             type=Path,           default=NPZ_DIR,                 help=f"Directory containing the TruFor .npz files. Default: '{NPZ_DIR}'")
-    parser.add_argument("--threshold",       type=float,          default=MASK_THRESHOLD,          help=f"Binarization threshold (0.0 to 1.0). Default: {MASK_THRESHOLD}")
     parser.add_argument("--masked",          type=Path,           default=MASKED_DIR,              help=f"Output directory for the masked images. Default: '{MASKED_DIR}'")
-    
+
     # Describe
     parser.add_argument("--skip-describe",   action="store_true",                                  help="Skip step 2 (anomaly description).")
     parser.add_argument("--batch-size",      type=int,            default=BATCH_SIZE,              help=f"Number of images captioned simultaneously. Default: {BATCH_SIZE}")
@@ -419,10 +357,19 @@ def main() -> None:
 
     # Step 1: Masking
     if not args.skip_mask:
-        mask_images(args.images, args.npz, args.threshold, args.masked)
+        command = [
+            sys.executable, str(MASK_SCRIPT),
+            "--images", str(args.images),
+            "--npz",    str(args.npz),
+            "--masked", str(args.masked)
+        ]
+        try:
+            subprocess.run(command, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Masking step failed: {e}")
+            return None
 
-
-    # Step 2: Anomaly description
+    '''# Step 2: Anomaly description
     if not args.skip_describe:
         blip = load_blip()
         if blip is not None:
@@ -432,7 +379,7 @@ def main() -> None:
 
     # Step 3: Regression on the descriptions
     if not args.skip_regression:
-        regression(args.dataset, args.max_words, args.svd_components, args.use_svd, args.report)
+        regression(args.dataset, args.max_words, args.svd_components, args.use_svd, args.report)'''
 
 if __name__ == "__main__":
     main()
