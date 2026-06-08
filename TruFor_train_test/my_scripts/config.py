@@ -67,11 +67,30 @@ MASKED_DIR                = TEMP_DIR / "masked"
 
 
 # Description
-DESCRIPTION_BATCH_SIZE = 70
+# Swappable: "Salesforce/blip-image-captioning-base" / "...-large" / "Salesforce/blip2-*".
+DESCRIPTION_MODEL              = "Salesforce/blip-image-captioning-large"
+DESCRIPTION_BATCH_SIZE         = 20
 # Wait time (seconds) after each batch
-DESCRIPTION_WAIT       = 60
-# Anomaly description
-MAX_DESCRIPTION_TOKENS = 200
+DESCRIPTION_WAIT               = 30
+# Length of the caption
+MIN_DESCRIPTION_TOKENS         = 5
+MAX_DESCRIPTION_TOKENS         = 40
+# Beam search (keep best of X generation)
+DESCRIPTION_NUM_BEAMS          = 5
+# Anti-repetition
+DESCRIPTION_REPETITION_PENALTY = 1.5
+DESCRIPTION_NO_REPEAT_NGRAM    = 2
+# Off = deterministic beam search
+DESCRIPTION_DO_SAMPLE          = False
+# Randomness, higher = more random
+DESCRIPTION_TEMPERATURE        = 0.9
+DESCRIPTION_TOP_P              = 0.9
+# Empty masks: if the non-black pixel fraction is <= this, skip BLIP and write EMPTY_MASK_LABEL
+# Collapses the clear hallucination zone (pure-black + tiny spots) to an honest label
+EMPTY_MASK_PIXEL_RATIO    = 0.02
+EMPTY_MASK_LABEL          = "empty"
+# Caption post-processing: keep only a-z and drop duplicate consecutive words.
+DESCRIPTION_DEDUP_WORDS   = True
 
 
 # Multimodal regression
