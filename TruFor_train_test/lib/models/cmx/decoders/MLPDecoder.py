@@ -59,9 +59,30 @@ class DecoderHead(nn.Module):
     def forward(self, inputs, return_feats=False):
         # len=4, 1/4,1/8,1/16,1/32
         c1, c2, c3, c4 = inputs
-        
+
         ############## MLP decoder on C1-C4 ###########
         n, _, h, w = c4.shape
+
+        if not (self.training or return_feats):
+            # at inference, exploit that a 1x1 conv distributes over the channel
+            # concat: fuse each upsampled feature against its weight slice and
+            # accumulate, so the four embed_dim maps at 1/4 resolution (plus their
+            # 4*embed_dim concat) are never alive at the same time
+            fuse_conv, fuse_norm, fuse_act = self.linear_fuse
+            E = fuse_conv.in_channels // 4
+            size = c1.size()[2:]
+            x = None
+            for i, (mlp, c) in enumerate([(self.linear_c4, c4), (self.linear_c3, c3),
+                                          (self.linear_c2, c2), (self.linear_c1, c1)]):
+                _c = mlp(c).permute(0, 2, 1).reshape(n, -1, c.shape[2], c.shape[3])
+                if _c.shape[2:] != size:
+                    _c = F.interpolate(_c, size=size, mode='bilinear', align_corners=self.align_corners)
+                part = F.conv2d(_c, fuse_conv.weight[:, i * E:(i + 1) * E], None)
+                x = part if x is None else x.add_(part)
+            if fuse_conv.bias is not None:
+                x = x.add_(fuse_conv.bias.view(1, -1, 1, 1))
+            x = fuse_act(fuse_norm(x))
+            return self.linear_pred(x)
 
         _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
         _c4 = F.interpolate(_c4, size=c1.size()[2:],mode='bilinear',align_corners=self.align_corners)

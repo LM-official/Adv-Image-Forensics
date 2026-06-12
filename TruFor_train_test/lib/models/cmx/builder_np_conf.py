@@ -205,6 +205,28 @@ class EncoderDecoder(nn.Module):
 
 
 
+    def _extract_noiseprint(self, rgb):
+        # DnCNN is fully convolutional with a 35x35 receptive field, so at inference
+        # large images can be split into overlapping tiles: the stitched result is the
+        # same, while peak memory stays bounded (whole-image extraction allocates
+        # 64 x H x W floats per layer, i.e. several GBs on multi-megapixel images).
+        # BatchNorm running stats make this invalid in training mode, so tile only in eval.
+        TILE = 1024
+        MARGIN = 32  # > receptive-field radius (17 px)
+        B, _, H, W = rgb.shape
+        if self.dncnn.training or max(H, W) <= TILE + 2 * MARGIN:
+            return self.dncnn(rgb)
+
+        out = torch.empty((B, self.np_out_ch, H, W), device=rgb.device, dtype=rgb.dtype)
+        for top in range(0, H, TILE):
+            for left in range(0, W, TILE):
+                t0, l0 = max(top - MARGIN, 0), max(left - MARGIN, 0)
+                t1, l1 = min(top + TILE + MARGIN, H), min(left + TILE + MARGIN, W)
+                tile = self.dncnn(rgb[:, :, t0:t1, l0:l1])
+                out[:, :, top:min(top + TILE, H), left:min(left + TILE, W)] = \
+                    tile[:, :, top - t0:min(top + TILE, H) - t0, left - l0:min(left + TILE, W) - l0]
+        return out
+
     def encode_decode(self, rgb, modal_x):
 
         if rgb is not None:
@@ -269,9 +291,9 @@ class EncoderDecoder(nn.Module):
             if 'NP++' in self.cfg.FIX_MODULES:
                 with torch.no_grad():
                     self.dncnn.eval()
-                    modal_x = self.dncnn(rgb)
+                    modal_x = self._extract_noiseprint(rgb)
             else:
-                modal_x = self.dncnn(rgb)
+                modal_x = self._extract_noiseprint(rgb)
 
             if self.np_out_ch == 1:
                 modal_x = torch.tile(modal_x, (3, 1, 1))

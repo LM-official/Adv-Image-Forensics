@@ -1,5 +1,5 @@
 import argparse
-from   config     import TRUFOR_BATCH_SIZE, IMGS_DIR, NPZ_DIR, TRUFOR_RUN, FILTERED_DATASET_FILE, TRUFOR_WAIT
+from   config     import TRUFOR_BATCH_SIZE, IMGS_DIR, NPZ_DIR, TRUFOR_RUN, FILTERED_DATASET_FILE, TRUFOR_WAIT, TRUFOR_MAX_PIXELS
 from   pathlib    import Path
 import subprocess
 import sys
@@ -30,7 +30,9 @@ def _run_trufor_batch(images: Path, npz: Path, trufor_run: Path) -> None:
         "--input",
         str(images),
         "--output",
-        str(npz)
+        str(npz),
+        "--max-pixels",
+        str(TRUFOR_MAX_PIXELS)
     ]
 
     try:

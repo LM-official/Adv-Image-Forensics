@@ -22,8 +22,11 @@ from PIL import Image
 
 
 class TestDataset(Dataset):
-    def __init__(self, list_img=None):
+    def __init__(self, list_img=None, max_pixels=0):
         self.img_list = list_img
+        # downscale images above this pixel count (0 disables); full-resolution
+        # multi-megapixel images can exceed the memory of smaller machines
+        self.max_pixels = max_pixels
 
     def shuffle(self):
         random.shuffle(self.img_list)
@@ -35,8 +38,13 @@ class TestDataset(Dataset):
         assert self.img_list
         assert 0 <= index < len(self.img_list), f"Index {index} is not available!"
         rgb_path = self.img_list[index]
-        img_RGB = np.array(Image.open(rgb_path).convert("RGB"))
-        return torch.tensor(img_RGB.transpose(2, 0, 1), dtype=torch.float) / 256.0, rgb_path
+        img = Image.open(rgb_path).convert("RGB")
+        orig_size = (img.height, img.width)
+        if self.max_pixels and img.width * img.height > self.max_pixels:
+            scale = (self.max_pixels / (img.width * img.height)) ** 0.5
+            img = img.resize((round(img.width * scale), round(img.height * scale)), Image.LANCZOS)
+        img_RGB = np.array(img)
+        return torch.tensor(img_RGB.transpose(2, 0, 1), dtype=torch.float) / 256.0, rgb_path, torch.tensor(orig_size)
 
     def get_filename(self, index):
         item = self.img_list[index]

@@ -125,11 +125,22 @@ class Attention(nn.Module):
             kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4) 
         k, v = kv[0], kv[1]
 
-        attn = (q @ k.transpose(-2, -1)) * self.scale
-        attn = attn.softmax(dim=-1)
-        attn = self.attn_drop(attn)
+        # at inference, attend in query chunks: softmax rows are independent, so the
+        # result is identical, but the materialized N x N/sr^2 attention matrix
+        # (GBs at high resolution) is bounded to ~64M floats per chunk
+        attn_chunk = max(1024, 64 * 1024 * 1024 // (self.num_heads * k.shape[-2]))
+        if not self.training and N > attn_chunk:
+            kt = k.transpose(-2, -1)
+            x = torch.cat([
+                (((q[:, :, i:i + attn_chunk] @ kt) * self.scale).softmax(dim=-1) @ v)
+                for i in range(0, N, attn_chunk)], dim=2)
+        else:
+            attn = (q @ k.transpose(-2, -1)) * self.scale
+            attn = attn.softmax(dim=-1)
+            attn = self.attn_drop(attn)
+            x = attn @ v
 
-        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = x.transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
 

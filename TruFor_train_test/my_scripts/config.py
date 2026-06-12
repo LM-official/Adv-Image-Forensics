@@ -24,6 +24,9 @@ TRUFOR_RUN        = TRUFOR_DIR / "test.py"
 TRUFOR_BATCH_SIZE = 50
 # Wait time (seconds) after each batch
 TRUFOR_WAIT       = 180
+# Downscale images above this pixel count before inference (maps are upsampled back, so .npz arrays always match the original image size)
+# Full resolution on multi-megapixel images is RAM expensive; 0 disables the cap
+TRUFOR_MAX_PIXELS = 6_000_000
 IMGS_DIR          = TRUFOR_DIR / "images"
 NPZ_DIR           = TRUFOR_DIR / "output"
 NPZ_COLS          = frozenset(("map", "imgsize", "score", "conf"))
