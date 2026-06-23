@@ -81,19 +81,57 @@ MAX_DESCRIPTION_TOKENS         = 40
 # Beam search (keep best of X generation)
 DESCRIPTION_NUM_BEAMS          = 5
 # Anti-repetition
-DESCRIPTION_REPETITION_PENALTY = 1.5
+DESCRIPTION_REPETITION_PENALTY = 1.3
 DESCRIPTION_NO_REPEAT_NGRAM    = 2
-# Off = deterministic beam search
+# Off = deterministic beam search (generic but faithful captions; the OCR words supply the lexical variance);
+# on = nucleus sampling for extra caption-side diversity at some fidelity cost
 DESCRIPTION_DO_SAMPLE          = False
 # Randomness, higher = more random
-DESCRIPTION_TEMPERATURE        = 0.9
+DESCRIPTION_TEMPERATURE        = 0.7
 DESCRIPTION_TOP_P              = 0.9
+# Sample only among the top-K candidate tokens; 0 disables the cutoff
+DESCRIPTION_TOP_K              = 50
+# Seeds the sampling so rerunning the full pipeline reproduces the same captions; negative = different captions every run
+DESCRIPTION_SEED               = 42
 # Empty masks: if the non-black pixel fraction is <= this, skip BLIP and write EMPTY_MASK_LABEL
 # Collapses the clear hallucination zone (pure-black + tiny spots) to an honest label
 EMPTY_MASK_PIXEL_RATIO    = 0.02
 EMPTY_MASK_LABEL          = "empty"
 # Caption post-processing: keep only a-z and drop duplicate consecutive words.
 DESCRIPTION_DEDUP_WORDS   = True
+# Crop each masked image to its non-black bounding box (margin = OCR_CROP_PADDING) before captioning:
+# the model sees the altered region at full effective resolution instead of a mostly-black frame,
+# and stops describing the mask itself (black/dark/silhouette captions)
+DESCRIPTION_CROP          = True
+# Number of most frequent words shown in the post-run description summary
+DESCRIPTION_TOP_WORDS     = 10
+# Output file for the post-run description quality summary
+DESCRIPTION_REPORT_FILE   = TEMP_DIR / "description_report.txt"
+
+
+# OCR
+# Text printed inside the altered region: grounded, naturally high-variance tokens for the tfidf/svd step
+# (image captioning models cannot read text, so banners/posters caption generically; OCR recovers the actual words)
+# On = merge the OCR words of the altered region into each description; off = captions only
+OCR_ENABLED         = True
+# EasyOCR language packs loaded together (must share a compatible script): set them to the dataset's languages
+OCR_LANGS           = ("it", "en")
+# Drop words recognized with confidence below this (misspelled/garbled recognitions sit low, real text sits high)
+OCR_MIN_CONFIDENCE  = 0.65
+# Drop words with fewer letters than this (kills the 1-2 letter fragments OCR confidently finds in logos/graphics)
+OCR_MIN_WORD_LEN    = 3
+# Keep at most this many OCR words per image, preferring the most confident ones (so dense
+# infographics cannot flood the description); 0 disables the cap
+OCR_MAX_WORDS       = 20
+# Pixels of margin kept around the non-black bounding box when cropping the masked image for OCR
+OCR_CROP_PADDING    = 10
+# EasyOCR magnification before detection; > 1 helps small print
+OCR_MAG_RATIO       = 1.5
+# Optionally restrict recognition to a character set (e.g. "abc...z0-9 "); None = no restriction, works for any language.
+# Accented letters need no special handling: the cleaner folds them to plain a-z afterwards
+OCR_ALLOWLIST       = None
+# Use the GPU (CUDA/MPS) when available; switch off if EasyOCR misbehaves on it
+OCR_GPU             = True
 
 
 # Multimodal regression

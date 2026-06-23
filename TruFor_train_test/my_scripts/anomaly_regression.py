@@ -174,7 +174,7 @@ def main() -> None:
     """
     Runs the three optional steps:
     1. masking (delegated to mask.py via subprocess),
-    2. anomaly description,
+    2. anomaly description (with/without the OCR words of the altered region merged in),
     3. regression on the descriptions.
 
     Args:

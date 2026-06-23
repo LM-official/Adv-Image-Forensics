@@ -8,7 +8,7 @@ import time
 from   utils      import load_npzs, update_dataset
 
 
-def _run_trufor_batch(images: Path, npz: Path, trufor_run: Path) -> None:
+def _run_trufor_batch(images: Path, npz: Path, trufor_run: Path):
     """
     Runs TruFor on the specified input and output directories.
 
@@ -42,13 +42,11 @@ def _run_trufor_batch(images: Path, npz: Path, trufor_run: Path) -> None:
             check=True,
             cwd=trufor_run.parent
         )
-        return None
     except subprocess.CalledProcessError as e:
         print(f"ERROR: {e}")
-        return None
 
 
-def run_trufor(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, trufor_run: Path = TRUFOR_RUN, batch_size: int = TRUFOR_BATCH_SIZE, wait: int = TRUFOR_WAIT) -> None:
+def run_trufor(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, trufor_run: Path = TRUFOR_RUN, batch_size: int = TRUFOR_BATCH_SIZE, wait: int = TRUFOR_WAIT):
     """
     Runs TruFor in chunks of `batch_size` images, writing every output straight into `npz`,
     and waits `wait` seconds between batches to let the machine cool down.
@@ -71,7 +69,7 @@ def run_trufor(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, trufor_run: Path = 
 
     if not images.is_dir() or not trufor_run.is_file():
         print("ERROR: Invalid images directory or TruFor run file.")
-        return None
+        return
 
     # Create the output directory if it doesn't exist
     npz.mkdir(parents=True, exist_ok=True)
@@ -80,10 +78,10 @@ def run_trufor(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, trufor_run: Path = 
     # No batch
     if batch_size <= 0:
         _run_trufor_batch(images, npz, trufor_run)
-        return None
+        return
     if wait < 0:
         print("ERROR: Wait time cannot be negative.")
-        return None
+        return
 
 
     # TruFor skips already analyzed images
@@ -108,10 +106,9 @@ def run_trufor(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, trufor_run: Path = 
             time.sleep(wait)
 
     print("Batches completed.")
-    return None
 
 
-def main() -> None:
+def main():
     """
     Runs TruFor on the input images and updates the dataset CSV with the resulting scores.
 
@@ -139,11 +136,10 @@ def main() -> None:
     # Load TruFor scores from all .npz files
     scores = load_npzs(NPZ_DIR, {"score"})
     if scores is None:
-        return None
+        return
 
     # Update dataset
     update_dataset(FILTERED_DATASET_FILE, scores, rename={"score": "trufor_score"})
-    return None
 
 if __name__ == "__main__":
     main()

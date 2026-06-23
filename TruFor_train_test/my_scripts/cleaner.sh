@@ -34,7 +34,8 @@ ask_remove "'${DISTRIBUTION_PLOT_FILE}'" "rm -f \"${DISTRIBUTION_PLOT_FILE}\""
 
 # Remove all masked images
 ask_remove "all masked images" "rm -rf \"${MASKED_DIR}\""
-
+# Remove description report file
+ask_remove "'${DESCRIPTION_FILE}'" "rm -f \"${DESCRIPTION_FILE}\""
 # Remove anomaly regression file
 ask_remove "'${ANOMALY_REGRESSION_FILE}'" "rm -f \"${ANOMALY_REGRESSION_FILE}\""
 

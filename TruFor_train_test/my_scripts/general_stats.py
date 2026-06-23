@@ -8,7 +8,7 @@ import statsmodels.api   as     sm
 from   utils             import load_csv, save_report
 
 
-def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATION_FILE) -> None:
+def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATION_FILE):
     """
     Calculates Pearson and Spearman correlations between TruFor score and Crowdtangle score.
 
@@ -21,16 +21,16 @@ def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATIO
     """
     if not dataset.is_file():
         print(f"ERROR: Dataset '{dataset}' not found.")
-        return None
+        return
     
     # Load dataset
     df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
     if df is None:
-        return None
+        return
     # Pearson requires at least 2 unique values in each variable to compute correlation, otherwise it will return NaN.
     if df["trufor_score"].nunique() <= 1 or df["crowdtangle_score"].nunique() <= 1:
         print("ERROR: Not enough valid data points after dropping NaN values or insufficient variability in the data.")
-        return None
+        return
 
     
     # Correlation
@@ -62,10 +62,9 @@ def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATIO
 
     # Save
     save_report(text, report)
-    return None
 
 
-def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_FILE) -> None:
+def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_FILE):
     """
     Calculates Ordinary Least Squares (OLS) regression between TruFor score and Crowdtangle score.
 
@@ -78,15 +77,15 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_
     """
     if not dataset.is_file():
         print(f"ERROR: Dataset '{dataset}' not found.")
-        return None
+        return
     
     # Load dataset
     df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
     if df is None:
-        return None
+        return
     if df["trufor_score"].nunique() <= 1 or df["crowdtangle_score"].nunique() <= 1:
         print("ERROR: Not enough valid data points or insufficient variability in the data.")
-        return None
+        return
 
 
     # Regression
@@ -128,10 +127,9 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_
 
     # Save
     save_report(text, report)
-    return None
 
 
-def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUTION_FILE, plot: Path = DISTRIBUTION_PLOT_FILE) -> None:
+def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUTION_FILE, plot: Path = DISTRIBUTION_PLOT_FILE):
     """
     Analyzes the distribution of the Crowdtangle score: whether it is centered on zero and how many outliers it has.
 
@@ -145,15 +143,15 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
     """
     if not dataset.is_file():
         print(f"ERROR: Dataset '{dataset}' not found.")
-        return None
+        return
     
     # Load dataset
     df = load_csv(dataset, ["crowdtangle_score"])
     if df is None:
-        return None
+        return
     if df["crowdtangle_score"].nunique() <= 1:
         print("ERROR: Not enough valid data points or insufficient variability in the data.")
-        return None
+        return
 
 
     # Distribution
@@ -215,10 +213,9 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
     # Free the figure from memory
     plt.close()
     print(f"Plot saved to '{plot}'.")
-    return None
 
 
-def main() -> None:
+def main():
     """
     Runs correlation and OLS regression between TruFor scores and Crowdtangle scores.
     Calculates the distribution of Crowdtangle scores and plots it.

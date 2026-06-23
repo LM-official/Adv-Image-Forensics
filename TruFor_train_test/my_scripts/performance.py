@@ -5,7 +5,7 @@ from   pathlib import Path
 from   utils   import load_csv, save_report
 
 
-def generate_truth(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_FILE) -> None:
+def generate_truth(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_FILE):
     """
     Generates an empty labels CSV template from the dataset.
     The user fills the 'label' column manually (0 = Real, 1 = AI) before running compute_performance.
@@ -20,14 +20,14 @@ def generate_truth(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_FI
 
     if not dataset.is_file():
         print(f"ERROR: dataset '{dataset}' not found.")
-        return None
+        return
 
 
     print("Generating truth template...")
     # Load dataset
     df = load_csv(dataset, ["filename"])
     if df is None:
-        return None
+        return
 
     # Create the output directories if they don't exist
     truth.parent.mkdir(parents=True, exist_ok=True)
@@ -37,10 +37,9 @@ def generate_truth(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_FI
     # Save
     df.to_csv(truth, index=False, encoding="utf-8")
     print(f"Truth template saved to '{truth}'.\nFill the 'label' column (0 = Real, 1 = Altered).")
-    return None
 
 
-def compute_performance(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_FILE, threshold: float = PERFORMANCE_THRESHOLD, report: Path = PERFORMANCE_FILE) -> None:
+def compute_performance(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_FILE, threshold: float = PERFORMANCE_THRESHOLD, report: Path = PERFORMANCE_FILE):
     """
     Loads the dataset and truth file, classifies each sample using the given threshold,
     then computes and saves accuracy, precision, recall and F1-score.
@@ -57,31 +56,31 @@ def compute_performance(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRU
 
     if not dataset.is_file() or not (0.0 <= threshold <= 1.0):
         print("ERROR: Invalid input parameters.")
-        return None
+        return
 
 
     # Load truth
     df = load_csv(truth, ["filename", "label"])
     if df is None:
-        return None
+        return
     # Validate labels must all be 0 or 1
     invalid = ~df["label"].isin([0, 1])
     if invalid.any():
         print(f"ERROR: Invalid labels found in truth file '{truth}'. All labels must be 0 (Real) or 1 (AI).")
-        return None
+        return
 
 
     # Load scores
     df_score = load_csv(dataset, ["filename", "trufor_score"])
     if df_score is None:
-        return None
+        return
     
 
     # Merge
     df = pd.merge(df, df_score, on="filename", how="inner")
     if df is None or df.empty:
         print("ERROR: No valid data after merging scores and truth.")
-        return None
+        return
 
 
     # Compute performance
@@ -170,10 +169,9 @@ def compute_performance(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRU
 
     # Save
     save_report(text, report)
-    return None
 
 
-def main() -> None:
+def main():
     """
     Optionally generates the truth template and then computes the performance metrics of the TruFor results.
 

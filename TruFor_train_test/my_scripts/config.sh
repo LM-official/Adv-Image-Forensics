@@ -68,5 +68,7 @@ export DISTRIBUTION_PLOT_FILE="${TEMP_DIR}/distribution.png"
 
 # Mask
 export MASKED_DIR="${TEMP_DIR}/masked"
+# Description
+export DESCRIPTION_FILE="${TEMP_DIR}/description_report.txt"
 # Multimodal regression
 export ANOMALY_REGRESSION_FILE="${TEMP_DIR}/anomaly_regression.txt"

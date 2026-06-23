@@ -2,9 +2,85 @@ from   config  import NPZ_COLS
 import numpy   as     np
 import pandas  as     pd
 from   pathlib import Path
+import re
+import unicodedata
 
 
-def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | None = None) -> None:
+def is_empty_mask(image: np.ndarray, ratio: float) -> bool:
+    """
+    Tells whether a masked image is (near-)all-black.
+
+    Models hallucinate on a black image (BLIP invents a caption, OCR finds no text),
+    so such images are detected and skipped: the caller assigns them a fixed label instead.
+
+    Args:
+        image: Masked BGR image as read by cv2.
+        ratio: Maximum fraction of non-black pixels (any non-zero channel) for the image to count as empty.
+
+    Returns:
+        True if the non-black pixel fraction is <= ratio (effectively all black), else False.
+    """
+
+    # Non-black pixel fraction: flag each pixel with any non-zero channel, then average the flags over the image
+    return float(np.any(image > 0, axis=2).mean()) <= ratio
+
+
+def crop_to_content(image: np.ndarray, padding: int) -> np.ndarray:
+    """
+    Crops a masked image to the bounding box of its non-black pixels (plus a margin).
+
+    The masked images are mostly black with only the altered region visible: cropping away the black border
+    lets the models work at the scale of the region instead of the scale of the full image.
+
+    Args:
+        image:   Masked BGR image as read by cv2 (must contain at least one non-black pixel).
+        padding: Pixels of margin kept around the non-black bounding box (clamped to the image edges).
+
+    Returns:
+        The cropped BGR image.
+    """
+
+    # Rows (ys) and columns (xs) of all visible pixels
+    ys, xs = np.where(np.any(image > 0, axis=2))
+    # Top-left (y0, x0) and bottom-right (y1, x1) corners of the rectangle around the visible pixels, widened by the padding margin and clamped to the image borders
+    y0, x0 = max(int(ys.min()) - padding, 0), max(int(xs.min()) - padding, 0)
+    y1, x1 = min(int(ys.max()) + padding, image.shape[0] - 1), min(int(xs.max()) + padding, image.shape[1] - 1)
+    # Cut the rectangle out
+    return image[y0:y1 + 1, x0:x1 + 1]
+
+
+def clean_text(text: str, dedup_words: bool, fallback: str = "") -> str:
+    """
+    Forces model-generated text (BLIP caption or OCR words) to letters only and (optionally) drops repeated words.
+
+    Guarantees, regardless of what the model emitted:
+    - accented letters are folded to plain ascii (libertà -> liberta) instead of being truncated;
+    - only the letters a-z survive;
+    - when dedup_words is set, no word appears more than once.
+
+    Args:
+        text:        Raw text decoded from the model.
+        dedup_words: If True, remove duplicate words (keep the first occurrence, preserve order).
+        fallback:    Returned when cleaning leaves the text empty (it was all punctuation/digits).
+
+    Returns:
+        The cleaned text, or fallback if nothing survives.
+    """
+
+    # Fold accents to plain ascii so the a-z filter keeps the whole word
+    text  = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    # Only a-z: lowercase + replace every non a-z characters with a single space
+    text  = re.sub(r"[^a-z]+", " ", text.lower()).strip()
+    words = text.split()
+    # No word written multiple times, preserve order
+    if dedup_words:
+        seen  = set()
+        words = [word for word in words if not (word in seen or seen.add(word))]
+    cleaned = " ".join(words)
+    return cleaned if cleaned else fallback
+
+
+def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | None = None):
     """
     Merges a DataFrame into the dataset CSV and saves it back to the same file.
 
@@ -18,7 +94,7 @@ def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | N
 
     df = load_csv(dataset)
     if df is None:
-        return None
+        return
     
 
     # Update
@@ -33,7 +109,6 @@ def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | N
     df = df.dropna()
     df.to_csv(dataset, index=False, encoding="utf-8")
     print("Dataset updated successfully.")
-    return None
 
 
 def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None:
@@ -133,7 +208,7 @@ def load_npzs(npzs: Path, columns: set[str]) -> pd.DataFrame | None:
     return pd.DataFrame(result)
 
 
-def save_report(text: str, path: Path) -> None:
+def save_report(text: str, path: Path):
     """
     Saves the given text to a file at the specified path.
 
@@ -147,7 +222,7 @@ def save_report(text: str, path: Path) -> None:
     
     if not text:
         print("ERROR: No text to save in the report.")
-        return None
+        return
     
 
     # Save
@@ -156,4 +231,4 @@ def save_report(text: str, path: Path) -> None:
     with open(path, mode="w", encoding="utf-8") as file:
         file.write(text)
     print(f"Report saved to '{path}'.")
-    return None
+    return

@@ -102,7 +102,7 @@ def _build_hash_map(images: Path) -> dict[str, list[Path]] | None:
     return hash_map
 
 
-def filter_jsonl(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR, output_csv: Path = FILTERED_DATASET_FILE, output_images: Path = IMGS_DIR) -> None:
+def filter_jsonl(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR, output_csv: Path = FILTERED_DATASET_FILE, output_images: Path = IMGS_DIR):
     """
     Filters the JSONL dataset based on the specified criteria and saves the filtered records to a new CSV file.
     
@@ -120,14 +120,14 @@ def filter_jsonl(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IM
 
     if not dataset.is_file() or not dataset_images.is_dir():
         print(f"ERROR: dataset '{dataset}' or images directory '{dataset_images}' not found.")
-        return None
+        return
 
 
     # Build the hash map
     print("Indexing images directory...")
     hash_map = _build_hash_map(dataset_images)
     if hash_map is None:
-        return None
+        return
 
 
     # Resolve the images dir once — avoids one .resolve() call per image in the loop
@@ -183,10 +183,9 @@ def filter_jsonl(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IM
 
     except Exception as e:
         print(f"ERROR: processing dataset: {e}")
-        return None
     
 
-def main() -> None:
+def main():
     """
     Filters the dataset, producing the filtered CSV and the symlinked images directory.
 
@@ -199,7 +198,6 @@ def main() -> None:
 
     # Process dataset (every path defaults from config.py)
     filter_jsonl()
-    return None
 
 if __name__ == "__main__":
     main()

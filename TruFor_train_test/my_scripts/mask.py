@@ -90,7 +90,7 @@ def _is_inverted_composite(image: np.ndarray, binary_mask: np.ndarray, grad_thre
 def mask_images(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, threshold: float = MASK_THRESHOLD, conf_threshold: float = MASK_CONFIDENCE_THRESHOLD,
                 kernel_size: int = MASK_MORPH_KERNEL, min_area_ratio: float = MASK_MIN_AREA_RATIO, invert_composite: bool = MASK_INVERT_COMPOSITE,
                 flat_grad_thresh: float = MASK_FLAT_GRAD_THRESH, invert_margin: float = MASK_INVERT_MARGIN, invert_min_area: float = MASK_INVERT_MIN_AREA,
-                masked: Path = MASKED_DIR) -> None:
+                masked: Path = MASKED_DIR):
     """
     Creates a masked image for every .npz file in `npz`, using the matching original image in `images`.
     Masked images are saved as PNG in `masked`.
@@ -127,7 +127,7 @@ def mask_images(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, threshold: float =
 
     if not images.is_dir() or not npz.is_dir():
         print("ERROR: invalid input directories for creating masked images.")
-        return None
+        return
 
 
     # Maximum PNG compression (0 = none, 9 = max): smaller files at the cost of a bit of CPU
@@ -185,41 +185,30 @@ def mask_images(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, threshold: float =
         cv2.imwrite(masked / f"{Path(image_name).stem}.png", image, png_params)
 
     print(f"Masked images successfully saved to '{masked}'.")
-    return None
 
 
-def main() -> None:
+def main():
     """
     Runs the masking step.
 
     Args:
-        None (paths come from config.py, the project backbone).
+        None (paths and the cleanup/inversion tuning come from config.py, the project backbone).
 
     Returns:
         None.
     """
-    
+
     # Initialize the argument parser
     parser = argparse.ArgumentParser(description="Mask the manipulated region of every image using its TruFor .npz output.")
 
-    # Flags                        
-    parser.add_argument("--threshold",           type=float,              default=MASK_THRESHOLD,            help=f"Anomaly binarization threshold (0.0 to 1.0). Default: {MASK_THRESHOLD}")
-    parser.add_argument("--conf-threshold",      type=float,              default=MASK_CONFIDENCE_THRESHOLD, help=f"Confidence threshold (0.0 to 1.0). Default: {MASK_CONFIDENCE_THRESHOLD}")
-    parser.add_argument("--morph-kernel",        type=int,                default=MASK_MORPH_KERNEL,         help=f"Morphological open/close kernel size for mask cleanup (<=1 disables). Default: {MASK_MORPH_KERNEL}")
-    parser.add_argument("--min-area-ratio",      type=float,              default=MASK_MIN_AREA_RATIO,       help=f"Drop mask blobs smaller than this fraction of the image (<=0 disables). Default: {MASK_MIN_AREA_RATIO}")
-    # Switch: composite-inversion on (default) / off. --no-invert-composite disables the polarity fix.
-    parser.add_argument("--no-invert-composite", dest="invert_composite", action="store_false",              help="Disable the polarity fix for synthetic-majority quote-graphic composites.")
-    parser.set_defaults(invert_composite=MASK_INVERT_COMPOSITE)
-    parser.add_argument("--flat-grad-thresh",    type=float,              default=MASK_FLAT_GRAD_THRESH,     help=f"Gradient below which a pixel is 'flat' in the inversion test. Default: {MASK_FLAT_GRAD_THRESH}")
-    parser.add_argument("--invert-margin",       type=float,              default=MASK_INVERT_MARGIN,        help=f"Min background-foreground flat-fraction gap that triggers an inversion. Default: {MASK_INVERT_MARGIN}")
-    parser.add_argument("--invert-min-area",     type=float,              default=MASK_INVERT_MIN_AREA,      help=f"Min flagged fraction of the image required before inverting. Default: {MASK_INVERT_MIN_AREA}")
+    # Flags
+    # The cleanup/inversion knobs stay in config.py
+    parser.add_argument("--threshold",      type=float, default=MASK_THRESHOLD,            help=f"Anomaly binarization threshold (0.0 to 1.0). Default: {MASK_THRESHOLD}")
+    parser.add_argument("--conf-threshold", type=float, default=MASK_CONFIDENCE_THRESHOLD, help=f"Confidence threshold (0.0 to 1.0). Default: {MASK_CONFIDENCE_THRESHOLD}")
     args = parser.parse_args()
 
-    # Create the masked images (images/npz/masked default from config; the flags override the tuning knobs)
-    mask_images(threshold=args.threshold, conf_threshold=args.conf_threshold, kernel_size=args.morph_kernel,
-                min_area_ratio=args.min_area_ratio, invert_composite=args.invert_composite, flat_grad_thresh=args.flat_grad_thresh,
-                invert_margin=args.invert_margin, invert_min_area=args.invert_min_area)
-    return None
+    # Create the masked images
+    mask_images(threshold=args.threshold, conf_threshold=args.conf_threshold)
 
 if __name__ == "__main__":
     main()
