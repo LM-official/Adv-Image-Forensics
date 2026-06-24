@@ -4,13 +4,13 @@ from pathlib import Path
 # Primary directories
 # Get the current working directory
 SCRIPTS_DIR = Path(__file__).resolve().parent
-TRUFOR_DIR  = SCRIPTS_DIR.parent
-ROOT_DIR    = TRUFOR_DIR.parent
+ROOT_DIR    = SCRIPTS_DIR.parent
+TRUFOR_DIR  = ROOT_DIR / "TruFor" / "TruFor_train_test"
 TEMP_DIR    = SCRIPTS_DIR / "temp"
 
 
 # Dataset
-DATASET_DIR           = TRUFOR_DIR / "dataset/my_dataset"
+DATASET_DIR           = ROOT_DIR / "dataset"
 DATASET_FILE          = DATASET_DIR / "crowdtangle.jsonl"
 DATASET_IMGS_DIR      = DATASET_DIR / "crowdtangle_media"
 FILTERED_DATASET_FILE = TEMP_DIR / "filtered_dataset.csv"
@@ -27,8 +27,8 @@ TRUFOR_WAIT       = 180
 # Downscale images above this pixel count before inference (maps are upsampled back, so .npz arrays always match the original image size)
 # Full resolution on multi-megapixel images is RAM expensive; 0 disables the cap
 TRUFOR_MAX_PIXELS = 6_000_000
-IMGS_DIR          = TRUFOR_DIR / "images"
-NPZ_DIR           = TRUFOR_DIR / "output"
+IMGS_DIR          = DATASET_DIR / "images"
+NPZ_DIR           = DATASET_DIR / "output"
 NPZ_COLS          = frozenset(("map", "imgsize", "score", "conf"))
 
 

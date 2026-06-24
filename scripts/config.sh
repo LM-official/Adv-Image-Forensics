@@ -33,8 +33,8 @@ ask_remove() {
 # Primary directories
 # Get the current working directory
 export SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]:-$0}" )" >/dev/null 2>&1 && pwd )"
-export TRUFOR_DIR="$(dirname "$SCRIPTS_DIR")"
-export ROOT_DIR="$(dirname "$TRUFOR_DIR")"
+export ROOT_DIR="$(dirname "$SCRIPTS_DIR")"
+export TRUFOR_DIR="${ROOT_DIR}/TruFor/TruFor_train_test"
 export TEMP_DIR="${SCRIPTS_DIR}/temp"
 
 
@@ -43,15 +43,15 @@ export VENV_PATH="${ROOT_DIR}/.venv/bin/activate"
 
 
 # Dataset
-export DATASET_DIR="${TRUFOR_DIR}/dataset/my_dataset"
+export DATASET_DIR="${ROOT_DIR}/dataset"
 export DATASET_FILE="${DATASET_DIR}/crowdtangle.jsonl"
 export DATASET_IMGS_DIR="${DATASET_DIR}/crowdtangle_media"
 export FILTERED_DATASET_FILE="${TEMP_DIR}/filtered_dataset.csv"
 
 
 # TruFor
-export IMGS_DIR="${TRUFOR_DIR}/images"
-export NPZ_DIR="${TRUFOR_DIR}/output"
+export IMGS_DIR="${DATASET_DIR}/images"
+export NPZ_DIR="${DATASET_DIR}/output"
 
 
 # Performance

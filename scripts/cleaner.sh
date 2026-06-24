@@ -17,8 +17,7 @@ ask_remove "'${FILTERED_DATASET_FILE}'" "rm -f \"${FILTERED_DATASET_FILE}\""
 ask_remove "all images in input directory" "rm -rf \"${IMGS_DIR}\"/*(N)"
 
 # Remove all .npz files in the output directory
-# Warning: compute all .npz is expensive
-# ask_remove "all .npz files in output directory" "rm -rf \"${NPZ_DIR}\"/*.npz(N)"
+ask_remove "all .npz files in output directory" "rm -rf \"${NPZ_DIR}\"/*.npz(N)"
 
 # Remove truth file
 ask_remove "'${TRUTH_FILE}'" "rm -f \"${TRUTH_FILE}\""
@@ -41,8 +40,16 @@ ask_remove "'${ANOMALY_REGRESSION_FILE}'" "rm -f \"${ANOMALY_REGRESSION_FILE}\""
 
 
 # Cache cleanup
-ask_remove "Python cache" "rm -rf \"${SCRIPTS_DIR}\"/__pycache__"
-ask_remove "Hugging Face cache" "rm -rf \"${HOME}\"/.cache/huggingface"
+read "confirm?Delete cache? (y/n): "
+if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    echo " - Removing cache..."
+    rm -rf "${SCRIPTS_DIR}/__pycache__"
+    rm -rf "${HOME}/.cache/huggingface"
+    rm -rf "${HOME}/.EasyOCR"
+    echo " - Cache removed."
+else
+    echo " - cache skipped."
+fi
 
 
 echo "Cleanup completed."
