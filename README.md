@@ -24,6 +24,7 @@ Reads a CrowdTangle-style export of social-media posts and produces a forensic a
 - **🎯 Detection performance** — evaluates TruFor as a binary detector against a manually labelled ground truth.
 - **📈 Engagement statistics** — correlates and regresses the manipulation signal against the CrowdTangle overperforming score.
 - **🎭 What was manipulated** — masks the altered region, captions it with **BLIP** and reads its text with **EasyOCR**.
+- **🔗 Description ↔ engagement** — turns the description into TF-IDF features (raw and PCA-compressed) and tests whether they predict the engagement score, with an OLS regression and a logistic high/low classifier.
 - **🔄 Dataset-agnostic** — point the `DATASET_*` paths in `config.py` at any CrowdTangle-style export to switch sources.
 
 > 🗣️ The growing analysis table lives in `scripts/temp/filtered_dataset.csv`, while every human-readable report is written next to it as a separate `*.txt`/`*.png`: data and reports stay apart.
@@ -45,7 +46,7 @@ Reads a CrowdTangle-style export of social-media posts and produces a forensic a
 │   ├── trufor.py               # stage 2 — run TruFor in batches
 │   ├── performance.py          # stage 3 — detector metrics vs. ground truth
 │   ├── general_stats.py        # stage 4 — correlation / regression / distribution
-│   ├── anomaly_regression.py   # stage 5 — orchestrates mask → describe → regression
+│   ├── anomaly_regression.py   # stage 5 — mask → describe → TF-IDF regression + logistic classification
 │   ├── mask.py / describe.py / ocr.py   # masking, captioning and OCR helpers
 │   ├── utils.py                # shared CSV / .npz / image / text helpers
 │   └── temp/                   # all generated outputs land here
@@ -104,7 +105,7 @@ python filter.py
 python trufor.py
 python performance.py --generate-truth
 python general_stats.py
-python anomaly_regression.py                       # mask + describe
+python anomaly_regression.py                       # mask + describe + regression + classification
 ```
 
 The most useful per-stage flags:
@@ -115,7 +116,8 @@ The most useful per-stage flags:
 | `--generate-truth` | `performance.py` | Write the `truth.csv` label template, then stop. |
 | `--threshold` | `performance.py` | Score above which an image counts as manipulated (default `0.5`). |
 | `--no-ocr`, `--do-sample` | `describe.py` | Caption-only mode / sampling instead of beam search. |
-| `--skip-mask`, `--skip-describe` | `anomaly_regression.py` | Skip the masking / description sub-stages. |
+| `--skip-mask`, `--skip-describe`, `--skip-regression`, `--skip-classification` | `anomaly_regression.py` | Skip any of the stage-5 sub-steps. |
+| `--max-words`, `--overperforming-cut` | `anomaly_regression.py` | TF-IDF vocabulary cap; binarise engagement at `>0` instead of the median (classifier). |
 
 > ⚠️ **A note on filenames.** Media is matched to posts by reproducing `sha256(url)[:CHAR_LIMIT]`. `CHAR_LIMIT` (in `config.py`, default `64`) **must equal the truncation used at download time**, or every URL→file lookup silently misses.
 
@@ -154,7 +156,7 @@ A five-stage pipeline, orchestrated by [`run.sh`](scripts/run.sh); each stage ap
 2. **`trufor.py`** — runs TruFor's `test.py` over those images in batches. **Resumable** (one `.npz` per image; existing ones skipped); multi-megapixel images are downscaled, then their maps upsampled back.
 3. **`performance.py`** — scores TruFor against the manual `truth.csv` and reports metrics + the false-positive/negative lists.
 4. **`general_stats.py`** — Pearson/Spearman correlation, an OLS regression of `crowdtangle_score ~ trufor_score`, and the distribution of the engagement score (+ histogram/boxplot).
-5. **`anomaly_regression.py`** — runs `mask.py` then `describe.py`. It also holds a text-feature regression (TF-IDF/SVD of `anomaly_txt`).
+5. **`anomaly_regression.py`** — runs `mask.py` then `describe.py`, then models `anomaly_txt`: a TF-IDF representation (English + Italian stop-words removed), used both raw (one column per word) and PCA-compressed (enough components to keep 90% of the variance), fed to **(a)** an OLS regression on the continuous `crowdtangle_score` and **(b)** a 5-fold cross-validated logistic classifier of high/low engagement — plus a term-intelligibility check (top coefficients and the words that best separate the two engagement halves). *Finding on this dataset: manipulation **intensity** (`trufor_score`) doesn't predict engagement, but the manipulated-region **description** carries a weak-but-real signal (cross-validated AUC ≈ 0.63).*
 
 ---
 
@@ -195,7 +197,7 @@ Configuration is the backbone: **[`config.py`](scripts/config.py)** (imported by
 
 ## 👥 Authors
 
-Built and designed by
+Built and designed by:
 - **[LM-official](https://github.com/LM-official?tab=repositories)**.
 
 Powered by **[TruFor](https://grip-unina.github.io/TruFor/)** (GRIP-UNINA, CVPR 2023) — see [`TruFor/README.md`](TruFor/README.md).

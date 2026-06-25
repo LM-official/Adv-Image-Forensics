@@ -134,7 +134,10 @@ OCR_ALLOWLIST       = None
 OCR_GPU             = True
 
 
-# Multimodal regression
-SVD_COMPONENTS          = 10
+# Regression
+# PCA on the TF-IDF matrix keeps the fewest components that together explain at least this fraction of the variance
+# (the knee / diminishing-returns point)
+PCA_VARIANCE            = 0.9
 MAX_NUMBER_OF_WORDS     = 100
-ANOMALY_REGRESSION_FILE = TEMP_DIR / "anomaly_regression.txt"
+ANOMALY_REGRESSION_FILE     = TEMP_DIR / "anomaly_regression.txt"
+ANOMALY_CLASSIFICATION_FILE = TEMP_DIR / "anomaly_classification.txt"

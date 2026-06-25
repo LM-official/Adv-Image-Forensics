@@ -37,6 +37,8 @@ ask_remove "all masked images" "rm -rf \"${MASKED_DIR}\""
 ask_remove "'${DESCRIPTION_FILE}'" "rm -f \"${DESCRIPTION_FILE}\""
 # Remove anomaly regression file
 ask_remove "'${ANOMALY_REGRESSION_FILE}'" "rm -f \"${ANOMALY_REGRESSION_FILE}\""
+# Remove anomaly classification file
+ask_remove "'${ANOMALY_CLASSIFICATION_FILE}'" "rm -f \"${ANOMALY_CLASSIFICATION_FILE}\""
 
 
 # Cache cleanup
