@@ -6,48 +6,9 @@ import re
 import unicodedata
 
 
-def is_empty_mask(image: np.ndarray, ratio: float) -> bool:
-    """
-    Tells whether a masked image is (near-)all-black.
-
-    Models hallucinate on a black image (BLIP invents a caption, OCR finds no text),
-    so such images are detected and skipped: the caller assigns them a fixed label instead.
-
-    Args:
-        image: Masked BGR image as read by cv2.
-        ratio: Maximum fraction of non-black pixels (any non-zero channel) for the image to count as empty.
-
-    Returns:
-        True if the non-black pixel fraction is <= ratio (effectively all black), else False.
-    """
-
-    # Non-black pixel fraction: flag each pixel with any non-zero channel, then average the flags over the image
-    return float(np.any(image > 0, axis=2).mean()) <= ratio
-
-
-def crop_to_content(image: np.ndarray, padding: int) -> np.ndarray:
-    """
-    Crops a masked image to the bounding box of its non-black pixels (plus a margin).
-
-    The masked images are mostly black with only the altered region visible: cropping away the black border
-    lets the models work at the scale of the region instead of the scale of the full image.
-
-    Args:
-        image:   Masked BGR image as read by cv2 (must contain at least one non-black pixel).
-        padding: Pixels of margin kept around the non-black bounding box (clamped to the image edges).
-
-    Returns:
-        The cropped BGR image.
-    """
-
-    # Rows (ys) and columns (xs) of all visible pixels
-    ys, xs = np.where(np.any(image > 0, axis=2))
-    # Top-left (y0, x0) and bottom-right (y1, x1) corners of the rectangle around the visible pixels, widened by the padding margin and clamped to the image borders
-    y0, x0 = max(int(ys.min()) - padding, 0), max(int(xs.min()) - padding, 0)
-    y1, x1 = min(int(ys.max()) + padding, image.shape[0] - 1), min(int(xs.max()) + padding, image.shape[1] - 1)
-    # Cut the rectangle out
-    return image[y0:y1 + 1, x0:x1 + 1]
-
+# =============================================================================
+# TEXT HELPERS
+# =============================================================================
 
 def clean_text(text: str, dedup_words: bool, fallback: str = "") -> str:
     """
@@ -67,6 +28,9 @@ def clean_text(text: str, dedup_words: bool, fallback: str = "") -> str:
         The cleaned text, or fallback if nothing survives.
     """
 
+    if not text:
+        return fallback
+
     # Fold accents to plain ascii so the a-z filter keeps the whole word
     text  = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
     # Only a-z: lowercase + replace every non a-z characters with a single space
@@ -80,7 +44,35 @@ def clean_text(text: str, dedup_words: bool, fallback: str = "") -> str:
     return cleaned if cleaned else fallback
 
 
-def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | None = None):
+def save_report(text: str, path: Path):
+    """
+    Saves the given text to a file at the specified path.
+
+    Args:
+        text: Content to write to the file. If empty, the function does nothing.
+        path: Destination file path; parent directories are created automatically.
+
+    Returns:
+        None.
+    """
+    
+    if not text:
+        print("ERROR: No text to save in the report.")
+        return
+    
+    # Save
+    # Create the output directories if they don't exist
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, mode="w", encoding="utf-8") as file:
+        file.write(text)
+    print(f"Report saved to '{path}'.")
+
+
+# =============================================================================
+# CSV HELPERS
+# =============================================================================
+
+def update_csv(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | None = None):
     """
     Merges a DataFrame into the dataset CSV and saves it back to the same file.
 
@@ -96,7 +88,6 @@ def update_dataset(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | N
     if df is None:
         return
     
-
     # Update
     print(f"Updating dataset '{dataset}'...")
     if rename:
@@ -125,7 +116,7 @@ def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None
 
     print(f"Loading '{csv}'...")
     try:
-        # Load only the necessary columns
+        # Keep only requested columns
         df = pd.read_csv(csv, sep=",", encoding="utf-8", usecols=columns)
         if df is None or df.empty:
             print(f"ERROR: No valid data found in '{csv}'.")
@@ -137,6 +128,10 @@ def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None
         print(f"ERROR: loading '{csv}': {e}")
         return None
     
+
+# =============================================================================
+# NPZ HELPERS
+# =============================================================================
 
 def load_npz(npz: Path, columns: set[str]) -> pd.DataFrame | None:
     """
@@ -152,8 +147,8 @@ def load_npz(npz: Path, columns: set[str]) -> pd.DataFrame | None:
         A single-row DataFrame with the requested columns, or None on failure.
     """
     
-    if not npz.is_file() or not columns or any(col not in NPZ_COLS for col in columns):
-        print(f"ERROR: Invalid .npz file or columns {columns}. Expected a non-empty subset of: {NPZ_COLS}")
+    if not columns or any(col not in NPZ_COLS for col in columns):
+        print(f"WARNING: Invalid .npz file or columns {columns}. Expected a non-empty subset of: {NPZ_COLS}")
         return None
 
 
@@ -168,7 +163,7 @@ def load_npz(npz: Path, columns: set[str]) -> pd.DataFrame | None:
                 result[col] = float(value) if value.ndim == 0 else value.tolist()
         return pd.DataFrame([result])
     except Exception as e:
-        print(f"ERROR: reading '{npz}': {e}")
+        print(f"WARNING: reading '{npz}': {e}")
         return None
 
 
@@ -206,29 +201,3 @@ def load_npzs(npzs: Path, columns: set[str]) -> pd.DataFrame | None:
 
     print(f"Values extracted successfully from '{npzs}'.")
     return pd.DataFrame(result)
-
-
-def save_report(text: str, path: Path):
-    """
-    Saves the given text to a file at the specified path.
-
-    Args:
-        text: Content to write to the file. If empty, the function does nothing.
-        path: Destination file path; parent directories are created automatically.
-
-    Returns:
-        None.
-    """
-    
-    if not text:
-        print("ERROR: No text to save in the report.")
-        return
-    
-
-    # Save
-    # Create the output directories if they don't exist
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, mode="w", encoding="utf-8") as file:
-        file.write(text)
-    print(f"Report saved to '{path}'.")
-    return

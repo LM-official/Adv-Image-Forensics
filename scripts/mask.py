@@ -1,12 +1,17 @@
 import argparse
-from   config   import (IMGS_DIR, NPZ_DIR, MASK_THRESHOLD, MASK_CONFIDENCE_THRESHOLD,
+from   config   import (FILTERED_IMGS_DIR, NPZ_DIR, MASK_THRESHOLD, MASK_CONFIDENCE_THRESHOLD,
                         MASK_MORPH_KERNEL, MASK_MIN_AREA_RATIO, MASK_INVERT_COMPOSITE,
                         MASK_FLAT_GRAD_THRESH, MASK_INVERT_MARGIN, MASK_INVERT_MIN_AREA, MASKED_DIR)
 import cv2
 import numpy     as     np
 from   pathlib   import Path
+from   tqdm      import tqdm
 from   utils     import load_npz
 
+
+# =============================================================================
+# (1) MASK
+# =============================================================================
 
 def _clean_mask(binary_mask: np.ndarray, kernel_size: int, min_area_ratio: float) -> np.ndarray:
     """
@@ -87,10 +92,11 @@ def _is_inverted_composite(image: np.ndarray, binary_mask: np.ndarray, grad_thre
     return (bg_flat - fg_flat) >= margin
 
 
-def mask_images(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, threshold: float = MASK_THRESHOLD, conf_threshold: float = MASK_CONFIDENCE_THRESHOLD,
-                kernel_size: int = MASK_MORPH_KERNEL, min_area_ratio: float = MASK_MIN_AREA_RATIO, invert_composite: bool = MASK_INVERT_COMPOSITE,
-                flat_grad_thresh: float = MASK_FLAT_GRAD_THRESH, invert_margin: float = MASK_INVERT_MARGIN, invert_min_area: float = MASK_INVERT_MIN_AREA,
-                masked: Path = MASKED_DIR):
+def mask(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, masked: Path = MASKED_DIR,
+         threshold: float = MASK_THRESHOLD, conf_threshold: float = MASK_CONFIDENCE_THRESHOLD,
+         invert_composite: bool = MASK_INVERT_COMPOSITE, flat_grad_thresh: float = MASK_FLAT_GRAD_THRESH,
+         invert_margin: float = MASK_INVERT_MARGIN, invert_min_area: float = MASK_INVERT_MIN_AREA,
+         kernel_size: int = MASK_MORPH_KERNEL, min_area_ratio: float = MASK_MIN_AREA_RATIO):
     """
     Creates a masked image for every .npz file in `npz`, using the matching original image in `images`.
     Masked images are saved as PNG in `masked`.
@@ -111,15 +117,15 @@ def mask_images(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, threshold: float =
     Args:
         images:           Directory containing the original input images.
         npz:              Directory containing the TruFor .npz files with the anomaly and confidence maps.
+        masked:           Output directory where the masked PNG images are saved.
         threshold:        Binarization threshold in [0.0, 1.0] applied to the anomaly map.
         conf_threshold:   Confidence threshold in [0.0, 1.0] applied to the confidence map.
-        kernel_size:      Side of the morphological open/close kernel used to denoise the mask.
-        min_area_ratio:   Minimum blob area (fraction of the image) kept by the mask cleanup.
         invert_composite: If True, flip the mask on detected synthetic-majority composites (polarity fix).
         flat_grad_thresh: Gradient magnitude below which a pixel counts as "flat" in the inversion test.
         invert_margin:    Min (background - foreground) flat-fraction gap that triggers an inversion.
         invert_min_area:  Min flagged fraction of the image required before an inversion is considered.
-        masked:           Output directory where the masked PNG images are saved.
+        kernel_size:      Side of the morphological open/close kernel used to denoise the mask.
+        min_area_ratio:   Minimum area (fraction of the image) kept by the mask cleanup.
 
     Returns:
         None.
@@ -138,14 +144,14 @@ def mask_images(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, threshold: float =
 
     # Masking
     print(f"Creating masked images for all images in '{images}'...")
-    for item in npz.glob("*.npz"):
+    for item in tqdm(sorted(npz.glob("*.npz")), desc="Masking", unit="img"):
         # TruFor appends .npz to the original filename, so .stem is the original image name (with extension)
         image_name = item.stem
 
         # Load image
         image = cv2.imread(images / image_name)
         if image is None:
-            print(f"ERROR: '{image_name}' image not found or corrupted at path.")
+            print(f"WARNING: '{image_name}' image not found or corrupted at path.")
             continue
 
         # Load the anomaly map (where TruFor sees manipulation) and the confidence map (how reliable that is)
@@ -187,9 +193,19 @@ def mask_images(images: Path = IMGS_DIR, npz: Path = NPZ_DIR, threshold: float =
     print(f"Masked images successfully saved to '{masked}'.")
 
 
+# =============================================================================
+# (2) CONFUSION MATRIX
+# =============================================================================
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
 def main():
     """
-    Runs the masking step.
+    (1) Mask the manipulated region of every image using its TruFor .npz output.
+    (2) Compute the confusion matrix of the masks against the ground truth.
 
     Args:
         None (paths and the cleanup/inversion tuning come from config.py, the project backbone).
@@ -208,7 +224,7 @@ def main():
     args = parser.parse_args()
 
     # Create the masked images
-    mask_images(threshold=args.threshold, conf_threshold=args.conf_threshold)
+    mask(threshold=args.threshold, conf_threshold=args.conf_threshold)
 
 if __name__ == "__main__":
     main()

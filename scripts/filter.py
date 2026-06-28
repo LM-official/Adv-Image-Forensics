@@ -1,9 +1,17 @@
-from   config   import CHAR_LIMIT, DATASET_FILE, DATASET_IMGS_DIR, FILTERED_DATASET_FILE, IMGS_DIR
+from   config           import CHAR_LIMIT, DATASET_FILE, DATASET_IMGS_DIR, FILTERED_DATASET_FILE, FILTERED_IMGS_DIR, DISTRIBUTION_FILE, DISTRIBUTION_PLOT_FILE
 import csv
 import hashlib
 import json
-from   pathlib  import Path
+import matplotlib
+matplotlib.use("Agg") # Non-interactive backend: render straight to file, no display needed
+import matplotlib.pyplot as     plt
+from   pathlib           import Path
+from   utils             import load_csv, save_report
 
+
+# =============================================================================
+# (1) FILTER DATASET
+# =============================================================================
 
 def _url_to_stem(url: str, char_limit: int = CHAR_LIMIT) -> str:
     """
@@ -16,7 +24,6 @@ def _url_to_stem(url: str, char_limit: int = CHAR_LIMIT) -> str:
     Returns:
         The truncated sha256 hex digest used as the on-disk filename stem.
     """
-
 
     return hashlib.sha256(url.encode()).hexdigest()[:char_limit]
 
@@ -38,30 +45,30 @@ def _is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Pa
     """
 
     if not isinstance(data, dict) or len(data) == 0:
-        print(f"ERROR: invalid post data.")
+        print(f"WARNING: invalid post data.")
         return None
 
 
     # Must have a score
     if data.get("score") is None:
-        print(f"DEBUG: post '{data.get('id')}' rejected for missing score.")
+        print(f"WARNING: post '{data.get('id')}' rejected for missing score.")
         return None
 
     # Must have at least one media item
     media = data.get("media")
     if not media or not isinstance(media, list) or len(media) == 0:
-        print(f"DEBUG: post '{data.get('id')}' rejected for missing media.")
+        print(f"WARNING: post '{data.get('id')}' rejected for missing media.")
         return None
 
     images = []
     for item in media:
         # Reject the entire post if ANY media item is not a photo
         if item.get("type") != "photo":
-            print(f"DEBUG: post '{data.get('id')}' rejected for non-photo media item.")
+            print(f"WARNING: post '{data.get('id')}' rejected for non-photo media item.")
             return None
         image_url = item.get("url") or item.get("full")
         if not image_url:
-            print(f"DEBUG: post '{data.get('id')}' rejected for missing image URL.")
+            print(f"WARNING: post '{data.get('id')}' rejected for missing image URL.")
             return None
 
         # Hash the URL the same way the file was named on disk
@@ -70,7 +77,7 @@ def _is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Pa
         # Dictionary lookup
         founds = hash_map.get(url_hash, [])
         if not founds:
-            print(f"DEBUG: post '{data.get('id')}' rejected for missing image file for URL '{image_url}' (hash '{url_hash}').")
+            print(f"WARNING: post '{data.get('id')}' rejected for missing image file for URL '{image_url}' (hash '{url_hash}').")
             return None
         # With a full-length hash this is always a single file; more than one means a truncated-hash collision (different URLs sharing a stem)
         if len(founds) > 1:
@@ -94,7 +101,6 @@ def _build_hash_map(images: Path) -> dict[str, list[Path]] | None:
         A dict mapping filename stem to the list of file paths, or None if the directory is invalid.
     """
 
-
     hash_map = {}
     for image in images.iterdir():
         if image.is_file():
@@ -102,7 +108,8 @@ def _build_hash_map(images: Path) -> dict[str, list[Path]] | None:
     return hash_map
 
 
-def filter_jsonl(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR, output_csv: Path = FILTERED_DATASET_FILE, output_images: Path = IMGS_DIR):
+def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR,
+           output_csv: Path = FILTERED_DATASET_FILE, output_images: Path = FILTERED_IMGS_DIR):
     """
     Filters the JSONL dataset based on the specified criteria and saves the filtered records to a new CSV file.
     
@@ -154,6 +161,8 @@ def filter_jsonl(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IM
             writer.writeheader()
 
 
+            # Buffer the kept rows so the output can be sorted
+            rows = []
             for line in infile:
                 try:
                     data = json.loads(line)
@@ -168,7 +177,7 @@ def filter_jsonl(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IM
 
                 for image in images:
                     # Save only interesting columns
-                    writer.writerow({
+                    rows.append({
                         "id":                 data.get("id"),
                         "crowdtangle_score":  data.get("score"),
                         "filename":           image.stem
@@ -179,25 +188,126 @@ def filter_jsonl(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IM
                     if not (symlink.exists() or symlink.is_symlink()):
                         symlink.symlink_to(resolved_images_dir / image.name)
 
+            # Order the output by filename (hash stem), ascending
+            rows.sort(key=lambda row: row["filename"])
+            writer.writerows(rows)
+
         print(f"Dataset filtered successfully.\nOutput saved to: '{output_csv}'.")
 
     except Exception as e:
         print(f"ERROR: processing dataset: {e}")
+
+
+# =============================================================================
+# (2) FILTERED DATASET DISTRIBUTION
+# =============================================================================
+
+def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUTION_FILE, plot: Path = DISTRIBUTION_PLOT_FILE):
+    """
+    Analyzes the distribution of the Crowdtangle score: whether it is centered on zero and how many outliers it has.
+
+    Args:
+        dataset: Path to the dataset CSV (must contain crowdtangle_score).
+        report:  Output file path where the distribution report will be written.
+        plot:    Output image path where the histogram + boxplot figure will be saved.
+
+    Returns:
+        None.
+    """
     
+    # Load dataset
+    df = load_csv(dataset, ["crowdtangle_score"])
+    if df is None:
+        return
+    if df["crowdtangle_score"].nunique() <= 1:
+        print("ERROR: Not enough valid data points or insufficient variability in the data.")
+        return
+
+
+    # Distribution
+    print("Analyzing the distribution of Crowdtangle scores...")
+    scores = df["crowdtangle_score"]
+    del df
+
+    """
+    A distribution is 'centered on zero' when its median sits close to 0.
+    Comparing the median with the mean reveals how strongly extreme values drag the average, while the skewness quantifies the asymmetry of the tails.
+    Tukey fences flag outliers as the points lying farther than 1.5 * IQR (inter-quartile range) from the quartiles.
+    """
+    # Quartiles and Tukey fences (IQR-based outlier bounds)
+    q1, q3 = scores.quantile([0.25, 0.75])
+    iqr = q3 - q1
+    low_fence, high_fence = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+    outliers = scores[(scores < low_fence) | (scores > high_fence)]
+    print("Distribution analyzed successfully.")
+
+
+    # Report
+    len_score, len_outliers = len(scores), len(outliers)
+    text = (
+        f"{'=' * 77}\n"
+        "FILTERED DATASET DISTRIBUTION OF CROWDTANGLE SCORES\n"
+        f"{'=' * 77}\n"
+        f"Rows analyzed: {len_score}\n"
+        f"{scores.describe().to_string()}\n"
+        f"Median: {scores.median():.3f} (mean: {scores.mean():.3f})\n"
+        f"Skewness: {scores.skew():.3f}\n"
+        f"Tukey fences: [{low_fence:.3f}, {high_fence:.3f}]\n"
+        f"Outliers: {len_outliers} ({100 * len_outliers / len_score:.1f}%)"
+    )
+
+    # Save
+    save_report(text, report)
+
+
+    # Plot: histogram clipped to the fences (the bulk) + boxplot over the full range (the outliers)
+    print("Plotting the distribution...")
+    # One figure with two charts (1, 2). ax_hist to the left and ax_box to the right. size 10x4
+    _, (ax_hist, ax_box) = plt.subplots(1, 2, figsize=(10, 4))
+    
+    # Histogram: clip to the fences so the outliers don't squash the bulk into a single bar
+    scores.clip(low_fence, high_fence).hist(bins=40, ax=ax_hist)
+    # Reference red line at zero to judge the centering
+    ax_hist.axvline(0, color="r", ls="--")
+    ax_hist.set_title("Histogram (clipped to fences)")
+
+    # Boxplot: full range (no clip) so the outliers are visible as separate points
+    ax_box.boxplot(scores, vert=False)
+    # Reference red line at zero to judge the centering
+    ax_box.axvline(0, color="r", ls="--")
+    ax_box.set_title("Boxplot (full range)")
+
+    # Prevent titles/labels from overlapping
+    plt.tight_layout()
+    # Create the output directories if they don't exist
+    plot.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(plot, dpi=120)
+    # Free the figure from memory
+    plt.close()
+    print(f"Plot saved to '{plot}'.")
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
 
 def main():
     """
-    Filters the dataset, producing the filtered CSV and the symlinked images directory.
+    (1) Filters the dataset, producing the filtered CSV and the symlinked images directory.
+    (2) Calculates the distribution of Crowdtangle scores and plots it.
 
     Args:
-        None (paths come from config.py, the project backbone).
+        None (arguments come from config.py).
 
     Returns:
         None.
     """
 
-    # Process dataset (every path defaults from config.py)
-    filter_jsonl()
+    # Filter dataset
+    filter()
+
+    # Distribution
+    distribution()
 
 if __name__ == "__main__":
     main()

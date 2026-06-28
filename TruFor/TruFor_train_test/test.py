@@ -70,8 +70,10 @@ def output_path(img_path, input, output):
         else:
             sub_path = img_path.replace(root, '').strip()
 
-        if sub_path.startswith('/'):
-            sub_path = sub_path[1:]
+        # strip any leading separator(s); on Windows a leading '\' makes the
+        # os.path.join below treat sub_path as drive-absolute and drop `output`,
+        # writing the .npz to the root of C:\ (PermissionError)
+        sub_path = sub_path.lstrip('/\\')
 
         filename_out = os.path.join(output, sub_path) + '.npz'
     else:  # output is a filename

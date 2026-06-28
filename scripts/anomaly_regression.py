@@ -1,7 +1,5 @@
 import argparse
-import subprocess
-import sys
-from   config                          import (SCRIPTS_DIR, FILTERED_DATASET_FILE, MAX_NUMBER_OF_WORDS,
+from   config                          import (FILTERED_DATASET_FILE, MAX_NUMBER_OF_WORDS,
                                                PCA_VARIANCE, ANOMALY_REGRESSION_FILE, ANOMALY_CLASSIFICATION_FILE)
 import numpy                           as     np
 import pandas                          as     pd
@@ -15,6 +13,10 @@ import statsmodels.api                 as     sm
 from   stop_words                      import get_stop_words
 from   utils                           import load_csv, save_report, clean_text
 
+
+# =============================================================================
+# (1) REGRESSION
+# =============================================================================
 
 # TF-IDF stop words: the descriptions mix English BLIP captions with English-Italian OCR text,
 # so we union both languages from the `stop-words` package.
@@ -47,9 +49,10 @@ def extract_text_features(descriptions: pd.Series, max_words: int, pca_variance:
         A DataFrame of numerical features indexed like descriptions, or None on invalid input or failure.
     """
 
-    if descriptions is None or descriptions.empty or descriptions.nunique() <= 1 or max_words <= 0:
+    if descriptions is None or descriptions.empty or descriptions.nunique() <= 1:
         print("ERROR: invalid input for text feature extraction.")
         return None
+    # max_words and pca_variance have delegated checks (try below)
 
 
     print("Vectorizing text descriptions (TF-IDF)...")
@@ -89,44 +92,6 @@ def extract_text_features(descriptions: pd.Series, max_words: int, pca_variance:
 
     except Exception as e:
         print(f"ERROR: during text feature extraction: {e}")
-        return None
-
-
-def _regression_report(X: pd.DataFrame, Y: pd.Series, target_metric: str, title: str) -> str | None:
-    """
-    Fits an Ordinary Least Squares (OLS) regression measuring how well the combined visual
-    (trufor_score) and textual features (X) predict the target metric (Y), and returns its
-    summary as a labelled text section .
-
-    Args:
-        X:             Design matrix with the independent variables (visual + textual features).
-        Y:             Series with the dependent variable (target metric to predict).
-        target_metric: Name of the target metric, used only in the report.
-        title:         Human-readable name of the feature variant (e.g. "Raw TF-IDF").
-
-    Returns:
-        The report section as text, or None if the model could not be fitted.
-    """
-
-    print(f"Computing regression to predict '{target_metric}' ({title})...")
-    try:
-        # In statsmodels we must explicitly add a constant to X to calculate the intercept (q in y = mx + q)
-        X = sm.add_constant(X)
-
-        # Define and fit the Ordinary Least Squares (OLS) model
-        model = sm.OLS(Y, X).fit()
-
-        # Report section
-        return (
-            f"=== {title} ===\n"
-            f"Target Metric: {target_metric}\n"
-            f"Total valid samples: {len(Y)}\n"
-            f"Feature columns: {', '.join(X.columns)}\n\n"
-            f"{model.summary().as_text()}"
-        )
-
-    except Exception as e:
-        print(f"ERROR: during OLS regression calculation ({title}): {e}")
         return None
 
 
@@ -198,8 +163,46 @@ def _term_intelligibility(tfidf: pd.DataFrame, Y: pd.Series, top_n: int = 15) ->
         return None
 
 
-def regression(dataset: Path = FILTERED_DATASET_FILE, max_words: int = MAX_NUMBER_OF_WORDS,
-               pca_variance: float = PCA_VARIANCE, report: Path = ANOMALY_REGRESSION_FILE):
+def _regression_report(X: pd.DataFrame, Y: pd.Series, target_metric: str, title: str) -> str | None:
+    """
+    Fits an Ordinary Least Squares (OLS) regression measuring how well the combined visual
+    (trufor_score) and textual features (X) predict the target metric (Y), and returns its
+    summary as a labelled text section .
+
+    Args:
+        X:             Design matrix with the independent variables (visual + textual features).
+        Y:             Series with the dependent variable (target metric to predict).
+        target_metric: Name of the target metric, used only in the report.
+        title:         Human-readable name of the feature variant (e.g. "Raw TF-IDF").
+
+    Returns:
+        The report section as text, or None if the model could not be fitted.
+    """
+
+    print(f"Computing regression to predict '{target_metric}' ({title})...")
+    try:
+        # In statsmodels we must explicitly add a constant to X to calculate the intercept (q in y = mx + q)
+        X = sm.add_constant(X)
+
+        # Define and fit the Ordinary Least Squares (OLS) model
+        model = sm.OLS(Y, X).fit()
+
+        # Report section
+        return (
+            f"=== {title} ===\n"
+            f"Target Metric: {target_metric}\n"
+            f"Total valid samples: {len(Y)}\n"
+            f"Feature columns: {', '.join(X.columns)}\n\n"
+            f"{model.summary().as_text()}"
+        )
+
+    except Exception as e:
+        print(f"ERROR: during OLS regression calculation ({title}): {e}")
+        return None
+    
+
+def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = ANOMALY_REGRESSION_FILE,
+               max_words: int = MAX_NUMBER_OF_WORDS, pca_variance: float = PCA_VARIANCE):
     """
     Loads the dataset and runs the OLS regression predicting the crowdtangle score twice:
     once on the raw TF-IDF features and once on their PCA-compressed version.
@@ -218,6 +221,8 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, max_words: int = MAX_NUMBE
     df = load_csv(dataset, ["trufor_score", "anomaly_txt", "crowdtangle_score"])
     if df is None:
         return
+    # max_words and pca_variance have delegated checks
+
 
     # Dependent variable (Y): the metric we want to predict
     # trufor_score is shared by both variants
@@ -251,6 +256,10 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, max_words: int = MAX_NUMBE
     # Save both variants in a single report
     save_report("Anomaly Regression\n\n" + "\n\n\n".join(sections), report)
 
+
+# =============================================================================
+# (2) CLASSIFICATION
+# =============================================================================
 
 def _classification_report(X: pd.DataFrame, y: pd.Series, title: str, top_n: int = 15) -> str | None:
     """
@@ -347,6 +356,8 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, max_words: int = MAX_NUMBER_
     df = load_csv(dataset, ["trufor_score", "anomaly_txt", "crowdtangle_score"])
     if df is None:
         return
+    # max_words and pca_variance have delegated checks
+
 
     score  = df["crowdtangle_score"].reset_index(drop=True)
     trufor = df["trufor_score"].reset_index(drop=True)
@@ -381,13 +392,15 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, max_words: int = MAX_NUMBER_
     save_report(header + "\n\n\n".join(sections), report)
 
 
+# =============================================================================
+# MAIN
+# =============================================================================
+
 def main():
     """
-    Runs the optional steps:
-    1. masking (delegated to mask.py via subprocess),
-    2. anomaly description (with/without the OCR words of the altered region merged in),
-    3. regression on the descriptions,
-    4. logistic classification of the descriptions.
+    Models the anomaly descriptions (produced upstream by describe.py) in two optional steps:
+    (1) OLS regression on the descriptions,
+    (2) logistic classification of the descriptions.
 
     Args:
         None (arguments are read from the command line via argparse).
@@ -397,51 +410,23 @@ def main():
     """
 
     # Initialize the argument parser
-    parser = argparse.ArgumentParser(description="Mask images, describe the anomaly and run a regression on the descriptions.")
+    parser = argparse.ArgumentParser(description="Run an OLS regression and a logistic classification on the anomaly descriptions.")
 
     # Flags
-    # Mask (delegated to mask.py via subprocess; mask.py sources its dirs and tuning knobs from config.py)
-    parser.add_argument("--skip-mask",       action="store_true",                                  help="Skip step 1 (masking).")
-
-    # Describe (delegated to describe.py via subprocess; describe.py sources its params from config.py)
-    parser.add_argument("--skip-describe",   action="store_true",                                  help="Skip step 2 (anomaly description).")
-    
     # Regression (some parameters are read from config.py).
     # Both feature variants (raw TF-IDF and TF-IDF + PCA) are computed and reported.
-    parser.add_argument("--skip-regression",     action="store_true",                          help="Skip step 3 (OLS regression).")
-    parser.add_argument("--max-words",           type=int,    default=MAX_NUMBER_OF_WORDS,     help=f"Maximum number of TF-IDF words. Default: {MAX_NUMBER_OF_WORDS}")
-    
+    parser.add_argument("--max-words", type=int, default=MAX_NUMBER_OF_WORDS, help=f"Maximum number of TF-IDF words. Default: {MAX_NUMBER_OF_WORDS}")
+
     # Classification
-    parser.add_argument("--skip-classification", action="store_true",                          help="Skip step 3b (logistic classification).")
-    parser.add_argument("--overperforming-cut",  action="store_true",                          help="Binarise engagement at crowdtangle_score > 0 instead of the median.")
+    parser.add_argument("--overperforming-cut", action="store_true", help="Binarise engagement at crowdtangle_score > 0 instead of the median.")
     args = parser.parse_args()
 
 
-    # Masking
-    if not args.skip_mask:
-        command = [sys.executable, str(SCRIPTS_DIR / "mask.py")]
-        try:
-            subprocess.run(command, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"ERROR: Masking failed: {e}")
-            return
-
-    # Anomaly description
-    if not args.skip_describe:
-        command = [sys.executable, str(SCRIPTS_DIR / "describe.py")]
-        try:
-            subprocess.run(command, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"ERROR: Description failed: {e}")
-            return
-
     # Regression on the descriptions
-    if not args.skip_regression:
-        regression(max_words=args.max_words)
+    regression(max_words=args.max_words)
 
     # Logistic classification of the descriptions
-    if not args.skip_classification:
-        classify(max_words=args.max_words, overperforming_cut=args.overperforming_cut)
+    classify(max_words=args.max_words, overperforming_cut=args.overperforming_cut)
 
 if __name__ == "__main__":
     main()

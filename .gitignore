@@ -1,11 +1,7 @@
 # Environment
-.DS_Store
-.vscode/
-__pycache__/
 .venv/
+__pycache__/
 
 # Cache
-!.gitkeep
 dataset/*
 scripts/temp/*
-TruFor/TruFor_train_test/weights/*

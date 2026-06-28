@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# weights
+TruFor_train_test/weights/*
+
+# tests
+Trufor/test_docker/images/*
