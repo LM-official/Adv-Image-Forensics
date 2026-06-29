@@ -59,6 +59,30 @@ REGRESSION_FILE  = TEMP_DIR / "regression_trufor_crowdtangle.txt"
 
 
 # =============================================================================
+# IMAGE FEATURES
+# =============================================================================
+
+IMAGE_FEATURES_FILE      = TEMP_DIR / "images_features.txt"
+IMAGE_FEATURES_PLOT_FILE = TEMP_DIR / "images_features.png"
+
+FEATURE_PLOT_X_LABEL  = "Engagement (CrowdTangle score)"
+FEATURE_PLOT_X_TARGET = "crowdtangle_score"
+FEATURE_PLOT_Y_LABEL  = "AI-generated (TruFor score)"
+FEATURE_PLOT_Y_TARGET = "trufor_score"
+# Correlation used for both axes: "pearson" (linear) or "spearman" (rank/monotonic)
+FEATURE_CORR_METHOD   = "pearson"
+
+# Feature tunables
+# Long side an image is resized to before extraction; 0 = no resize
+FEATURE_RESIZE_LONG_SIDE = 0
+# Canny edge thresholds for visual_complexity
+FEATURE_CANNY_LOW        = 100
+FEATURE_CANNY_HIGH       = 200
+# rule_of_thirds: radius around each power-point as a fraction of the image diagonal
+FEATURE_THIRDS_RADIUS    = 0.10
+
+
+# =============================================================================
 # MASK
 # =============================================================================
 
