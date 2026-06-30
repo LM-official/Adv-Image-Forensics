@@ -23,9 +23,12 @@ from glob import glob
 import torch
 from torch.nn import functional as F
 
-path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
-if path not in sys.path:
-    sys.path.insert(0, path)
+# Make both this directory (for `lib`, `dataset`) and its parent importable, regardless of how the
+# interpreter seeds sys.path: Windows does not add the script's own directory the way macOS/Linux do.
+here = os.path.dirname(os.path.realpath(__file__))
+for path in (os.path.join(here, '..'), here):
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
 from lib.config import config, update_config
 from lib.utils import get_model, get_device
@@ -165,9 +168,11 @@ def main():
                 if dir_out:
                     os.makedirs(dir_out, exist_ok=True)
                 np.savez(filename_out, **out_dict)
-            except Exception:
-                import traceback
-                traceback.print_exc()
+            except Exception as e:
+                # Skip images TruFor cannot process (e.g. degenerate tiny ones): a concise note
+                # instead of a full traceback keeps the batch output readable. No .npz is written,
+                # so the image simply gets no score downstream.
+                print(f"WARNING: skipping '{img_path[0]}': {e}")
             finally:
                 if device.type == 'mps':
                     # MPS caches freed buffers at the high-watermark forever; on unified

@@ -65,31 +65,31 @@ def save_report(text: str, path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, mode="w", encoding="utf-8") as file:
         file.write(text)
-    print(f"Report saved to '{path}'.")
+    print("Report saved successfully.")
 
 
 # =============================================================================
 # CSV HELPERS
 # =============================================================================
 
-def update_csv(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | None = None):
+def update_csv(csv: Path, data: pd.DataFrame, rename: dict[str, str] | None = None):
     """
-    Merges a DataFrame into the dataset CSV and saves it back to the same file.
+    Merges a DataFrame into the CSV and saves it back to the same file.
 
     Merges on the 'filename' column.
 
     Args:
-        dataset: Path to the dataset CSV file.
+        csv:     Path to the CSV file.
         data:    DataFrame to merge into the dataset.
         rename:  Optional mapping to rename columns before merging.
     """
 
-    df = load_csv(dataset)
+    df = load_csv(csv)
     if df is None:
         return
     
     # Update
-    print(f"Updating dataset '{dataset}'...")
+    print("Updating CSV...")
     if rename:
         data = data.rename(columns=rename)
     # Drop columns already present in the dataset (except the merge key) so the incoming values replace the old ones instead of producing _x/_y duplicates
@@ -98,8 +98,8 @@ def update_csv(dataset: Path, data: pd.DataFrame, rename: dict[str, str] | None 
     df = pd.merge(df, data, on="filename", how="inner")
     # Keep the dataset dense: drop any row that has an empty/null value
     df = df.dropna()
-    df.to_csv(dataset, index=False, encoding="utf-8")
-    print("Dataset updated successfully.")
+    df.to_csv(csv, index=False, encoding="utf-8")
+    print("CSV updated successfully.")
 
 
 def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None:
@@ -114,18 +114,18 @@ def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None
         A DataFrame with the requested columns and no missing values, or None on failure / empty result.
     """
 
-    print(f"Loading '{csv}'...")
+    print("Loading CSV...")
     try:
         # Keep only requested columns
         df = pd.read_csv(csv, sep=",", encoding="utf-8", usecols=columns)
         if df is None or df.empty:
-            print(f"ERROR: No valid data found in '{csv}'.")
+            print("ERROR: No valid data found in CSV.")
             return None
 
-        print(f"'{csv}' loaded successfully.")
+        print("CSV loaded successfully.")
         return df
     except Exception as e:
-        print(f"ERROR: loading '{csv}': {e}")
+        print(f"ERROR: loading CSV: {e}")
         return None
     
 
@@ -148,7 +148,7 @@ def load_npz(npz: Path, columns: set[str]) -> pd.DataFrame | None:
     """
     
     if not columns or any(col not in NPZ_COLS for col in columns):
-        print(f"WARNING: Invalid .npz file or columns {columns}. Expected a non-empty subset of: {NPZ_COLS}")
+        print(f"WARNING: Invalid .npz file or columns. Expected a non-empty subset of: {NPZ_COLS}")
         return None
 
 
@@ -163,7 +163,7 @@ def load_npz(npz: Path, columns: set[str]) -> pd.DataFrame | None:
                 result[col] = float(value) if value.ndim == 0 else value.tolist()
         return pd.DataFrame([result])
     except Exception as e:
-        print(f"WARNING: reading '{npz}': {e}")
+        print(f"WARNING: reading npz: {e}")
         return None
 
 
@@ -182,11 +182,11 @@ def load_npzs(npzs: Path, columns: set[str]) -> pd.DataFrame | None:
     """
 
     if not npzs.is_dir():
-        print(f"ERROR: Invalid directory '{npzs}'.")
+        print("ERROR: Invalid directory.")
         return None
 
     # Extracting values
-    print(f"Extracting values from .npz files in '{npzs}'...")
+    print("Extracting values from .npz file...")
     result = []
     for item in npzs.glob("*.npz"):
         df = load_npz(item, columns)
@@ -196,8 +196,8 @@ def load_npzs(npzs: Path, columns: set[str]) -> pd.DataFrame | None:
             result.append(row)
 
     if not result:
-        print(f"ERROR: No valid .npz files found in '{npzs}'.")
+        print("ERROR: No valid .npz files found.")
         return None
 
-    print(f"Values extracted successfully from '{npzs}'.")
+    print("Values extracted successfully.")
     return pd.DataFrame(result)

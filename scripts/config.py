@@ -118,6 +118,7 @@ MASK_CONFUSION_MATRIX_FILE = TEMP_DIR / "mask_confusion_matrix.txt"
 # =============================================================================
 
 DESCRIPTION_REPORT_FILE        = TEMP_DIR / "description_report.txt"
+DESCRIPTION_TEMP_FILE          = TEMP_DIR / "description_temp.csv"
 DESCRIPTION_MODEL              = "Salesforce/blip-image-captioning-large"
 DESCRIPTION_BATCH_SIZE         = 20
 # Wait time (seconds) after each batch

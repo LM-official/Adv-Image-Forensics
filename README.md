@@ -14,20 +14,19 @@ It scores how likely each image is manipulated, describes what was altered, and 
 
 ---
 
-## 📋 What it does
+## 📊 Results
 
-Reads a CrowdTangle-style export of social-media posts and produces a forensic analysis of their images:
+**Initial real-world test — TruFor as a detector.** On 100 manually labelled images (threshold `0.5`): **61% accuracy**, **80.6% precision**, **47.5% recall**, **F1 ≈ 0.60** (TP 29 / TN 32 / FP 7 / FN 32). TruFor is precise but conservative here — when it flags an image as altered it is right ~4 times out of 5 (only 7 false alarms), but at the default cut-off it misses about half the manipulated images (the missed ones score well below `0.5`, so they read as confident real calls, not borderline).
 
-- **🧹 Photo-only filtering** — keeps posts that carry an engagement score and consist only of photos that resolve to real files on disk, then reports the engagement-score distribution.
-- **🧠 Manipulation scoring** — runs **TruFor** over every kept image and records a global manipulation score in `[0, 1]`.
-- **🎯 Detection performance** — evaluates TruFor as a binary detector against a manually labelled ground truth (confusion matrix + accuracy/precision/recall/F1).
-- **📈 Engagement statistics** — correlates (Pearson/Spearman) and OLS-regresses the manipulation signal against the CrowdTangle overperforming score.
-- **🖼️ Visual features** — extracts ~19 (no-ML) image features per photo and plots how each correlates with engagement and with the manipulation score.
-- **🎭 What was manipulated** — masks the altered region, captions it with **BLIP** and reads its text with **EasyOCR**.
-- **🔗 Description → engagement** — turns the description into TF-IDF features (raw and PCA-compressed) and tests whether they predict whether a post over- or under-performs, with a logistic-regression / binomial-GLM classifier.
-- **🔄 Dataset-agnostic** — point the `DATASET_*` paths in `config.py` at any CrowdTangle-style export to switch sources.
+On the full dataset (~1,200 photo posts):
 
-> 🗣️ The growing analysis table lives in `scripts/temp/filtered_dataset.csv`, while every human-readable report is written next to it as a separate `*.txt`/`*.png`: data and reports stay apart.
+- **Manipulation _intensity_ doesn't predict engagement.** The global `trufor_score` is essentially uncorrelated with the CrowdTangle overperforming score (Pearson *r* ≈ 0.05, *p* ≈ 0.08; OLS R² ≈ 0.003) — how strongly an image is manipulated says nothing about how the post performs.
+- **But what was manipulated carries a weak-but-real signal.** TF-IDF features of the altered-region description (BLIP caption + OCR) separate over- from under-performing posts with a 5-fold cross-validated **AUC ≈ 0.64** (≈ 60% accuracy vs a ≈ 51% majority baseline), holding on both the raw-word and PCA feature sets.
+- So the predictive signal is in the **content** of the manipulation (the subjects and words shown), not its **strength**.
+
+![Engagement (CrowdTangle) score distribution — bimodal, with a low-density valley at 0 and long outlier tails](results/dataset_distribution.png)
+
+![Visual features plotted by their correlation with engagement (X) and the manipulation score (Y)](results/images_features.png)
 
 ---
 
@@ -40,25 +39,23 @@ Reads a CrowdTangle-style export of social-media posts and produces a forensic a
 ├── requirements.txt
 ├── scripts/                         # this project's pipeline + configuration
 │   ├── config.py                    # single source of truth (paths + tunable knobs)
-│   ├── filter.py                    # stage 1 — keep photo-only scored posts + score distribution
-│   ├── trufor.py                    # stage 2 — run TruFor, detector confusion matrix, correlation + regression
-│   ├── features.py                  # stage 3 — visual features + plot
-│   ├── mask.py                      # stage 4 — mask the altered region
-│   ├── describe.py                  # stage 5 — caption (BLIP) + read (OCR) the altered region
-│   ├── anomaly_classification.py    # stage 6 — TF-IDF logistic / binomial-GLM engagement classifier
+│   ├── filter.py                    # filter posts + score distribution
+│   ├── trufor.py                    # TruFor scores + detector / engagement stats
+│   ├── features.py                  # visual features + plot
+│   ├── mask.py                      # mask the altered region
+│   ├── describe.py                  # caption (BLIP) + OCR
+│   ├── anomaly_classification.py    # description → engagement classifier
 │   ├── utils.py                     # shared CSV / .npz / image / text helpers
 │   └── temp/                        # all generated outputs land here
 ├── TruFor/                          # vendored TruFor (read-only dependency, GRIP-UNINA)
 └── dataset/                         # input data (crowdtangle.jsonl + crowdtangle_media/)
 ```
 
-> 🛡️ **TruFor is a read-only dependency:** the pipeline never writes into `TruFor/`. It hands TruFor's `test.py` an `--input`/`--output` pair under `scripts/temp/` (`temp/images` → `temp/npz`), so every intermediate lives there.
+> 🛡️ **TruFor is a read-only dependency:** the pipeline never writes into `TruFor/` at runtime. It hands TruFor's `test.py` an `--input`/`--output` pair under `scripts/temp/` (`temp/images` → `temp/npz`), so every intermediate lives there. The vendored copy is a lightly **customised** version — a few small patches was applied — so it diverges slightly from the original GRIP-UNINA code.
 
 ---
 
 ## ⚙️ Setup
-
-Developed on macOS (Apple Silicon / MPS); also runs on CUDA GPUs or CPU (device auto-selected CUDA → MPS → CPU).
 
 **1. Clone**
 
@@ -89,12 +86,12 @@ Run the six stages in order from `scripts/` (all paths come from `config.py`):
 source .venv/bin/activate
 cd scripts
 
-python filter.py                  # stage 1 — filter + engagement-score distribution
-python trufor.py --generate-truth # stage 2 — TruFor scores, detector metrics, correlation + regression
-python features.py                # stage 3 — visual features + plot
-python mask.py                    # stage 4 — mask the altered region
-python describe.py                # stage 5 — BLIP caption + OCR of the altered region
-python anomaly_classification.py  # stage 6 — TF-IDF logistic / binomial-GLM classifier
+python filter.py
+python trufor.py --generate-truth
+python features.py
+python mask.py
+python describe.py
+python anomaly_classification.py
 ```
 
 `--generate-truth` (first run only) writes the empty `trufor_truth.csv` label template and pauses so you can fill the `label` column (`0` = real, `1` = AI); later runs reuse it.
@@ -121,9 +118,26 @@ A six-stage pipeline; each stage appends a column to the analysis table or write
 1. **`filter.py`** — keeps the photo-only scored posts and symlinks their images into `scripts/temp/images/` (TruFor's input dir), then reports the `crowdtangle_score` distribution (median/skew/outliers + histogram & boxplot).
 2. **`trufor.py`** — runs TruFor's `test.py` over those images in batches (**resumable**: one `.npz` per image, existing ones skipped; multi-megapixel images downscaled then upsampled back), records the global `trufor_score`, and — against a manually labelled `trufor_truth.csv` — writes the **detector confusion matrix** (accuracy/precision/recall/F1) plus the **Pearson/Spearman correlation** and an **OLS regression** of `crowdtangle_score ~ trufor_score`.
 3. **`features.py`** — extracts ~19 (no-ML) visual features per image (aspect ratio, brightness, contrast, sharpness, blur, colorfulness, warmth, entropy, symmetry, rule of thirds, depth of field, visual complexity, …) with OpenCV/NumPy/SciPy/scikit-image, merges them into the table, and renders a feature scatter: each feature plotted by its correlation with engagement (`crowdtangle_score`, X) and with the AI-manipulation score (`trufor_score`, Y), with a fitted regression line and a `y = x` reference.
-4. **`mask.py`** — binarizes each TruFor map into a mask of the altered region (flagged and confidently localized pixels), denoises it and fixes polarity on synthetic-majority composites, saving one loseless compressed PNG per image.
+4. **`mask.py`** — binarizes each TruFor map into a mask of the altered region (flagged and confidently localized pixels), denoises it and fixes polarity on synthetic-majority composites, saving one lossless compressed PNG per image.
 5. **`describe.py`** — captions the masked region with **BLIP** and merges the **EasyOCR** words read off it into the `anomaly_txt` column.
-6. **`anomaly_classification.py`** — models `anomaly_txt`: a TF-IDF representation (English + Italian stop-words removed), used both raw (one column per word) and PCA-compressed (enough components to keep 90% of the variance). It drops the posts in the bimodal score's low-density valley (`|crowdtangle_score| ≤ ENGAGEMENT_DEAD_ZONE`), binarises the rest (over- vs under-performed), and fits — on the raw words and on the PCA components — a 5-fold cross-validated **logistic regression** (out-of-sample metrics + odds ratios) alongside an inferential **binomial GLM with a logit link** (coefficient table with p-values). *Finding on this dataset: manipulation **intensity** (`trufor_score`) doesn't predict engagement, but the manipulated-region **description** carries a weak-but-real signal (cross-validated AUC ≈ 0.64).*
+6. **`anomaly_classification.py`** — models `anomaly_txt`: a TF-IDF representation (English + Italian stop-words removed), used both raw (one column per word) and PCA-compressed (enough components to keep 90% of the variance). It drops the posts in the bimodal score's low-density valley (`|crowdtangle_score| ≤ ENGAGEMENT_DEAD_ZONE`), binarises the rest (over- vs under-performed), and fits — on the raw words and on the PCA components — a 5-fold cross-validated **logistic regression** (out-of-sample metrics + odds ratios) alongside an inferential **binomial GLM with a logit link** (coefficient table with p-values).
+
+---
+
+## 🧱 Architecture
+
+The run revolves around one growing table, `scripts/temp/filtered_dataset.csv` — most stages append a column to it, while every human-readable report is written next to it as a separate `*.txt`/`*.png`, so data and reports stay apart:
+
+| Column | Added by | Meaning |
+| :----- | :------- | :------ |
+| `id` | `filter.py` | Post identifier. |
+| `crowdtangle_score` | `filter.py` | CrowdTangle overperforming score (the engagement signal). |
+| `filename` | `filter.py` | Media file stem (the URL hash); the merge key for every stage. |
+| `trufor_score` | `trufor.py` | TruFor global manipulation score in `[0, 1]`. |
+| `aspect_ratio`, `brightness`, … | `features.py` | ~19 visual features, one column each (see `FEATURE_NAMES`). |
+| `anomaly_txt` | `describe.py` | Text description of the altered region (BLIP caption + OCR words). |
+
+Configuration is the backbone: **[`config.py`](scripts/config.py)** (imported by every Python script) holds every path and tunable knob — edit it, not the scripts. Shared building blocks (CSV / `.npz` / image / text helpers) live in [`utils.py`](scripts/utils.py).
 
 ---
 
@@ -137,23 +151,6 @@ The calls are governed by a handful of thresholds in [`config.py`](scripts/confi
 - **Honest empties** — a near-black mask is not captioned (the model would hallucinate) and gets the fixed label `empty`.
 - **OCR text** — captioning can't read, so OCR supplies the words: low-confidence and 1–2-letter recognitions are dropped, the rest de-duplicated and capped most-confident-first.
 - **Engagement** — a post over-performs when `crowdtangle_score > 0`; the bimodal distribution's low-density valley (`|crowdtangle_score| ≤ ENGAGEMENT_DEAD_ZONE`) is dropped first so the cut-off doesn't slice through ambiguous posts.
-
----
-
-## 🧱 Architecture
-
-The run revolves around one growing table, `scripts/temp/filtered_dataset.csv`:
-
-| Column | Added by | Meaning |
-| :----- | :------- | :------ |
-| `id` | `filter.py` | Post identifier. |
-| `crowdtangle_score` | `filter.py` | CrowdTangle overperforming score (the engagement signal). |
-| `filename` | `filter.py` | Media file stem (the URL hash); the merge key for every stage. |
-| `trufor_score` | `trufor.py` | TruFor global manipulation score in `[0, 1]`. |
-| `aspect_ratio`, `brightness`, … | `features.py` | ~19 visual features, one column each (see `FEATURE_NAMES`). |
-| `anomaly_txt` | `describe.py` | Text description of the altered region (BLIP caption + OCR words). |
-
-Configuration is the backbone: **[`config.py`](scripts/config.py)** (imported by every Python script) holds every path and tunable knob — edit it, not the scripts. Shared building blocks (CSV / `.npz` / image / text helpers) live in [`utils.py`](scripts/utils.py).
 
 ---
 

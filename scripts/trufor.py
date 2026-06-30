@@ -110,7 +110,7 @@ def run_trufor(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, trufor_run
         if i < batches and wait > 0:
             time.sleep(wait)
 
-    print("Batches completed.")
+    print("Batches computed successufully.")
 
 
 # =============================================================================
@@ -143,7 +143,7 @@ def generate_truth(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_FI
 
     # Save
     df.to_csv(truth, index=False, encoding="utf-8")
-    print(f"Truth template saved to '{truth}'.\nFill the 'label' column (0 = Real, 1 = Altered).")
+    print("Truth template saved successfully.\nFill the 'label' column (0 = Real, 1 = Altered).")
 
 
 # =============================================================================
@@ -170,6 +170,12 @@ def confusion_matrix(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_
         print("ERROR: Invalid input parameters.")
         return
 
+    # The ground truth is optional and created on demand (--generate-truth). Without it there is
+    # nothing to score against, so skip the detector confusion matrix cleanly instead of erroring.
+    if not truth.is_file():
+        print("Skipping detector confusion matrix: no ground-truth file found (run 'trufor.py --generate-truth' to create one).")
+        return
+
 
     # Load truth
     df = load_csv(truth, ["filename", "label"])
@@ -178,7 +184,7 @@ def confusion_matrix(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_
     # Validate labels must all be 0 or 1
     invalid = ~df["label"].isin([0, 1])
     if invalid.any():
-        print(f"ERROR: Invalid labels found in truth file '{truth}'. All labels must be 0 (Real) or 1 (AI).")
+        print("ERROR: Invalid labels found in truth file. All labels must be 0 (Real) or 1 (AI).")
         return
 
 
@@ -249,7 +255,7 @@ def confusion_matrix(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_
     # precision + recall > 0 check to avoid division by zero when both precision and recall are zero
     f1_score = 2 * ((precision * recall) / (precision + recall)) if (precision + recall) > 0 else 0.0
 
-    print("Performance metrics computed successfully.")
+    print("Confusion matrix computed successfully.")
 
     # Report
     text = (
@@ -312,7 +318,7 @@ def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATIO
 
     
     # Correlation
-    print(f"Calculating correlation between TruFor scores and Crowdtangle scores...")
+    print("Calculating correlation between TruFor scores and Crowdtangle scores...")
     
     """
     Pearson Correlation: Measures linearity. It asks, 'Do these data points form a perfectly straight line?'
@@ -327,7 +333,7 @@ def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATIO
     """
     # Spearman correlation (measures monotonic relationship / rank-based)
     spearman_corr, p_value_s = spearmanr(df["trufor_score"], df["crowdtangle_score"])
-    print(f"Correlation calculated successfully.")
+    print("Correlation calculated successfully.")
     
 
     # Report
@@ -397,7 +403,7 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_
     """
     # Define and fit the Ordinary Least Squares (OLS) model
     model = sm.OLS(Y, X).fit()
-    print(f"Regression calculated successfully.")
+    print("Regression calculated successfully.")
     
 
     # Report

@@ -143,7 +143,7 @@ def mask(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, masked: Path = M
     masked.mkdir(parents=True, exist_ok = True)
 
     # Masking
-    print(f"Creating masked images for all images in '{images}'...")
+    print("Creating masked images for all images...")
     for item in tqdm(sorted(npz.glob("*.npz")), desc="Masking", unit="img"):
         # TruFor appends .npz to the original filename, so .stem is the original image name (with extension)
         image_name = item.stem
@@ -151,7 +151,7 @@ def mask(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, masked: Path = M
         # Load image
         image = cv2.imread(images / image_name)
         if image is None:
-            print(f"WARNING: '{image_name}' image not found or corrupted at path.")
+            print("WARNING: image not found or corrupted at path.")
             continue
 
         # Load the anomaly map (where TruFor sees manipulation) and the confidence map (how reliable that is)
@@ -190,7 +190,7 @@ def mask(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, masked: Path = M
         # Save as compressed PNG
         cv2.imwrite(masked / f"{Path(image_name).stem}.png", image, png_params)
 
-    print(f"Masked images successfully saved to '{masked}'.")
+    print("Masked images saved successfully.")
 
 
 # =============================================================================

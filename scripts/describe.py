@@ -1,7 +1,7 @@
 import argparse
 from   collections  import Counter
 import gc
-from   config       import (DESCRIPTION_MODEL, FILTERED_DATASET_FILE, MASKED_DIR, DESCRIPTION_REPORT_FILE,
+from   config       import (DESCRIPTION_MODEL, FILTERED_DATASET_FILE, MASKED_DIR, DESCRIPTION_REPORT_FILE, DESCRIPTION_TEMP_FILE,
                             DESCRIPTION_BATCH_SIZE, MIN_DESCRIPTION_TOKENS, MAX_DESCRIPTION_TOKENS,
                             DESCRIPTION_NUM_BEAMS, DESCRIPTION_SEED,
                             DESCRIPTION_DO_SAMPLE, DESCRIPTION_TEMPERATURE, DESCRIPTION_TOP_P, DESCRIPTION_TOP_K,
@@ -85,7 +85,7 @@ def load_blip(model_name: str = DESCRIPTION_MODEL) -> tuple[BlipProcessor, BlipF
         A tuple (processor, model, device) ready for inference, or None if loading failed.
     """
 
-    print(f"Loading Hugging Face model (BLIP): '{model_name}'...")
+    print("Loading Hugging Face model (BLIP)...")
     try:
         # Check for hardware acceleration (MPS for Apple Silicon, CUDA for Nvidia GPUs) and set the device accordingly
         device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
@@ -150,10 +150,11 @@ def _report_descriptions(descriptions: list[tuple[str, str]], top: int = DESCRIP
     empties = sum(description == EMPTY_MASK_LABEL for _, description in descriptions)
     # Word ranking over the real descriptions only (the fixed empty label would dominate it)
     counts  = Counter(word for _, description in descriptions if description != EMPTY_MASK_LABEL for word in description.split())
-    text = (f"Description summary: {len(descriptions)} images of which {empties} empty; "
-            f"words per description min/median/max = {lengths[0]}/{lengths[len(lengths) // 2]}/{lengths[-1]}\n"
-            f"Most frequent words: {', '.join(f'{word} x{count}' for word, count in counts.most_common(top))}")
-    print(text)
+    text = (
+        f"Description summary: {len(descriptions)} images of which {empties} empty; "
+        f"words per description min/median/max = {lengths[0]}/{lengths[len(lengths) // 2]}/{lengths[-1]}\n"
+        f"Most frequent words: {', '.join(f'{word} x{count}' for word, count in counts.most_common(top))}"
+    )
     save_report(text, report)
 
 
@@ -205,7 +206,7 @@ def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGe
             # Force the image to be read in color mode
             image = cv2.imread(image_path, cv2.IMREAD_COLOR)
             if image is None:
-                print(f"WARNING: '{image_path}' image not found or corrupted.")
+                print("WARNING: image not found or corrupted.")
                 continue
 
             # (Near-)all-black mask: TruFor found no confident manipulation. Skip BLIP (it would hallucinate) and assign a fixed, non-empty label
@@ -221,7 +222,7 @@ def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGe
             try:
                 words = read_text(reader, image) if reader else ""
             except Exception as e:
-                print(f"WARNING: OCR failed on '{image_path.name}' ({e}): describing with the caption only.")
+                print(f"WARNING: OCR failed ({e}): describing with the caption only.")
                 words = ""
 
             # Hugging Face processors accept numpy arrays directly in RGB format
@@ -250,11 +251,11 @@ def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGe
         return fixed + described
 
     except Exception as e:
-        print(f"ERROR: generating description: {e}")
+        print(f"ERROR: generating descriptions: {e}")
         return None
 
 
-def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE, masked: Path = MASKED_DIR, 
+def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE, masked: Path = MASKED_DIR, temp: Path = DESCRIPTION_TEMP_FILE,
                     batch_size: int = DESCRIPTION_BATCH_SIZE, min_token: int = MIN_DESCRIPTION_TOKENS, max_token: int = MAX_DESCRIPTION_TOKENS,
                     num_beams: int = DESCRIPTION_NUM_BEAMS, seed: int = DESCRIPTION_SEED,
                     do_sample: bool = DESCRIPTION_DO_SAMPLE,
@@ -271,6 +272,7 @@ def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE,
         use_ocr:         If True, merge the OCR words of the altered region into the descriptions.
         dataset:         Path to the dataset CSV to merge the descriptions into.
         masked:          Directory containing the masked images to describe.
+        temp:            Path to the temporary CSV where the batch results are appended before merging into the dataset.
         batch_size:      Number of images processed simultaneously per batch.
         min_token:       Minimum number of new tokens in each generated description.
         max_token:       Maximum number of new tokens in each generated description.
@@ -302,7 +304,6 @@ def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE,
         return
     # temperature, repetition_penalty, num_beams and top_k has delegated checks
 
-
     # Load BLIP model
     blip = load_blip()
     if blip is None:
@@ -320,12 +321,31 @@ def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE,
     # Get image paths, excluding hidden files
     images = [path for path in masked.iterdir() if not path.name.startswith(".")]
     if not images:
-        print(f"ERROR: No valid masked images found in '{masked}'.")
+        print("ERROR: No valid masked images found.")
         return
     len_images = len(images)
 
+    # The dataset is left untouched while the batches run
+    # Each finished batch appends its filename, anomaly_txt rows to a temp file
+    # An interrupted run keeps everything computed and never touch the dataset
+    # A restart skips the images already in the temp file
+    # Once every batch is done the temp file is merged into the dataset in a single update and removed
+    if temp.is_file():
+        # Resume: skip the images already described in the leftover checkpoint
+        done    = load_csv(temp)
+        already = set(done["filename"]) if done is not None else set()
+        images  = [image for image in images if image.stem not in already]
+        len_images = len(images)
+        print(f"Resuming interrupted run: {len(already)} already described, {len_images} left.")
+    else:
+        # New run: create an empty checkpoint (header only) so every batch can simply append
+        # Create the output directories if they don't exist
+        temp.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(columns=["filename", "anomaly_txt"]).to_csv(temp, index=False, encoding="utf-8")
+
+
     # Generating descriptions
-    print(f"Describing masked images in folder: '{masked}'...")
+    print("Describing masked images...")
     # Seed once per run: captions stay diverse across images but a full rerun reproduces them
     if do_sample and seed >= 0:
         torch.manual_seed(seed)
@@ -340,33 +360,30 @@ def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE,
             _report_descriptions(descriptions)
         return
 
-
-    # load the dataset once, keep it in memory, and merge the descriptions collected so far after each batch
-    df = load_csv(dataset)
-    if df is None:
-        return
-    # Drop the stale anomaly_txt; the fresh descriptions are merged back in below
-    df = df.drop(columns="anomaly_txt", errors="ignore")
-
-    descriptions = []
-    # Process images in chunks of size = batch_size: caption -> persist -> free memory, one batch at a time
+    # Process images in chunks of size = batch_size: caption -> append to the checkpoint -> free memory
+    batches = (len_images + batch_size - 1) // batch_size
     for i in range(0, len_images, batch_size):
-        print(f"Processing batch {i // batch_size + 1}/{(len_images + batch_size - 1) // batch_size}...", end="\r")
+        print(f"Processing batch {i // batch_size + 1}/{batches}...", end="\r")
 
         results = _describe_images_batch(processor, model, device, reader, images[i:i + batch_size], *params)
         if results:
-            descriptions.extend(results)
-            # Update the dataset at the end of the batch: rewrite the whole table with every description so far
-            df.merge(pd.DataFrame(descriptions, columns=["filename", "anomaly_txt"]), on="filename").dropna().to_csv(dataset, index=False, encoding="utf-8")
+            # The checkpoint already has its header, so append the rows only
+            pd.DataFrame(results, columns=["filename", "anomaly_txt"]).to_csv(temp, mode="a", header=False, index=False, encoding="utf-8")
         else:
             print(f"WARNING: No descriptions generated for batch {i // batch_size + 1}.")
 
         # Release the per-batch image / inference tensors before loading the next batch
         _free_memory(device)
 
-    print(f"\nDataset '{dataset}' updated successfully.")
-    if descriptions:
-        _report_descriptions(descriptions)
+    # Merge every description (any resumed + this run) into the dataset in one pass, then drop the checkpoint
+    desc_df = load_csv(temp)
+    if desc_df is None:
+        print("ERROR: no descriptions were generated.")
+    else:
+        update_csv(dataset, desc_df)
+        _report_descriptions(list(desc_df.itertuples(index=False, name=None)))
+    # Delete temp file
+    temp.unlink(missing_ok=True)
 
 
 # =============================================================================

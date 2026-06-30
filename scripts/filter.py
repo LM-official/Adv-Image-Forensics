@@ -45,7 +45,7 @@ def _is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Pa
     """
 
     if not isinstance(data, dict) or len(data) == 0:
-        print(f"WARNING: invalid post data.")
+        print("WARNING: invalid post data.")
         return None
 
 
@@ -77,7 +77,7 @@ def _is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Pa
         # Dictionary lookup
         founds = hash_map.get(url_hash, [])
         if not founds:
-            print(f"WARNING: post '{data.get('id')}' rejected for missing image file for URL '{image_url}' (hash '{url_hash}').")
+            print(f"WARNING: post '{data.get('id')}' rejected for missing image file for URL.")
             return None
         # With a full-length hash this is always a single file; more than one means a truncated-hash collision (different URLs sharing a stem)
         if len(founds) > 1:
@@ -126,7 +126,7 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
     """
 
     if not dataset.is_file() or not dataset_images.is_dir():
-        print(f"ERROR: dataset '{dataset}' or images directory '{dataset_images}' not found.")
+        print("ERROR: dataset or images directory not found.")
         return
 
 
@@ -192,7 +192,7 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
             rows.sort(key=lambda row: row["filename"])
             writer.writerows(rows)
 
-        print(f"Dataset filtered successfully.\nOutput saved to: '{output_csv}'.")
+        print("Dataset filtered and saved successfully.")
 
     except Exception as e:
         print(f"ERROR: processing dataset: {e}")
@@ -272,7 +272,7 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
     ax_hist.set_title("Histogram (clipped to fences)")
 
     # Boxplot: full range (no clip) so the outliers are visible as separate points
-    ax_box.boxplot(scores, vert=False)
+    ax_box.boxplot(scores, orientation="horizontal")
     # Reference red line at zero to judge the centering
     ax_box.axvline(0, color="r", ls="--")
     ax_box.set_title("Boxplot (full range)")
@@ -284,7 +284,7 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
     plt.savefig(plot, dpi=120)
     # Free the figure from memory
     plt.close()
-    print(f"Plot saved to '{plot}'.")
+    print("Plot saved successfully.")
 
 
 # =============================================================================

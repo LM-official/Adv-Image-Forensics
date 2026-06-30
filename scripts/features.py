@@ -368,17 +368,17 @@ def features(dataset: Path = FILTERED_DATASET_FILE, images: Path = FILTERED_IMGS
     """
 
     if not images.is_dir():
-        print(f"ERROR: images directory '{images}' not found.")
+        print("ERROR: images directory not found.")
         return
     
     # Get image paths, excluding hidden files
     imgs = [path for path in images.iterdir() if not path.name.startswith(".")]
     if not imgs:
-        print(f"ERROR: No valid images found in '{images}'.")
+        print("ERROR: No valid images found.")
         return
 
 
-    print(f"Extracting features from {len(imgs)} images in '{images}'...")
+    print(f"Extracting features from {len(imgs)} images...")
     rows = []
     for image in tqdm(imgs, desc="Features"):
         feats = extract_features(image)
@@ -446,11 +446,6 @@ def plot(dataset: Path = FILTERED_DATASET_FILE, report: Path = IMAGE_FEATURES_FI
     if not feature_cols:
         print("ERROR: no feature columns in the dataset.")
         return
-    missing = [target for target in (x_target, y_target) if target not in df.columns]
-    if missing:
-        print(f"ERROR: missing target column(s) {missing}.")
-        return
-
 
     print(f"Computing {method} correlations of {len(feature_cols)} features: '{x_target}' (X) and '{y_target}' (Y)...")
     corr_x = _feature_correlations(df, x_target, feature_cols, method)
@@ -519,7 +514,7 @@ def plot(dataset: Path = FILTERED_DATASET_FILE, report: Path = IMAGE_FEATURES_FI
     plot.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(plot, dpi=120, bbox_inches="tight")
     plt.close(fig)
-    print(f"Plot saved to '{plot}'.")
+    print("Plot saved successfully.")
 
 
 # =============================================================================

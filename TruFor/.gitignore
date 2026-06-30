@@ -130,6 +130,10 @@ dmypy.json
 
 # weights
 TruFor_train_test/weights/*
+!TruFor_train_test/weights/.gitkeep
+!TruFor_train_test/weights/trufor_ph3/
+TruFor_train_test/weights/trufor_ph3/*
+!TruFor_train_test/weights/trufor_ph3/.gitkeep
 
 # tests
 Trufor/test_docker/images/*
