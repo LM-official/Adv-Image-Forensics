@@ -173,12 +173,17 @@ OCR_ALLOWLIST      = None
 
 
 # =============================================================================
-# REGRESSION
+# CLASSIFICATION
 # =============================================================================
 
-ANOMALY_REGRESSION_FILE     = TEMP_DIR / "anomaly_regression.txt"
 ANOMALY_CLASSIFICATION_FILE = TEMP_DIR / "anomaly_classification.txt"
 MAX_NUMBER_OF_WORDS = 100
 # PCA on the TF-IDF matrix keeps the fewest components that together explain at least
 # this fraction of the variance (the knee / diminishing-returns point)
 PCA_VARIANCE        = 0.9
+# Posts whose |crowdtangle_score| <= this fall in the low-density valley between
+# the under- and over-performing modes of the bimodal score distribution.
+# They are dropped before binarising at 0, so the cut-off does not slice through a cluster of ambiguous posts.
+# 0.5 is the empirical valley floor on this dataset (density collapses outside +/-1).
+# Set to 0 to disable the cut and keep every post.
+ENGAGEMENT_DEAD_ZONE = 0.5
