@@ -1,0 +1,28 @@
+=============================================================================
+REGRESSION TRUFOR SCORE - CROWDTANGLE SCORE
+=============================================================================
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:      crowdtangle_score   R-squared:                       0.003
+Model:                            OLS   Adj. R-squared:                  0.002
+Method:                 Least Squares   F-statistic:                     3.069
+Date:                Tue, 30 Jun 2026   Prob (F-statistic):             0.0800
+Time:                        11:27:01   Log-Likelihood:                -5591.8
+No. Observations:                1217   AIC:                         1.119e+04
+Df Residuals:                    1215   BIC:                         1.120e+04
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+================================================================================
+                   coef    std err          t      P>|t|      [0.025      0.975]
+--------------------------------------------------------------------------------
+const           -5.4657      1.307     -4.181      0.000      -8.030      -2.901
+trufor_score     4.6545      2.657      1.752      0.080      -0.558       9.867
+==============================================================================
+Omnibus:                     1761.280   Durbin-Watson:                   2.002
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):           390112.947
+Skew:                          -8.441   Prob(JB):                         0.00
+Kurtosis:                      89.071   Cond. No.                         4.59
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.

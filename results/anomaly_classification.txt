@@ -1,0 +1,119 @@
+=============================================================================
+Anomaly Classification
+=============================================================================
+Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)
+Dead zone    : |score| <= 0.5 (kept 1201 of 1217 posts)
+Class balance: 585 high / 616 low  (out of 1201)
+Logistic-regression metrics are 5-fold cross-validated (out-of-sample); the GLM table is in-sample inference.
+
+
+=== Raw TF-IDF - logistic regression (cross-validated) ===
+Features           : 101
+McFadden pseudo-R2 : 0.0585
+Accuracy           : 59.3%  (majority-class baseline: 51.3%)
+ROC AUC            : 0.639  (0.5 = no better than chance)
+Confusion matrix   : TP=305  TN=407  FP=209  FN=280
+
+Largest odds ratios (>1 -> more likely high engagement):
+  up:   tfidf_partito (4.10), tfidf_verde (3.45), tfidf_air (3.36), tfidf_suit (2.95), tfidf_piece (2.79), tfidf_wearing (2.55), tfidf_silvia (2.35), tfidf_berlusconi (2.24), tfidf_dona (2.18), tfidf_woman (2.18), tfidf_legasalvinipremier (2.10), tfidf_skateboard (1.91), tfidf_governo (1.90), tfidf_flag (1.87), tfidf_sera (1.86)
+  down: tfidf_giugno (0.12), tfidf_ore (0.16), tfidf_scrivi (0.18), tfidf_maggio (0.19), tfidf_europee (0.29), tfidf_premier (0.29), tfidf_silhouette (0.30), tfidf_verdisinistrait (0.30), tfidf_microphone (0.31), tfidf_codice (0.33), tfidf_salvini (0.37), tfidf_dark (0.37), tfidf_venerdi (0.40), tfidf_blue (0.41), tfidf_elezioni (0.42)
+
+
+=== Raw TF-IDF - binomial GLM (logit link) ===
+Skipped: the unregularised GLM did not converge (quasi-complete separation on the sparse TF-IDF features),
+so its coefficients and p-values are not interpretable.
+Use the cross-validated logistic-regression metrics;
+the GLM inference is reliable on the PCA-compressed features.
+
+
+=== TF-IDF + PCA - logistic regression (cross-validated) ===
+Features           : 60
+McFadden pseudo-R2 : 0.0527
+Accuracy           : 58.6%  (majority-class baseline: 51.3%)
+ROC AUC            : 0.628  (0.5 = no better than chance)
+Confusion matrix   : TP=298  TN=406  FP=210  FN=287
+
+Largest odds ratios (>1 -> more likely high engagement):
+  up:   text_pca_19 (6.01), text_pca_22 (5.55), text_pca_7 (4.32), text_pca_23 (3.08), text_pca_33 (2.90), text_pca_50 (2.54), text_pca_2 (2.49), text_pca_42 (2.45), text_pca_9 (2.33), text_pca_12 (2.32), text_pca_51 (2.29), text_pca_8 (2.28), text_pca_55 (2.25), text_pca_15 (2.23), text_pca_26 (2.09)
+  down: text_pca_14 (0.11), text_pca_17 (0.21), text_pca_44 (0.28), text_pca_5 (0.36), text_pca_35 (0.38), text_pca_4 (0.40), text_pca_32 (0.40), text_pca_18 (0.42), text_pca_34 (0.44), text_pca_24 (0.50), text_pca_52 (0.52), text_pca_6 (0.53), text_pca_47 (0.58), text_pca_43 (0.60), text_pca_38 (0.64)
+
+
+=== TF-IDF + PCA - binomial GLM (logit link) ===
+In-sample McFadden pseudo-R2: 0.1246
+
+                 Generalized Linear Model Regression Results                  
+==============================================================================
+Dep. Variable:      crowdtangle_score   No. Observations:                 1201
+Model:                            GLM   Df Residuals:                     1140
+Model Family:                Binomial   Df Model:                           60
+Link Function:                  Logit   Scale:                          1.0000
+Method:                          IRLS   Log-Likelihood:                -728.42
+Date:                Tue, 30 Jun 2026   Deviance:                       1456.8
+Time:                        13:50:30   Pearson chi2:                 1.18e+03
+No. Iterations:                     6   Pseudo R-squ. (CS):             0.1585
+Covariance Type:            nonrobust                                         
+================================================================================
+                   coef    std err          z      P>|z|      [0.025      0.975]
+--------------------------------------------------------------------------------
+const           -0.3159      0.135     -2.333      0.020      -0.581      -0.050
+trufor_score     0.4467      0.277      1.610      0.107      -0.097       0.990
+text_pca_1       0.8117      0.285      2.847      0.004       0.253       1.370
+text_pca_2       1.1572      0.352      3.283      0.001       0.466       1.848
+text_pca_3       0.7607      0.368      2.067      0.039       0.039       1.482
+text_pca_4      -1.3363      0.474     -2.820      0.005      -2.265      -0.408
+text_pca_5      -1.4730      0.437     -3.373      0.001      -2.329      -0.617
+text_pca_6      -0.7080      0.417     -1.697      0.090      -1.526       0.110
+text_pca_7       2.0137      0.466      4.318      0.000       1.100       2.928
+text_pca_8       1.1619      0.457      2.543      0.011       0.266       2.057
+text_pca_9       1.0087      0.527      1.915      0.056      -0.024       2.041
+text_pca_10      0.0462      0.475      0.097      0.922      -0.884       0.977
+text_pca_11     -0.3241      0.501     -0.647      0.518      -1.306       0.658
+text_pca_12      1.0278      0.570      1.804      0.071      -0.089       2.144
+text_pca_13      0.3267      0.528      0.619      0.536      -0.708       1.362
+text_pca_14     -3.7898      0.772     -4.906      0.000      -5.304      -2.276
+text_pca_15      1.3096      0.583      2.245      0.025       0.166       2.453
+text_pca_16      0.9499      0.638      1.489      0.137      -0.301       2.201
+text_pca_17     -2.8695      0.764     -3.755      0.000      -4.367      -1.372
+text_pca_18     -1.6973      0.674     -2.518      0.012      -3.018      -0.376
+text_pca_19      3.0427      0.734      4.144      0.000       1.604       4.482
+text_pca_20     -0.9241      0.733     -1.260      0.208      -2.361       0.513
+text_pca_21     -1.0021      0.780     -1.285      0.199      -2.531       0.526
+text_pca_22      2.8465      0.692      4.113      0.000       1.490       4.203
+text_pca_23      1.6672      0.693      2.407      0.016       0.310       3.025
+text_pca_24     -1.0076      0.692     -1.455      0.146      -2.365       0.349
+text_pca_25      1.1951      0.786      1.520      0.128      -0.346       2.736
+text_pca_26      0.9817      0.760      1.292      0.196      -0.508       2.471
+text_pca_27      0.2042      0.763      0.268      0.789      -1.291       1.699
+text_pca_28      0.4364      0.773      0.564      0.572      -1.079       1.952
+text_pca_29      0.8395      0.831      1.010      0.313      -0.790       2.469
+text_pca_30     -0.5532      0.791     -0.699      0.484      -2.104       0.997
+text_pca_31      0.5386      0.753      0.715      0.474      -0.937       2.015
+text_pca_32     -1.7596      0.877     -2.007      0.045      -3.478      -0.041
+text_pca_33      1.8712      0.794      2.358      0.018       0.316       3.426
+text_pca_34     -1.6047      0.778     -2.063      0.039      -3.129      -0.080
+text_pca_35     -1.5188      0.826     -1.838      0.066      -3.139       0.101
+text_pca_36     -0.0781      0.829     -0.094      0.925      -1.702       1.546
+text_pca_37      0.2272      0.863      0.263      0.792      -1.464       1.919
+text_pca_38     -0.5783      0.872     -0.663      0.507      -2.288       1.131
+text_pca_39     -0.9384      0.875     -1.073      0.283      -2.653       0.776
+text_pca_40      0.3066      0.852      0.360      0.719      -1.364       1.977
+text_pca_41     -0.6568      0.846     -0.776      0.438      -2.315       1.002
+text_pca_42      1.4908      0.885      1.684      0.092      -0.244       3.226
+text_pca_43     -0.8726      0.870     -1.003      0.316      -2.578       0.833
+text_pca_44     -2.6428      0.967     -2.733      0.006      -4.538      -0.748
+text_pca_45     -0.0966      1.011     -0.096      0.924      -2.078       1.885
+text_pca_46     -0.1312      0.919     -0.143      0.886      -1.933       1.670
+text_pca_47     -1.2208      0.909     -1.343      0.179      -3.003       0.561
+text_pca_48     -0.1767      0.925     -0.191      0.849      -1.991       1.637
+text_pca_49     -0.3705      0.946     -0.392      0.695      -2.225       1.484
+text_pca_50      1.8272      0.948      1.928      0.054      -0.030       3.684
+text_pca_51      1.8523      0.990      1.872      0.061      -0.087       3.792
+text_pca_52     -1.3637      0.995     -1.370      0.171      -3.315       0.587
+text_pca_53      0.3817      1.043      0.366      0.714      -1.663       2.426
+text_pca_54     -0.5102      1.062     -0.481      0.631      -2.591       1.571
+text_pca_55      1.9573      1.096      1.786      0.074      -0.191       4.105
+text_pca_56     -0.2364      1.062     -0.223      0.824      -2.317       1.845
+text_pca_57      1.1358      1.067      1.064      0.287      -0.956       3.227
+text_pca_58      0.2497      1.116      0.224      0.823      -1.937       2.436
+text_pca_59     -0.6946      1.126     -0.617      0.537      -2.902       1.513
+================================================================================
