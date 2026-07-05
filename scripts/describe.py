@@ -20,6 +20,11 @@ import torch
 from   tqdm         import tqdm
 from   transformers import BlipProcessor, BlipForConditionalGeneration
 from   utils        import clean_text, load_csv, save_report, update_csv
+import warnings
+
+# EasyOCR hardcodes pin_memory=True in its internal DataLoader, which MPS does not support:
+# torch emits a harmless UserWarning on every readtext() call, flooding the output. Silence it.
+warnings.filterwarnings("ignore", message=".*pin_memory.*")
 
 
 # =============================================================================

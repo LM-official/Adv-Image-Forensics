@@ -4,7 +4,7 @@ __pycache__/
 
 # Cache
 dataset/*
-scripts/temp/*
+scripts/temp/
 
 # Priority to .gitkeep
 !.gitkeep

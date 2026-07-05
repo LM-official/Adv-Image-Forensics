@@ -208,10 +208,10 @@ def confusion_matrix(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_
     df["prediction"] = (df["trufor_score"] > threshold).astype(int)
 
     # Compute confusion matrix counters using vectorized operations
-    tp = int(((df["label"] == 1) & (df["prediction"] == 1)).sum())   # true positives (AI -> correctly identified as AI)
+    tp = int(((df["label"] == 1) & (df["prediction"] == 1)).sum())   # true positives (manipulated -> correctly identified as manipulated)
     tn = int(((df["label"] == 0) & (df["prediction"] == 0)).sum())   # true negatives (Real -> correctly identified as real)
-    fp = int(((df["label"] == 0) & (df["prediction"] == 1)).sum())   # false positives (Real -> mistakenly flagged as AI)
-    fn = int(((df["label"] == 1) & (df["prediction"] == 0)).sum())   # false negatives (AI -> mistakenly passed as real)
+    fp = int(((df["label"] == 0) & (df["prediction"] == 1)).sum())   # false positives (Real -> mistakenly flagged as manipulated)
+    fn = int(((df["label"] == 1) & (df["prediction"] == 0)).sum())   # false negatives (manipulated -> mistakenly passed as real)
     
     # Build fp/fn lists
     fp_list = df.loc[(df["label"] == 0) & (df["prediction"] == 1), ["filename", "trufor_score"]].values.tolist()

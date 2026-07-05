@@ -1,12 +1,14 @@
 import argparse
-from   config   import (FILTERED_IMGS_DIR, NPZ_DIR, MASK_THRESHOLD, MASK_CONFIDENCE_THRESHOLD,
-                        MASK_MORPH_KERNEL, MASK_MIN_AREA_RATIO, MASK_INVERT_COMPOSITE,
-                        MASK_FLAT_GRAD_THRESH, MASK_INVERT_MARGIN, MASK_INVERT_MIN_AREA, MASKED_DIR)
+from   config   import (FILTERED_IMGS_DIR, NPZ_DIR, MASKED_DIR,
+                        MASK_THRESHOLD, MASK_CONFIDENCE_THRESHOLD,
+                        MASK_INVERT_COMPOSITE, MASK_FLAT_GRAD_THRESH, MASK_INVERT_MARGIN,
+                        MASK_INVERT_MIN_AREA, MASK_MORPH_KERNEL, MASK_MIN_AREA_RATIO, 
+                        MASKED_TRUTH_DIR, MASK_TRUTH_THRESHOLD, MASK_CONFUSION_MATRIX_FILE)
 import cv2
 import numpy     as     np
 from   pathlib   import Path
 from   tqdm      import tqdm
-from   utils     import load_npz
+from   utils     import load_npz, save_report
 
 
 # =============================================================================
@@ -144,7 +146,7 @@ def mask(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, masked: Path = M
 
     # Masking
     print("Creating masked images for all images...")
-    for item in tqdm(sorted(npz.glob("*.npz")), desc="Masking", unit="img"):
+    for item in tqdm(npz.glob("*.npz"), desc="Masking", unit="img"):
         # TruFor appends .npz to the original filename, so .stem is the original image name (with extension)
         image_name = item.stem
 
@@ -197,6 +199,174 @@ def mask(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, masked: Path = M
 # (2) CONFUSION MATRIX
 # =============================================================================
 
+def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
+                     report: Path = MASK_CONFUSION_MATRIX_FILE, truth_threshold: int = MASK_TRUTH_THRESHOLD):
+    """
+    Computes the pixel-level confusion matrix of the generated masks against the ground truth,
+    then saves accuracy, precision, recall, F1-score and IoU.
+
+    Every pixel of every image is one sample:
+    - prediction: a pixel is positive when the masked PNG keeps it (any non-zero channel);
+    - truth:      a pixel is positive when the ground-truth mask paints it white (gray value > truth_threshold).
+
+    Args:
+        masked:          Directory containing the masked PNG images produced by `mask()`.
+        truth:           Directory containing the ground-truth masks (white = manipulated, black = authentic).
+        truth_threshold: Gray value above which a ground-truth pixel counts as manipulated (kills the noise).
+        report:          Output file path where the performance report is written.
+
+    Returns:
+        None.
+    """
+
+    if not masked.is_dir():
+        print("ERROR: invalid masked directory for computing the confusion matrix.")
+        return
+
+    # The ground truth is optional. Without it there is nothing to score against
+    if not truth.is_dir():
+        print("Skipping mask confusion matrix: no ground-truth directory found.")
+        return
+
+
+    # Compute performance
+    print(f"Computing the pixel-level confusion matrix with truth threshold {truth_threshold}...")
+
+    # Global pixel counters (every pixel of every image is one sample)
+    # true positives  (manipulated pixel -> correctly kept)
+    # true negatives  (authentic pixel -> correctly removed)
+    # false positives (authentic pixel -> mistakenly kept)
+    # false negatives (manipulated pixel -> mistakenly removed)
+    tp = tn = fp = fn = 0
+
+    # Per-image IoU, to spot which masks are wrong (the global counters alone hide them)
+    ious = []
+    for item in masked.iterdir():
+        # Load masked image
+        image = cv2.imread(item)
+        if image is None:
+            print("WARNING: masked image not found or corrupted.")
+            continue
+
+        # Load the matching ground-truth mask
+        truth_mask = cv2.imread(truth / f"{item.stem}.jpg", cv2.IMREAD_GRAYSCALE)
+        if truth_mask is None:
+            print("WARNING: ground-truth mask not found or corrupted at path.")
+            continue
+
+        # Prediction: masked-out pixels are exactly 0, so a pixel is predicted manipulated when any channel is non-zero
+        prediction = image.max(axis=2) > 0
+        # Truth: white = manipulated; binarize to kill the noise
+        label      = truth_mask > truth_threshold
+        # Resize the truth to the prediction pixels if the does not match exactly
+        # cv2.resize expects (width, height), while numpy shape is (height, width)
+        if label.shape != prediction.shape:
+            label = cv2.resize(label.astype(np.uint8), (prediction.shape[1], prediction.shape[0]), interpolation=cv2.INTER_NEAREST).astype(bool)
+
+
+        # Per-image pixel counters
+        img_tp = int(( label &  prediction).sum())
+        img_tn = int((~label & ~prediction).sum())
+        img_fp = int((~label &  prediction).sum())
+        img_fn = int(( label & ~prediction).sum())
+        tp += img_tp
+        tn += img_tn
+        fp += img_fp
+        fn += img_fn
+
+        # IoU of the image
+        # when both masks are empty (union = 0) prediction and truth agree on "nothing manipulated here", which is a perfect score
+        union = img_tp + img_fp + img_fn
+        ious.append((item.stem, img_tp / union if union > 0 else 1.0))
+
+
+    total = tp + tn + fp + fn
+    if total == 0:
+        print("ERROR: no masked/ground-truth pairs found to score.")
+        return
+
+
+    """
+    accuracy:
+    Measures the overall correctness of the masks.
+    It represents the ratio of correctly classified pixels (both true positives and true negatives) to the total number of pixels.
+    It can be misleading here: on a mostly-authentic image the huge black background is easy to get right and inflates the score.
+    """
+    accuracy = (tp + tn) / total
+
+    """
+    precision:
+    Measures the reliability of the kept pixels.
+    'Out of all the pixels the mask kept, how many were actually manipulated?'
+    A high precision indicates a low rate of false positives (authentic pixels leaking into the mask).
+    """
+    # tp + fp > 0 check to avoid division by zero when the masks kept no pixel at all
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+
+    """
+    recall (sensitivity):
+    Measures the mask's ability to cover the whole manipulated region.
+    'Out of all the truly manipulated pixels, how many did the mask keep?'
+    A high recall indicates a low rate of false negatives (manipulated pixels wrongly removed).
+    """
+    # tp + fn > 0 check to avoid division by zero when the ground truth marks no pixel as manipulated
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+
+    """
+    f1-score:
+    The harmonic mean of precision and recall.
+    Since precision and recall often have an inverse relationship (improving one can worsen the other),
+    the f1-score provides a single, balanced metric.
+    It is widely considered the most robust and reliable indicator of a model's performance,
+    especially when dealing with imbalanced data.
+    """
+    # precision + recall > 0 check to avoid division by zero when both precision and recall are zero
+    f1_score = 2 * ((precision * recall) / (precision + recall)) if (precision + recall) > 0 else 0.0
+
+    """
+    IoU (Jaccard index):
+    The standard segmentation metric: intersection / union of the predicted and true manipulated regions.
+    Unlike accuracy it ignores the true negatives, so the (often huge) black background cannot inflate the score:
+    only how well the two regions coincide counts.
+    Reported both globally (all pixels pooled, so big images weigh more) and
+    as the mean of the per-image values (every image weighs the same).
+    """
+    # tp + fp + fn > 0 check: when both prediction and truth are empty everywhere they perfectly agree
+    iou      = tp / (tp + fp + fn) if (tp + fp + fn) > 0 else 1.0
+    mean_iou = sum(value for _, value in ious) / len(ious)
+
+    print("Confusion matrix computed successfully.")
+
+    # Report
+    text = (
+        f"{'=' * 77}\n"
+        "MASK CONFUSION MATRIX\n"
+        f"{'=' * 77}\n"
+        f"Total images analyzed: {len(ious)}\n"
+        f"Total pixels analyzed: {total}\n"
+        f"Truth threshold: {truth_threshold}\n\n"
+        f"Accuracy  :\t{accuracy:.2%}\t(percentage of correctly classified pixels)\n"
+        f"Precision :\t{precision:.2%}\t(reliability of the kept pixels)\n"
+        f"Recall    :\t{recall:.2%}\t(ability to keep all the manipulated pixels)\n"
+        f"F1-score  :\t{f1_score:.4f}\t(final harmonic mean)\n"
+        f"IoU       :\t{iou:.4f}\t(overlap / union of the manipulated regions, all pixels pooled)\n"
+        f"Mean IoU  :\t{mean_iou:.4f}\t(average of the per-image IoU below)\n\n"
+        "Confusion matrix (pixels):\n"
+        f"True positives  :\t{tp}\n"
+        f"True negatives  :\t{tn}\n"
+        f"False positives :\t{fp}\t(authentic pixels mistakenly kept)\n"
+        f"False negatives :\t{fn}\t(manipulated pixels mistakenly removed)\n"
+    )
+
+    # Per-image IoU, worst first: points straight at the masks to inspect by eye
+    lines = ["\nPer-image IoU (worst first):"]
+    for filename, value in sorted(ious, key=lambda pair: pair[1]):
+        lines.append(f"  '{filename}', IoU: {value:.4f}")
+    text += "\n".join(lines)
+
+    # Save
+    save_report(text, report)
+
 
 # =============================================================================
 # MAIN
@@ -219,12 +389,16 @@ def main():
 
     # Flags
     # The cleanup/inversion knobs stay in config.py
-    parser.add_argument("--threshold",      type=float, default=MASK_THRESHOLD,            help=f"Anomaly binarization threshold (0.0 to 1.0). Default: {MASK_THRESHOLD}")
-    parser.add_argument("--conf-threshold", type=float, default=MASK_CONFIDENCE_THRESHOLD, help=f"Confidence threshold (0.0 to 1.0). Default: {MASK_CONFIDENCE_THRESHOLD}")
+    parser.add_argument("--threshold",       type=float, default=MASK_THRESHOLD,            help=f"Anomaly binarization threshold (0.0 to 1.0). Default: {MASK_THRESHOLD}")
+    parser.add_argument("--conf-threshold",  type=float, default=MASK_CONFIDENCE_THRESHOLD, help=f"Confidence threshold (0.0 to 1.0). Default: {MASK_CONFIDENCE_THRESHOLD}")
+    parser.add_argument("--truth-threshold", type=float, default=MASK_TRUTH_THRESHOLD,      help=f"Ground-truth binarization threshold (0 to 255). Default: {MASK_TRUTH_THRESHOLD}")
     args = parser.parse_args()
 
     # Create the masked images
     mask(threshold=args.threshold, conf_threshold=args.conf_threshold)
+
+    # Compute the pixel-level confusion matrix against the hand-made ground truth
+    confusion_matrix(truth_threshold=args.truth_threshold)
 
 if __name__ == "__main__":
     main()

@@ -106,7 +106,11 @@ MASK_MORPH_KERNEL         = 9
 MASK_MIN_AREA_RATIO       = 0.002
 
 # Confusion matrix
+# Ground-truth: white = manipulated, black = authentic
+MASKED_TRUTH_DIR           = TEMP_DIR / "masked_truth"
 MASK_CONFUSION_MATRIX_FILE = TEMP_DIR / "mask_confusion_matrix.txt"
+# Gray value above which a ground-truth pixel counts as manipulated
+MASK_TRUTH_THRESHOLD       = 127
 
 
 # =============================================================================
@@ -120,9 +124,9 @@ MASK_CONFUSION_MATRIX_FILE = TEMP_DIR / "mask_confusion_matrix.txt"
 DESCRIPTION_REPORT_FILE        = TEMP_DIR / "description_report.txt"
 DESCRIPTION_TEMP_FILE          = TEMP_DIR / "description_temp.csv"
 DESCRIPTION_MODEL              = "Salesforce/blip-image-captioning-large"
-DESCRIPTION_BATCH_SIZE         = 20
+DESCRIPTION_BATCH_SIZE         = 25
 # Wait time (seconds) after each batch
-DESCRIPTION_WAIT               = 30
+DESCRIPTION_WAIT               = 25
 # Length of the BLIP caption
 MIN_DESCRIPTION_TOKENS         = 5
 MAX_DESCRIPTION_TOKENS         = 40
