@@ -8,3 +8,6 @@ scripts/temp/
 
 # Priority to .gitkeep
 !.gitkeep
+
+# Heavy files
+*.pdf
