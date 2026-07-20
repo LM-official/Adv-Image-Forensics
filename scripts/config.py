@@ -53,9 +53,10 @@ TRUTH_FILE                   = TEMP_DIR / "trufor_truth.csv"
 TRUFOR_CONFUSION_MATRIX_FILE = TEMP_DIR / "trufor_confusion_matrix.txt"
 TRUFOR_THRESHOLD             = 0.5
 
-# Correlation and regression Trufor score - Crowdtangle score
+# Correlation, regression and GLM Trufor score - Crowdtangle score
 CORRELATION_FILE = TEMP_DIR / "correlation_trufor_crowdtangle.txt"
 REGRESSION_FILE  = TEMP_DIR / "regression_trufor_crowdtangle.txt"
+GLM_FILE         = TEMP_DIR / "glm_trufor_crowdtangle.txt"
 
 
 # =============================================================================

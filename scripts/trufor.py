@@ -1,7 +1,9 @@
 import argparse
 from   config          import (TRUFOR_BATCH_SIZE, FILTERED_IMGS_DIR, NPZ_DIR, TRUFOR_RUN, FILTERED_DATASET_FILE,
                                TRUFOR_WAIT, TRUFOR_MAX_PIXELS, TRUFOR_THRESHOLD, TRUTH_FILE,
-                               TRUFOR_CONFUSION_MATRIX_FILE, CORRELATION_FILE, REGRESSION_FILE)
+                               TRUFOR_CONFUSION_MATRIX_FILE, CORRELATION_FILE, REGRESSION_FILE,
+                               GLM_FILE, ENGAGEMENT_DEAD_ZONE)
+import numpy           as     np
 import pandas          as     pd
 from   pathlib         import Path
 from   scipy.stats     import pearsonr, spearmanr
@@ -10,7 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from   utils           import load_npzs, update_csv, load_csv, save_report
+from   utils           import load_npzs, update_csv, load_csv, save_report, binarize_engagement
 
 
 # =============================================================================
@@ -419,6 +421,79 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_
 
 
 # =============================================================================
+# (3) GLM TRUFOR SCORE - CROWDTANGLE SCORE
+# =============================================================================
+
+def glm(dataset: Path = FILTERED_DATASET_FILE, report: Path = GLM_FILE, dead_zone: float = ENGAGEMENT_DEAD_ZONE):
+    """
+    Fits a binomial GLM (logit link) predicting the binary engagement label from the TruFor score alone.
+
+    Args:
+        dataset:   Path to the dataset CSV (must contain trufor_score and crowdtangle_score).
+        report:    Output file path where the GLM report will be written.
+        dead_zone: Drop posts with |crowdtangle_score| <= this (the distribution's valley) before binarising.
+                   negatives are clamped to 0. 0 disables the cut and keeps every post.
+
+    Returns:
+        None.
+    """
+
+    # Load dataset
+    df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
+    if df is None:
+        return
+    if df["trufor_score"].nunique() <= 1 or df["crowdtangle_score"].nunique() <= 1:
+        print("ERROR: Not enough valid data points or insufficient variability in the data.")
+        return
+
+    # clamp to 0
+    if dead_zone < 0:
+        dead_zone = 0
+
+    # Dead-zone cut + binarisation
+    total  = len(df)
+    result = binarize_engagement(df, dead_zone)
+    if result is None:
+        return
+    df, y  = result
+
+
+    # GLM
+    print("Fitting binomial GLM (logit link) between TruFor scores and Crowdtangle scores...")
+    try:
+        # add_constant adds the intercept column; Binomial() defaults to the logit link
+        model     = sm.GLM(y, sm.add_constant(df["trufor_score"]), family=sm.families.Binomial()).fit()
+        converged = model.converged and np.isfinite(model.llf)
+    except Exception as e:
+        print(f"ERROR: during binomial GLM: {e}")
+        return
+
+    if not converged:
+        print("ERROR: the GLM did not converge, its coefficients and p-values are not interpretable.")
+        return
+
+    # McFadden pseudo-R2 from the deviance: deviance = -2*LL, so 1 - dev/null_dev = 1 - LL/LL_null
+    pseudo_r2 = 1 - model.deviance / model.null_deviance
+    print("GLM fitted successfully.")
+
+
+    # Report
+    text = (
+        f"{'=' * 77}\n"
+        "GLM TRUFOR SCORE - CROWDTANGLE SCORE\n"
+        f"{'=' * 77}\n"
+        f"Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)\n"
+        f"Dead zone    : |score| <= {dead_zone:g} (kept {len(y)} of {total} posts)\n"
+        f"Class balance: {int(y.sum())} high / {int((y == 0).sum())} low  (out of {len(y)})\n"
+        f"In-sample McFadden pseudo-R2: {pseudo_r2:.4f}\n\n"
+        f"{model.summary().as_text()}"
+    )
+
+    # Save
+    save_report(text, report)
+
+
+# =============================================================================
 # MAIN
 # =============================================================================
 
@@ -426,7 +501,7 @@ def main():
     """
     (1) Runs TruFor on the input images and updates the dataset CSV with the resulting scores.
     (2) Optionally generates the truth template and then computes the confusion matrix.
-    (3) Runs correlation and OLS regression between TruFor scores and Crowdtangle scores.
+    (3) Runs correlation, OLS regression and a binomial GLM between TruFor scores and Crowdtangle scores.
 
     Args:
         None (arguments are read from the command line via argparse).
@@ -436,7 +511,7 @@ def main():
     """
 
     # Initialize the argument parser
-    parser = argparse.ArgumentParser(description="Run TruFor, update dataset with scores and compute confusion matrix")
+    parser = argparse.ArgumentParser(description="Run TruFor, update dataset with scores, compute confusion matrix and correlation/regression/GLM against engagement")
     # Flags, paths come from config.py (the project backbone)
     # Run trufor
     parser.add_argument("--batch-size", type=int, default=TRUFOR_BATCH_SIZE, help=f"Images per TruFor invocation. Default: {TRUFOR_BATCH_SIZE}")
@@ -445,6 +520,9 @@ def main():
     # Confusion matrix
     parser.add_argument("--threshold",      type=float, default=TRUFOR_THRESHOLD, help=f"Threshold for classifying an image as AI. Range: 0.0 to 1.0. Default: '{TRUFOR_THRESHOLD}'.")
     parser.add_argument("--generate-truth", action="store_true",                  help="Generate an empty truth template CSV before computing performance.")
+
+    # GLM
+    parser.add_argument("--dead-zone", type=float, default=ENGAGEMENT_DEAD_ZONE, help=f"Drop posts with |crowdtangle_score| <= this (the distribution's valley) before binarising; 0 disables the cut. Default: {ENGAGEMENT_DEAD_ZONE}")
     args = parser.parse_args()
     
 
@@ -482,10 +560,11 @@ def main():
 
 
     # =============================================================================
-    # (3) CORRELATION AND REGRESSION TRUFOR SCORE - CROWDTANGLE SCORE
+    # (3) CORRELATION, REGRESSION AND GLM TRUFOR SCORE - CROWDTANGLE SCORE
     # =============================================================================
     correlation()
     regression()
+    glm(dead_zone=args.dead_zone)
 
 if __name__ == "__main__":
     main()

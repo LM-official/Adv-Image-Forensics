@@ -127,7 +127,46 @@ def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None
     except Exception as e:
         print(f"ERROR: loading CSV: {e}")
         return None
-    
+
+
+# =============================================================================
+# STATISTIC HELPERS
+# =============================================================================
+
+def binarize_engagement(df: pd.DataFrame, dead_zone: float) -> tuple[pd.DataFrame, pd.Series] | None:
+    """
+    Turns the continuous crowdtangle_score into the binary engagement target shared by every model.
+
+    The score distribution is bimodal:
+    posts whose |crowdtangle_score| <= dead_zone fall in the low-density valley between the under-over-performing modes
+    and are dropped first, so the 0 cut-off separates two clearly-distinct clusters rather than slicing through ambiguous middle posts.
+
+    Args:
+        df:        DataFrame containing the crowdtangle_score column.
+        dead_zone: Drop posts with |crowdtangle_score| <= this (the distribution's valley).
+                   0 disables the cut and keeps every post; negatives are clamped to 0.
+
+    Returns:
+        A (filtered df, binary y) tuple where y is 1 = over-performed (score > 0) and 0 = under-performed,
+        or None if no usable posts remain.
+    """
+
+    # Negatives are meaningless: clamp them to 0. 0 disables the cut and keeps every post
+    if dead_zone < 0:
+        dead_zone = 0
+
+    if dead_zone > 0:
+        keep = df["crowdtangle_score"].abs() > dead_zone
+        df   = df[keep].reset_index(drop=True)
+        if df.empty or df["crowdtangle_score"].nunique() <= 1:
+            print(f"ERROR: no usable posts left after dropping the |score| <= {dead_zone:g} dead zone.")
+            return None
+
+    # Binarise the target: 1 = over-performed (score > 0), 0 = under-performed (score <= 0)
+    # With the dead zone removed every remaining post sits clearly on one side
+    y = (df["crowdtangle_score"] > 0).astype(int)
+    return df, y
+
 
 # =============================================================================
 # NPZ HELPERS
