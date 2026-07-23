@@ -183,13 +183,33 @@ OCR_ALLOWLIST      = None
 # =============================================================================
 
 ANOMALY_CLASSIFICATION_FILE = TEMP_DIR / "anomaly_classification.txt"
+# Posts whose |crowdtangle_score| <= this fall in the low-density valley between the under-over-performing modes of the bimodal score distribution
+# They are dropped before binarising at 0, so the cut-off does not slice through a cluster of ambiguous posts
+# Set to 0 to disable the cut and keep every post
+ENGAGEMENT_DEAD_ZONE = 0.5
 MAX_NUMBER_OF_WORDS = 100
+# Drop words appearing in fewer than MIN documents (absolute count) or more than MAX fraction of documents
+# (non-discriminative head/tail of the frequency curve)
+# Tuned with --grid-search: min_df=10 keeps the ~100-word core vocabulary (CV pseudo-R2 peak); max_df is inert here
+TFIDF_MIN_DF        = 10
+TFIDF_MAX_DF        = 0.7
+# Elastic-net fallback for the GLM when the plain fit does not converge
+# (quasi-complete separation on the raw TF-IDF): alpha = penalty strength (0 disables the fallback)
+# L1_wt: 0 = ridge, 1 = lasso, in-between = elastic net
+# TF-IDF values are small, so useful alphas and lasso are tiny
+# Tuned with --grid-search: alpha=0.0007 ridge (L1_wt=0) is the CV pseudo-R2 peak
+GLM_ALPHA           = 0.0007
+GLM_L1_WT           = 0.0
 # PCA on the TF-IDF matrix keeps the fewest components that together explain at least
 # this fraction of the variance (the knee / diminishing-returns point)
 PCA_VARIANCE        = 0.9
-# Posts whose |crowdtangle_score| <= this fall in the low-density valley between
-# the under- and over-performing modes of the bimodal score distribution.
-# They are dropped before binarising at 0, so the cut-off does not slice through a cluster of ambiguous posts.
-# 0.5 is the empirical valley floor on this dataset (density collapses outside +/-1).
-# Set to 0 to disable the cut and keep every post.
-ENGAGEMENT_DEAD_ZONE = 0.5
+
+# Grid search over the two convergence strategies (matrix conditioning x regularization)
+GRID_SEARCH_FILE    = TEMP_DIR / "glm_grid_search.txt"
+GRID_MIN_DF         = (1, 2, 5, 10)
+GRID_MAX_DF         = (0.7, 0.8, 0.9, 1.0)
+GRID_ALPHA          = (0.0, 0.0001, 0.0005, 0.0007, 0.001, 0.005, 0.01)
+#GRID_ALPHA          = (0.0, 0.0005, 0.001, 0.005)
+# L1_wt: 0 = ridge, 1 = lasso, in-between = elastic net
+GRID_L1_WT          = (0.0,)
+#GRID_L1_WT          = (0.0, 0.5, 1.0)

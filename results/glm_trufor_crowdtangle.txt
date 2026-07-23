@@ -1,0 +1,25 @@
+=============================================================================
+GLM TRUFOR SCORE - CROWDTANGLE SCORE
+=============================================================================
+Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)
+Dead zone    : |score| <= 0.5 (kept 1201 of 1217 posts)
+Class balance: 585 high / 616 low  (out of 1201)
+In-sample McFadden pseudo-R2: 0.0009
+
+                 Generalized Linear Model Regression Results                  
+==============================================================================
+Dep. Variable:      crowdtangle_score   No. Observations:                 1201
+Model:                            GLM   Df Residuals:                     1199
+Model Family:                Binomial   Df Model:                            1
+Link Function:                  Logit   Scale:                          1.0000
+Method:                          IRLS   Log-Likelihood:                -831.33
+Date:                Thu, 23 Jul 2026   Deviance:                       1662.7
+Time:                        15:22:20   Pearson chi2:                 1.20e+03
+No. Iterations:                     4   Pseudo R-squ. (CS):           0.001229
+Covariance Type:            nonrobust                                         
+================================================================================
+                   coef    std err          z      P>|z|      [0.025      0.975]
+--------------------------------------------------------------------------------
+const           -0.1655      0.110     -1.503      0.133      -0.381       0.050
+trufor_score     0.2681      0.221      1.215      0.224      -0.164       0.701
+================================================================================
