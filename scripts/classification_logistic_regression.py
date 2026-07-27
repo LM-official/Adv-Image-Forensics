@@ -172,10 +172,10 @@ def main():
     parser = argparse.ArgumentParser(description="Classify the anomaly descriptions by engagement with a cross-validated logistic regression (raw TF-IDF and TF-IDF + PCA).")
 
     # Flags
-    parser.add_argument("--max-words", type=int,   default=MAX_NUMBER_OF_WORDS, help=f"Maximum number of TF-IDF words. Default: {MAX_NUMBER_OF_WORDS}")
+    parser.add_argument("--max-words", type=int,   default=MAX_NUMBER_OF_WORDS,  help=f"Maximum number of TF-IDF words. Default: {MAX_NUMBER_OF_WORDS}")
     parser.add_argument("--dead-zone", type=float, default=ENGAGEMENT_DEAD_ZONE, help=f"Drop posts with |crowdtangle_score| <= this (the distribution's valley) before binarising; 0 disables the cut. Default: {ENGAGEMENT_DEAD_ZONE}")
-    parser.add_argument("--min-df",    type=int,   default=TFIDF_MIN_DF, help=f"Keep only words appearing in at least this many descriptions. Default: {TFIDF_MIN_DF}")
-    parser.add_argument("--max-df",    type=float, default=TFIDF_MAX_DF, help=f"Keep only words appearing in at most this fraction of descriptions. Default: {TFIDF_MAX_DF}")
+    parser.add_argument("--min-df",    type=int,   default=TFIDF_MIN_DF,         help=f"Keep only words appearing in at least this many descriptions. Default: {TFIDF_MIN_DF}")
+    parser.add_argument("--max-df",    type=float, default=TFIDF_MAX_DF,         help=f"Keep only words appearing in at most this fraction of descriptions. Default: {TFIDF_MAX_DF}")
     args = parser.parse_args()
 
 

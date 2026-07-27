@@ -160,6 +160,7 @@ CLASSIFICATION_SCRIPTS = (
     "classification_logistic_regression.py",  # cross-validated logistic classification (LOGISTIC_CLASSIFICATION_FILE)
     # The grid search is a separate  mode (classification_glm.py --grid-search) and is not part of this default run.
     "classification_glm.py",         # inferential binomial GLM, raw + PCA     (GLM_CLASSIFICATION_FILE)
+    "classification_lime_shap.py",   # post-hoc word-level interpretation      (EXPLANATION_FILE)
 )
 
 def _run_script(script: str, forwarded: list[str]) -> int:

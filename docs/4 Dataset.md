@@ -43,7 +43,7 @@ Il primo stadio della [pipeline](7%20Pipeline.md) ([filter.py](../scripts/filter
 3. **tutti** i suoi media sono di tipo `photo` (un solo video scarta l’intero post);
 4. ogni URL ha il file corrispondente su disco (tramite l’hash) e nessun hash è in collisione.
 
-L’output è `scripts/temp/filtered_dataset.csv` (colonne `id`, `crowdtangle_score`, `filename`; una riga per immagine, ordinato per `filename`) e i symlink alle immagini valide in `scripts/temp/images/`. Il filtraggio non modifica il dataset originale.
+L’output è `scripts/temp/dataset_filtered.csv` (colonne `id`, `crowdtangle_score`, `filename`; una riga per immagine, ordinato per `filename`) e i symlink alle immagini valide in `scripts/temp/images/`. Il filtraggio non modifica il dataset originale.
 
 Dai 1357 post di partenza (1466 media citati: 1348 foto e 118 video) restano **1217 immagini analizzabili**.
 

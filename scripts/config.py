@@ -224,3 +224,17 @@ GRID_ALPHA          = (0.0, 0.0001, 0.0005, 0.0007, 0.001, 0.005, 0.01)
 # L1_wt: 0 = ridge, 1 = lasso, in-between = elastic net
 GRID_L1_WT          = (0.0,)
 #GRID_L1_WT          = (0.0, 0.5, 1.0)
+
+# =============================================================================
+# (4) LIME / SHAP
+# =============================================================================
+
+# Post-hoc word-level interpretation (--explain): explains the logistic regression on the raw TF-IDF (the words) model-agnostically,
+# bypassing the GLM convergence problem permutation importance (global) + SHAP (global, signed) + LIME (local, per-post)
+EXPLANATION_FILE    = TEMP_DIR / "classification_explanations.txt"
+# Words listed per side (up/down) in the global rankings
+EXPLAIN_TOP_N       = 20
+# Permutation-importance shuffles per feature: the spread over repeats is the uncertainty (p-value substitute)
+EXPLAIN_N_REPEATS   = 30
+# Individual posts explained locally by LIME
+EXPLAIN_N_SAMPLES   = 5

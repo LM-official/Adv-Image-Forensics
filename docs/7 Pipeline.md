@@ -9,18 +9,18 @@ I test sono stati svolti su un MacBook Air M5, con macOS Tahoe 26.4.1. La proced
 4. **Dataset** (anch’esso escluso dal repository): il file `crowdtangle.jsonl` e la cartella `crowdtangle_media/` vanno posizionati in `dataset/`.
 
 ## **Architettura:**
-Le sei fasi sono sei script Python in [scripts/](../scripts/), da eseguire in ordine. [config.py](../scripts/config.py) è l’unica fonte di verità: raccoglie tutti i percorsi ed i parametri regolabili (si modifica quello, non gli script); [utils.py](../scripts/utils.py) contiene le funzioni condivise (CSV, `.npz`, pulizia del testo, etc.).
+Le sei fasi corrispondono ad altrettanti script Python in [scripts/](../scripts/), da eseguire in ordine; l’ultima (la classificazione) è avviata da [`classification_home.py`](../scripts/classification_home.py), che a sua volta esegue i **tre script indipendenti** `classification_*.py`. [config.py](../scripts/config.py) è l’unica fonte di verità: raccoglie tutti i percorsi ed i parametri regolabili (si modifica quello, non gli script); [utils.py](../scripts/utils.py) contiene le funzioni condivise (CSV, `.npz`, pulizia del testo, etc.).
 
-L’esecuzione ruota attorno ad una tabella, `scripts/temp/filtered_dataset.csv`: quasi ogni fase vi aggiunge le proprie colonne (unite per `filename`), mentre ogni report leggibile viene scritto accanto come file `.txt`/`.png` separato, così dati e report restano distinti.
+L’esecuzione ruota attorno ad una tabella, `scripts/temp/dataset_filtered.csv`: quasi ogni fase vi aggiunge le proprie colonne (unite per `filename`), mentre ogni report leggibile viene scritto accanto come file `.txt`/`.png` separato, così dati e report restano distinti.
 
 | Colonne | Aggiunte da | Significato |
 | :------ | :---------- | :---------- |
-| `id` | `filter.py` | Identificatore del post. |
-| `crowdtangle_score` | `filter.py` | Punteggio di engagement. |
-| `filename` | `filter.py` | Nome del file (hash dell’URL): la chiave di unione di ogni fase. |
-| `trufor_score` | `trufor.py` | Punteggio globale di manipolazione in [0, 1]. |
-| 19 colonne (`aspect_ratio`, `brightness`, …) | `features.py` | Le feature visive, una colonna ciascuna. |
-| `anomaly_txt` | `describe.py` | Descrizione testuale della regione alterata (didascalia + parole lette). |
+| `id` | [`filter.py`](../scripts/filter.py) | Identificatore del post. |
+| `crowdtangle_score` | [`filter.py`](../scripts/filter.py) | Punteggio di engagement. |
+| `filename` | [`filter.py`](../scripts/filter.py) | Nome del file (hash dell’URL): la chiave di unione di ogni fase. |
+| `trufor_score` | [`trufor.py`](../scripts/trufor.py) | Punteggio globale di manipolazione in [0, 1]. |
+| 19 colonne (`aspect_ratio`, `brightness`, …) | [`features.py`](../scripts/features.py) | Le feature visive, una colonna ciascuna. |
+| `anomaly_txt` | [`describe.py`](../scripts/describe.py) | Descrizione testuale della regione alterata (didascalia + parole lette). |
 
 TruFor riceve la cartella di input (`temp/images`) e quella di output (`temp/npz`) entrambe sotto `scripts/temp/`: tutti i file intermedi vivono lì, il dataset originale non viene mai toccato.
 
@@ -34,13 +34,20 @@ python trufor.py [--generate-truth]
 python features.py
 python mask.py
 python describe.py
-python anomaly_classification.py
+python classification_home.py
 ```
 
 `--generate-truth` serve solo alla prima esecuzione: genera il template della [ground truth](3%20Definizioni.md#ground-truth) e mette in pausa lo script finché l’utente non lo ha etichettato a mano; le esecuzioni successive riusano il file compilato (se presente).
 
+In alternativa a `classification_home.py` è possibile eseguire individualmente gli script di classificazione (ognuno è indipendente):
+```sh
+python classification_logistic_regression.py
+python classification_glm.py
+python classification_lime_shap.py
+```
+
 ## **Fase 1 — Filtraggio (filter.py):**
-[filter.py](../scripts/filter.py) legge il dataset grezzo e conserva solo i post analizzabili secondo i [criteri di filtraggio](4%20Dataset.md#filtraggio-filterpy) (punteggio presente, soli media fotografici, file rintracciabile su disco tramite l’[hash dell’URL](4%20Dataset.md#nomenclatura-dei-file-multimediali), nessuna collisione tra hash). Produce `filtered_dataset.csv` (una riga per immagine, ordinata per nome file) ed i symlink alle immagini valide in `temp/images/`, la cartella di input di TruFor.
+[filter.py](../scripts/filter.py) legge il dataset grezzo e conserva solo i post analizzabili secondo i [criteri di filtraggio](4%20Dataset.md#filtraggio-filterpy) (punteggio presente, soli media fotografici, file rintracciabile su disco tramite l’[hash dell’URL](4%20Dataset.md#nomenclatura-dei-file-multimediali), nessuna collisione tra hash). Produce `dataset_filtered.csv` (una riga per immagine, ordinata per nome file) ed i symlink alle immagini valide in `temp/images/`, la cartella di input di TruFor.
 
 Analizza poi la [distribuzione](5%20Approfondimento%20teorico.md#distribuzione) del punteggio [CrowdTangle](3%20Definizioni.md#crowdtangle): [mediana](3%20Definizioni.md#mediana) e [media](3%20Definizioni.md#media-aritmetica), [asimmetria](3%20Definizioni.md#asimmetria-statistica-skewness), [Tukey fences](3%20Definizioni.md#intervalli-tra-quartili-iqr---tukey-fence) e conteggio degli [outlier](3%20Definizioni.md#outlier); salva il report e la figura con [istogramma](3%20Definizioni.md#istogramma) (troncato alle fences, così gli outlier non schiacciano il grosso della distribuzione in una sola barra) e [box-plot](3%20Definizioni.md#box-plot) sull’intervallo completo.
 
@@ -69,12 +76,18 @@ Se esiste la cartella `masked_truth/` (maschere di riferimento disegnate a mano)
 
 Lavora in batch da 25 immagini con un checkpoint (`description_temp.csv`): un’esecuzione interrotta riprende saltando le immagini già descritte, e la tabella viene aggiornata una sola volta a fine corsa. Il report finale riassume la quota di `empty`, le lunghezze e le parole più frequenti, per un controllo di qualità a colpo d’occhio. Flag utili: `--do-sample` (campionamento al posto della beam search) e `--no-ocr` (solo didascalia).
 
-## **Fase 6 — Classificazione dell’engagement (anomaly_classification.py):**
-[anomaly_classification.py](../scripts/anomaly_classification.py) risponde alla domanda finale ([sezione 11](5%20Approfondimento%20teorico.md#classificazione-dellengagement)): vettorizza `anomaly_txt` con il [TF-IDF](3%20Definizioni.md#tf-idf-term-frequency---inverse-document-frequency) ([sezione 9](5%20Approfondimento%20teorico.md#tf-idf-term-frequency---inverse-document-frequency)) — scartando le parole troppo rare o troppo comuni, le code poco informative della curva di frequenza (`--min-df` e `--max-df`) — e ne costruisce anche la variante compressa con la [PCA](3%20Definizioni.md#pca-principal-component-analysis) ([sezione 10](5%20Approfondimento%20teorico.md#pca-principal-component-analysis)). Scarta i post nella dead zone (|punteggio| ≤ 0.5, regolabile con `--dead-zone`), binarizza l’engagement a 0 e, su entrambe le varianti di feature (più `trufor_score`), addestra la regressione logistica in cross-validation ed il [GLM binomiale](3%20Definizioni.md#glm-generalized-linear-model-binomiale) inferenziale ([sezione 12](5%20Approfondimento%20teorico.md#glm-generalized-linear-model-binomiale)). Il report unico riporta metriche, odds ratio e tabella dei coefficienti.
+## **Fase 6 — Classificazione dell’engagement (classification_home.py):**
+[classification_home.py](../scripts/classification_home.py) è l’entry point dell’ultima fase e risponde alla domanda finale ([sezione 11](5%20Approfondimento%20teorico.md#classificazione-dellengagement)). Prepara le feature testuali condivise — vettorizza `anomaly_txt` con il [TF-IDF](3%20Definizioni.md#tf-idf-term-frequency---inverse-document-frequency) ([sezione 9](5%20Approfondimento%20teorico.md#tf-idf-term-frequency---inverse-document-frequency)), scartando le parole troppo rare o troppo comuni, le code poco informative della curva di frequenza (`--min-df` e `--max-df`), e ne costruisce la variante compressa con la [PCA](3%20Definizioni.md#pca-principal-component-analysis) ([sezione 10](5%20Approfondimento%20teorico.md#pca-principal-component-analysis)) — scarta i post nella dead zone (|punteggio| ≤ 0.5, regolabile con `--dead-zone`) e binarizza l’engagement a 0.  
+Esegue poi, uno dopo l’altro e ciascuno come sottoprocesso **indipendente** (un errore in uno non blocca gli altri), i tre script di classificazione che scrivono ognuno il proprio report:
+1. [classification_logistic_regression.py](../scripts/classification_logistic_regression.py): su entrambe le varianti di feature (più `trufor_score`) addestra la regressione logistica in cross-validation, con metriche out-of-sample ed odds ratio;
+2. [classification_glm.py](../scripts/classification_glm.py): il [GLM binomiale](3%20Definizioni.md#glm-generalized-linear-model-binomiale) inferenziale sulle stesse feature ([sezione 12](5%20Approfondimento%20teorico.md#glm-generalized-linear-model-binomiale)), con la tabella dei coefficienti e p-value;
+3. [classification_lime_shap.py](../scripts/classification_lime_shap.py): l’interpretazione [post-hoc](3%20Definizioni.md#post-hoc) a livello di parola ([sezione 13](5%20Approfondimento%20teorico.md#interpretazione-post-hoc-shap-e-lime)).
 
-Sulla matrice TF-IDF grezza (ampia e sparsa) il GLM semplice non converge — separazione quasi completa: i coefficienti divergono e p-value e standard error diventano privi di senso — perciò interviene una regolarizzazione elastic-net (`--alpha` per l’intensità della penalità, `--l1-wt` per il tipo: 0 = ridge, 1 = lasso, valori intermedi = elastic net), che restringe i coefficienti verso lo zero rendendoli stabili e leggibili, al prezzo dei p-value. Sulle feature compatte della PCA, invece, il GLM converge e la tabella inferenziale resta pienamente valida.
+Sulla matrice TF-IDF grezza (ampia e sparsa) il GLM semplice potrebbe non convergere — separazione quasi completa: i coefficienti divergono e p-value e standard error diventano privi di senso — perciò `classification_glm.py` interviene con una regolarizzazione elastic-net (`--alpha` per l’intensità della penalità, `--l1-wt` per il tipo: 0 = ridge, 1 = lasso, valori intermedi = elastic net), che restringe i coefficienti verso lo zero rendendoli stabili e leggibili, al prezzo dei p-value. Sulle feature compatte della PCA, invece, il GLM converge più facilemente e la tabella inferenziale resta pienamente valida.
 
-Il flag `--grid-search` esegue una ricerca sistematica delle due strategie contro la mancata convergenza — il condizionamento del TF-IDF (min_df e max_df) e la regolarizzazione (alpha e L1_wt) — provando ogni combinazione e valutandola con il pseudo-R² di McFadden in cross-validation (fuori campione, così vocabolari di dimensioni diverse restano confrontabili). La tabella ordinata (`glm_grid_search.txt`) indica la combinazione migliore e segnala quali conservano la piena inferenza, cioè dove il GLM semplice converge ed i p-value sono disponibili.
+Il flag `--grid-search` di `classification_glm.py` esegue una ricerca sistematica delle due strategie contro la mancata convergenza — il condizionamento del TF-IDF (`min_df` e `max_df`) e la regolarizzazione (`alpha` e `L1_wt`) — provando ogni combinazione e valutandola con il pseudo-R² di McFadden in cross-validation (fuori campione, così vocabolari di dimensioni diverse restano confrontabili). La tabella ordinata (`classification_glm_grid_search.txt`) indica la combinazione migliore e segnala quali conservano la piena inferenza, cioè dove il GLM semplice converge ed i p-value sono disponibili.
+
+Poiché sul TF-IDF grezzo il GLM non fornisce p-value per singola parola, `classification_lime_shap.py` spiega il modello logistico dall’esterno, post-hoc ([sezione 13](5%20Approfondimento%20teorico.md#interpretazione-post-hoc-shap-e-lime)): la `permutation importance` e `SHAP` producono un ranking globale delle parole che alzano o abbassano l’engagement, mentre `LIME` spiega alcuni singoli post. Aggira così il problema di convergenza e restituisce l’interpretazione a livello di parola.
 
 ## **Risultati:**
 Tutti gli output finiscono in `scripts/temp/`. I valori ottenuti:
@@ -83,13 +96,15 @@ Tutti gli output finiscono in `scripts/temp/`. I valori ottenuti:
 | :------ | :----- | :------------ |
 | Detector (100 immagini etichettate) | [trufor_confusion_matrix.txt](../results/trufor_confusion_matrix.txt) | [Accuratezza](3%20Definizioni.md#accuratezza) 61%, [precisione](3%20Definizioni.md#precisione) 80.6%, [sensibilità](3%20Definizioni.md#sensibilita) 47.5%, [F1](3%20Definizioni.md#f1-score) 0.60. |
 | Maschere (100 maschere di riferimento) | [mask_confusion_matrix.txt](../results/mask_confusion_matrix.txt) | Precisione 78.1%, sensibilità 39.7%, F1 0.53, [IoU](3%20Definizioni.md#intersection-over-union-iou) 0.36. |
-| Correlazione (1217 immagini) | [correlation_trufor_crowdtangle.txt](../results/correlation_trufor_crowdtangle.txt) | [Pearson](3%20Definizioni.md#indice-di-correlazione-pearson-coefficiente-di-correlazione-lineare) r = 0.051 (p = 0.08), [Spearman](3%20Definizioni.md#indice-di-correlazione-r-per-ranghi-di-spearman) 0.041 (p = 0.15). |
-| Regressione OLS | [regression_trufor_crowdtangle.txt](../results/regression_trufor_crowdtangle.txt) | R² = 0.003: il punteggio TruFor non spiega l’engagement. |
-| GLM binomiale (1201 post dopo la dead zone) | [glm_trufor_crowdtangle.txt](../results/glm_trufor_crowdtangle.txt) | Pseudo-R² di McFadden 0.0009, coefficiente `trufor_score` non significativo (p = 0.22): nemmeno sul bersaglio binario l’intensità predice l’engagement. |
+| Correlazione (1217 immagini) | [trufor_crowdtangle_correlation.txt](../results/trufor_crowdtangle_correlation.txt) | [Pearson](3%20Definizioni.md#indice-di-correlazione-pearson-coefficiente-di-correlazione-lineare) r = 0.051 (p = 0.08), [Spearman](3%20Definizioni.md#indice-di-correlazione-r-per-ranghi-di-spearman) 0.041 (p = 0.15). |
+| Regressione OLS | [trufor_crowdtangle_regression.txt](../results/trufor_crowdtangle_regression.txt) | R² = 0.003: il punteggio TruFor non spiega l’engagement. |
+| GLM binomiale (1201 post dopo la dead zone) | [trufor_crowdtangle_glm.txt](../results/trufor_crowdtangle_glm.txt) | Pseudo-R² di McFadden 0.0009, coefficiente `trufor_score` non significativo (p = 0.22): nemmeno sul bersaglio binario l’intensità predice l’engagement. |
 | Descrizioni | [description_report.txt](../results/description_report.txt) | 1211 immagini descritte, di cui 306 `empty`; mediana di 13 parole. |
-| Classificazione (1201 post dopo la dead zone) | [anomaly_classification.txt](../results/anomaly_classification.txt) | TF-IDF grezzo: accuratezza 60.0% (baseline di maggioranza 51.3%), [AUC](3%20Definizioni.md#auc-area-under-the-curve) 0.647; TF-IDF + PCA (61 componenti): 59.2%, AUC 0.642. |
+| Classificazione (1201 post dopo la dead zone) | [classification_logistic_regression.txt](../results/classification_logistic_regression.txt) | TF-IDF grezzo: accuratezza 59.9% (baseline di maggioranza 51.3%), [AUC](3%20Definizioni.md#auc-area-under-the-curve) 0.642; TF-IDF + PCA (61 componenti): 59.1%, AUC 0.632. |
+| GLM inferenziale della classificazione (1201 post) | [classification_glm.txt](../results/classification_glm.txt) | In-sample (non cross-validated): sul TF-IDF grezzo fallback ridge senza p-value, pseudo-R² di McFadden 0.136; su TF-IDF + PCA (61 componenti) il GLM converge con p-value validi, pseudo-R² 0.131 (varie componenti significative; `trufor_score` p = 0.06). |
+| Interpretazione [post-hoc](3%20Definizioni.md#post-hoc) (1201 post) | [classification_explanations.txt](../results/classification_explanations.txt) | Parole che spingono l’engagement in alto: suit, woman, air, partito, black; in basso: ore, scrivi, microphone, silhouette, giugno. |
 
-L’interpretazione complessiva — l’intensità della manipolazione non predice l’engagement, il suo contenuto porta invece un segnale debole ma reale — è discussa nei [risultati sul dataset delle elezioni](6%20TruFor.md#risultati-sul-dataset-delle-elezioni-europee-2024).
+L’interpretazione complessiva: l’intensità della manipolazione non predice l’engagement, mentre il suo contenuto porta un segnale debole ma reale.
 
 ## **Limitazioni tecniche:**
 I test hanno evidenziato dei limiti pratici — memoria RAM e spazio su disco proporzionali ai pixel dell’immagine, invisibilità dell’inpainting a diffusione coerente — che derivano tutti dall’architettura di TruFor: sono descritti nelle [limitazioni tecniche riscontrate](6%20TruFor.md#limitazioni-tecniche-riscontrate).

@@ -423,7 +423,7 @@ def main():
     parser = argparse.ArgumentParser(description="Fit the binomial GLM on the anomaly descriptions (raw TF-IDF and TF-IDF + PCA), or grid-search the TF-IDF/regularization parameters.")
 
     # Flags
-    parser.add_argument("--max-words", type=int,   default=MAX_NUMBER_OF_WORDS, help=f"Maximum number of TF-IDF words. Default: {MAX_NUMBER_OF_WORDS}")
+    parser.add_argument("--max-words", type=int,   default=MAX_NUMBER_OF_WORDS,  help=f"Maximum number of TF-IDF words. Default: {MAX_NUMBER_OF_WORDS}")
     parser.add_argument("--dead-zone", type=float, default=ENGAGEMENT_DEAD_ZONE, help=f"Drop posts with |crowdtangle_score| <= this (the distribution's valley) before binarising; 0 disables the cut. Default: {ENGAGEMENT_DEAD_ZONE}")
 
     # TF-IDF conditioning and GLM regularization (the two convergence strategies)

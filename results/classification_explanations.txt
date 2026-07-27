@@ -1,0 +1,131 @@
+=============================================================================
+Post-hoc word-level interpretation
+=============================================================================
+Explains the logistic regression on the Raw TF-IDF features (the words), bypassing the GLM convergence problem.
+Permutation importance & SHAP are global; LIME is local (per-post).
+Dead zone    : |score| <= 0.5 (kept 1201 of 1201 posts)
+Class balance: 585 high / 616 low  (out of 1201)
+TF-IDF       : min_df=10, max_df=0.7, vocabulary 100 words (cap 100)
+
+
+=== Permutation importance (global, model-agnostic) ===
+Importance = drop in ROC AUC when the feature is shuffled (mean +/- std over 30 repeats);
+'*' = mean > 2*std (robust, the p-value substitute). Direction from the logistic coefficient sign.
+
+Words pushing engagement up:
+    tfidf_suit                   0.0116 +/- 0.0040  *
+    tfidf_woman                  0.0095 +/- 0.0049
+    trufor_score                 0.0085 +/- 0.0040  *
+    tfidf_air                    0.0062 +/- 0.0029  *
+    tfidf_black                  0.0057 +/- 0.0038
+    tfidf_partito                0.0053 +/- 0.0033
+    tfidf_verde                  0.0035 +/- 0.0017  *
+    tfidf_piece                  0.0034 +/- 0.0020
+    tfidf_dona                   0.0033 +/- 0.0016  *
+    tfidf_poster                 0.0024 +/- 0.0021
+    tfidf_legasalvinipremier     0.0023 +/- 0.0022
+    tfidf_mask                   0.0023 +/- 0.0014
+    tfidf_skateboard             0.0022 +/- 0.0015
+    tfidf_map                    0.0020 +/- 0.0018
+    tfidf_racquet                0.0018 +/- 0.0014
+    tfidf_berlusconi             0.0018 +/- 0.0015
+    tfidf_sera                   0.0017 +/- 0.0012
+    tfidf_silvia                 0.0014 +/- 0.0017
+    tfidf_red                    0.0012 +/- 0.0015
+    tfidf_libero                 0.0010 +/- 0.0015
+
+Words pushing engagement down:
+    tfidf_ore                    0.0129 +/- 0.0045  *
+    tfidf_scrivi                 0.0087 +/- 0.0038  *
+    tfidf_microphone             0.0076 +/- 0.0025  *
+    tfidf_silhouette             0.0068 +/- 0.0024  *
+    tfidf_giugno                 0.0053 +/- 0.0036
+    tfidf_sky                    0.0039 +/- 0.0016  *
+    tfidf_dark                   0.0038 +/- 0.0022
+    tfidf_maggio                 0.0036 +/- 0.0029
+    tfidf_background             0.0035 +/- 0.0033
+    tfidf_hand                   0.0034 +/- 0.0016  *
+    tfidf_white                  0.0025 +/- 0.0024
+    tfidf_green                  0.0025 +/- 0.0011  *
+    tfidf_blue                   0.0022 +/- 0.0018
+    tfidf_europa                 0.0022 +/- 0.0018
+    tfidf_codice                 0.0021 +/- 0.0015
+    tfidf_verdisinistrait        0.0019 +/- 0.0013
+    tfidf_europee                0.0017 +/- 0.0026
+    tfidf_italia                 0.0017 +/- 0.0015
+    tfidf_picture                0.0017 +/- 0.0024
+    tfidf_salvini                0.0013 +/- 0.0019
+
+
+=== SHAP (global; LinearExplainer) ===
+Importance = mean(|SHAP|) per feature (coefficient weighted by the word's spread);
+direction from the logistic coefficient sign.
+
+Words pushing engagement UP:
+    tfidf_woman                  0.0872
+    trufor_score                 0.0854
+    tfidf_suit                   0.0735
+    tfidf_black                  0.0711
+    tfidf_poster                 0.0424
+    tfidf_holding                0.0342
+    tfidf_partito                0.0302
+    tfidf_air                    0.0294
+    tfidf_sign                   0.0216
+    tfidf_legasalvinipremier     0.0206
+    tfidf_photo                  0.0187
+    tfidf_verde                  0.0183
+    tfidf_piece                  0.0181
+    tfidf_sitting                0.0176
+    tfidf_silvia                 0.0173
+    tfidf_map                    0.0164
+    tfidf_people                 0.0149
+    tfidf_red                    0.0140
+    tfidf_tie                    0.0139
+    tfidf_logo                   0.0131
+
+Words pushing engagement DOWN:
+    tfidf_ore                    0.0785
+    tfidf_scrivi                 0.0462
+    tfidf_picture                0.0450
+    tfidf_giugno                 0.0383
+    tfidf_white                  0.0366
+    tfidf_background             0.0358
+    tfidf_silhouette             0.0356
+    tfidf_salvini                0.0303
+    tfidf_maggio                 0.0299
+    tfidf_premier                0.0293
+    tfidf_blue                   0.0292
+    tfidf_microphone             0.0285
+    tfidf_europee                0.0279
+    tfidf_codice                 0.0224
+    tfidf_hand                   0.0184
+    tfidf_sky                    0.0183
+    tfidf_europa                 0.0169
+    tfidf_elezioni               0.0164
+    tfidf_dark                   0.0152
+    tfidf_person                 0.0136
+
+
+=== LIME (local, per-post) ===
+5 posts spanning lowest -> highest predicted engagement;
+a driver's sign is its local push toward high (+) or low (-) engagement for that post.
+
+  post 'dc6541c852cf21ac4bc484695c7c0327efe5eb4db5260d67ce0599df980e15e0'  (predicted P(high)=0.05, actual=low)
+    desc: there is a man that standing in front of tv scriviil alla lega codice radio dareil deputata giovedi ore simonetta matone salvini premier maggio
+    local drivers: tfidf_ore (-0.041), tfidf_woman (+0.035), tfidf_suit (+0.032), tfidf_scrivi (-0.029), tfidf_giugno (-0.028), tfidf_black (+0.025), trufor_score (+0.022), tfidf_maggio (-0.018), tfidf_background (-0.017), tfidf_premier (-0.015), tfidf_white (-0.014), tfidf_poster (+0.014), tfidf_codice (-0.012), tfidf_picture (-0.012), tfidf_salvini (-0.011), tfidf_standing (-0.005), tfidf_dareil (-0.005), tfidf_scriviil (-0.003), tfidf_lega (+0.001), tfidf_radio (-0.001)
+
+  post 'fbcf2f5c7ce69994f5c10b38651c5c3247fd736ef94d4361ed3e07fef647ad8a'  (predicted P(high)=0.44, actual=low)
+    desc: three men and two women are posing for a picture in front of crowd
+    local drivers: tfidf_ore (-0.042), tfidf_woman (+0.034), tfidf_giugno (-0.031), tfidf_suit (+0.031), tfidf_scrivi (-0.029), tfidf_partito (+0.027), tfidf_silhouette (-0.024), trufor_score (+0.024), tfidf_black (+0.024), tfidf_maggio (-0.023), tfidf_air (+0.023), tfidf_premier (-0.019), tfidf_blue (-0.018), tfidf_background (-0.017), tfidf_picture (-0.016), tfidf_poster (+0.015), tfidf_holding (+0.014), tfidf_white (-0.013), tfidf_salvini (-0.013), tfidf_crowd (-0.000)
+
+  post '608c17ed136ac690dd259046732bfb0bcc2009e7188c7481e0e5505ac1a7a091'  (predicted P(high)=0.48, actual=low)
+    desc: there is a silhouette of person holding tennis racquet occupati ansa fratelliditalia base annua nel primo istat trimestre
+    local drivers: tfidf_ore (-0.041), tfidf_woman (+0.034), tfidf_suit (+0.030), tfidf_scrivi (-0.030), tfidf_giugno (-0.027), tfidf_partito (+0.026), tfidf_black (+0.023), tfidf_silhouette (-0.023), trufor_score (+0.023), tfidf_premier (-0.020), tfidf_background (-0.019), tfidf_picture (-0.017), tfidf_salvini (-0.016), tfidf_holding (+0.015), tfidf_poster (+0.013), tfidf_person (-0.013), tfidf_white (-0.013), tfidf_racquet (+0.010), tfidf_tennis (+0.003), tfidf_fratelliditalia (+0.000)
+
+  post '3e3de3024aac03c4ac65c7893b9d683476e762c8441038dbc9bf243d5edbe9c8'  (predicted P(high)=0.59, actual=high)
+    desc: there is a man with crown on his head in front of group people
+    local drivers: tfidf_ore (-0.042), tfidf_woman (+0.032), tfidf_suit (+0.031), tfidf_scrivi (-0.031), tfidf_giugno (-0.030), tfidf_partito (+0.027), tfidf_silhouette (-0.025), tfidf_black (+0.023), trufor_score (+0.023), tfidf_maggio (-0.023), tfidf_air (+0.021), tfidf_blue (-0.017), tfidf_premier (-0.017), tfidf_background (-0.016), tfidf_white (-0.015), tfidf_salvini (-0.015), tfidf_holding (+0.014), tfidf_poster (+0.014), tfidf_picture (-0.014), tfidf_people (+0.007)
+
+  post 'ca9681c61a564dfa8ec971b660b0eebb43da3d17e1326020e37a98085e202802'  (predicted P(high)=0.86, actual=high)
+    desc: there is a poster with picture of man and woman partito legasalvinipremier mal daereo berlusconi dovranno atterrare alsilvio airport bersani schlein
+    local drivers: tfidf_ore (-0.044), tfidf_woman (+0.034), tfidf_scrivi (-0.031), tfidf_suit (+0.030), tfidf_giugno (-0.028), tfidf_silhouette (-0.025), tfidf_maggio (-0.024), tfidf_black (+0.024), tfidf_partito (+0.024), trufor_score (+0.023), tfidf_background (-0.018), tfidf_premier (-0.017), tfidf_blue (-0.016), tfidf_salvini (-0.015), tfidf_picture (-0.015), tfidf_poster (+0.015), tfidf_holding (+0.014), tfidf_white (-0.014), tfidf_legasalvinipremier (+0.013), tfidf_berlusconi (+0.008)

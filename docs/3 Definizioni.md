@@ -8,6 +8,10 @@
 Misura la proporzione di previsioni corrette sul totale (veri positivi \+ veri negativi) / totale. Se il dataset è sbilanciato un’alta accuratezza può risultare inutile.  
 *Fonte: [IBM](https://www.ibm.com/it-it/think/topics/confusion-matrix)*.
 
+## **Agnostico:**
+Un software è agnostico/indipendente quando è progettato per funzionare in modo flessibile con diverse tecnologie, piattaforme o hardware, senza dipendere da uno standard.  
+*Fonte: [ZeroUno](https://www.zerounoweb.it/big-data/database-agnostic-cose-vantaggi-e-rischi)*.
+
 ## **Algoritmo di Canny:**
 È un operatore per il riconoscimento dei contorni con un approccio multi-stadio:
 1. l’immagine viene sfocata con un filtro gaussiano per attenuare il rumore.
@@ -248,6 +252,10 @@ Riduce il numero di dimensioni in grandi set di dati a componenti principali, ch
 ## **Popolazione statistica:**
 L’insieme degli elementi che sono oggetto di studio, ossia l’insieme delle [unità statistiche](#unita-statistica) sulle quali viene effettuata la rilevazione.  
 *Fonte: [Wikipedia](https://it.wikipedia.org/wiki/Popolazione_statistica)*.
+
+## **Post-hoc:**
+"Dopo questo".  
+*Fonte: [Treccani](https://www.treccani.it/vocabolario/ricerca/post+hoc)*.
 
 ## **Precisione:**
 Misura l’affidabilità delle previsioni positive (veri positivi / (veri positivi \+ falsi positivi)). È vitale se i falsi allarmi sono molto rilevanti.  
