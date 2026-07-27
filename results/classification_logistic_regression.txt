@@ -1,0 +1,32 @@
+=============================================================================
+Anomaly Classification - Logistic Regression
+=============================================================================
+Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)
+Dead zone    : |score| <= 0.5 (kept 1201 of 1201 posts)
+Class balance: 585 high / 616 low  (out of 1201)
+TF-IDF       : min_df=10, max_df=0.7, vocabulary 100 words (cap 100)
+Logistic-regression metrics are 5-fold cross-validated (out-of-sample).
+
+
+=== Raw TF-IDF - logistic regression (cross-validated) ===
+Features           : 101
+McFadden pseudo-R2 : 0.0594
+Accuracy           : 59.9%  (majority-class baseline: 51.3%)
+ROC AUC            : 0.642  (0.5 = no better than chance)
+Confusion matrix   : TP=295  TN=424  FP=192  FN=290
+
+Largest odds ratios (>1 -> more likely high engagement):
+  up:   tfidf_partito (4.10), tfidf_suit (2.99), tfidf_air (2.69), tfidf_piece (2.64), tfidf_verde (2.58), tfidf_mask (2.53), tfidf_woman (2.38), tfidf_dona (2.26), tfidf_libero (2.21), tfidf_legasalvinipremier (2.15), tfidf_racquet (2.10), tfidf_black (2.00), tfidf_berlusconi (1.95), tfidf_silvia (1.94), tfidf_wearing (1.88)
+  down: tfidf_ore (0.10), tfidf_giugno (0.15), tfidf_scrivi (0.17), tfidf_maggio (0.20), tfidf_silhouette (0.27), tfidf_premier (0.30), tfidf_microphone (0.31), tfidf_europee (0.32), tfidf_codice (0.34), tfidf_sky (0.40), tfidf_verdisinistrait (0.41), tfidf_elezioni (0.41), tfidf_venerdi (0.41), tfidf_dark (0.43), tfidf_blue (0.45)
+
+
+=== TF-IDF + PCA - logistic regression (cross-validated) ===
+Features           : 61
+McFadden pseudo-R2 : 0.0561
+Accuracy           : 59.1%  (majority-class baseline: 51.3%)
+ROC AUC            : 0.632  (0.5 = no better than chance)
+Confusion matrix   : TP=295  TN=415  FP=201  FN=290
+
+Largest odds ratios (>1 -> more likely high engagement):
+  up:   text_pca_19 (8.74), text_pca_24 (5.04), text_pca_7 (4.82), text_pca_22 (4.80), text_pca_56 (3.26), text_pca_43 (3.18), text_pca_12 (2.74), text_pca_57 (2.41), text_pca_2 (2.39), text_pca_55 (2.27), text_pca_15 (2.21), text_pca_3 (2.17), text_pca_53 (2.16), text_pca_42 (2.15), text_pca_20 (2.07)
+  down: text_pca_14 (0.18), text_pca_31 (0.19), text_pca_17 (0.30), text_pca_21 (0.33), text_pca_4 (0.35), text_pca_8 (0.39), text_pca_41 (0.40), text_pca_23 (0.44), text_pca_5 (0.48), text_pca_27 (0.49), text_pca_29 (0.49), text_pca_40 (0.51), text_pca_50 (0.52), text_pca_6 (0.52), text_pca_26 (0.54)

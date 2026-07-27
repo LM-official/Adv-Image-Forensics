@@ -25,7 +25,7 @@ DATASET_IMGS_DIR      = DATASET_DIR / "crowdtangle_media"
 # FILTER DATASET
 # =============================================================================
 
-FILTERED_DATASET_FILE  = TEMP_DIR / "filtered_dataset.csv"
+FILTERED_DATASET_FILE  = TEMP_DIR / "dataset_filtered.csv"
 FILTERED_IMGS_DIR      = TEMP_DIR / "images"
 # This must match the char_limit used at CrowdTangle download time, otherwise every URL->file lookup silently misses.
 CHAR_LIMIT             = 64
@@ -54,9 +54,9 @@ TRUFOR_CONFUSION_MATRIX_FILE = TEMP_DIR / "trufor_confusion_matrix.txt"
 TRUFOR_THRESHOLD             = 0.5
 
 # Correlation, regression and GLM Trufor score - Crowdtangle score
-CORRELATION_FILE = TEMP_DIR / "correlation_trufor_crowdtangle.txt"
-REGRESSION_FILE  = TEMP_DIR / "regression_trufor_crowdtangle.txt"
-GLM_FILE         = TEMP_DIR / "glm_trufor_crowdtangle.txt"
+CORRELATION_FILE = TEMP_DIR / "trufor_crowdtangle_correlation.txt"
+REGRESSION_FILE  = TEMP_DIR / "trufor_crowdtangle_regression.txt"
+GLM_FILE         = TEMP_DIR / "trufor_crowdtangle_glm.txt"
 
 
 # =============================================================================
@@ -179,10 +179,9 @@ OCR_ALLOWLIST      = None
 
 
 # =============================================================================
-# CLASSIFICATION
+# (1) CLASSIFICATION HOME
 # =============================================================================
 
-ANOMALY_CLASSIFICATION_FILE = TEMP_DIR / "anomaly_classification.txt"
 # Posts whose |crowdtangle_score| <= this fall in the low-density valley between the under-over-performing modes of the bimodal score distribution
 # They are dropped before binarising at 0, so the cut-off does not slice through a cluster of ambiguous posts
 # Set to 0 to disable the cut and keep every post
@@ -193,6 +192,18 @@ MAX_NUMBER_OF_WORDS = 100
 # Tuned with --grid-search: min_df=10 keeps the ~100-word core vocabulary (CV pseudo-R2 peak); max_df is inert here
 TFIDF_MIN_DF        = 10
 TFIDF_MAX_DF        = 0.7
+
+# =============================================================================
+# (2) LOGISTIC REGRESSION
+# =============================================================================
+LOGISTIC_CLASSIFICATION_FILE = TEMP_DIR / "classification_logistic_regression.txt"
+
+# =============================================================================
+# (3) GLM
+# =============================================================================
+
+# GLM analysis of the classification (raw + PCA); distinct from GLM_FILE (trufor.py TruFor-vs-CrowdTangle GLM)
+GLM_CLASSIFICATION_FILE     = TEMP_DIR / "classification_glm.txt"
 # Elastic-net fallback for the GLM when the plain fit does not converge
 # (quasi-complete separation on the raw TF-IDF): alpha = penalty strength (0 disables the fallback)
 # L1_wt: 0 = ridge, 1 = lasso, in-between = elastic net
@@ -205,7 +216,7 @@ GLM_L1_WT           = 0.0
 PCA_VARIANCE        = 0.9
 
 # Grid search over the two convergence strategies (matrix conditioning x regularization)
-GRID_SEARCH_FILE    = TEMP_DIR / "glm_grid_search.txt"
+GRID_SEARCH_FILE    = TEMP_DIR / "classification_glm_grid_search.txt"
 GRID_MIN_DF         = (1, 2, 5, 10)
 GRID_MAX_DF         = (0.7, 0.8, 0.9, 1.0)
 GRID_ALPHA          = (0.0, 0.0001, 0.0005, 0.0007, 0.001, 0.005, 0.01)

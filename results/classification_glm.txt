@@ -1,0 +1,103 @@
+=============================================================================
+Anomaly Classification - Binomial GLM (inferential)
+=============================================================================
+Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)
+Dead zone    : |score| <= 0.5 (kept 1201 of 1201 posts)
+Class balance: 585 high / 616 low  (out of 1201)
+TF-IDF       : min_df=10, max_df=0.7, vocabulary 100 words (cap 100)
+The GLM table is in-sample inference: on the raw TF-IDF a regularised fallback is used (no p-values),
+on the PCA-compressed features the plain GLM converges (valid p-values).
+
+
+=== Raw TF-IDF - binomial GLM (logit link, elastic-net regularised) ===
+The plain GLM did not converge (quasi-complete separation), so this is a regularised fit:
+coefficients are shrunk toward zero and stable, but there are no standard errors / p-values.
+Penalty            : alpha=0.0007, L1_wt=0 (0 = ridge, 1 = lasso, in-between = elastic net)
+In-sample McFadden pseudo-R2: 0.1363
+Zeroed coefficients: 0 of 101
+
+Largest coefficients (positive -> pushes toward high engagement):
+  up:   tfidf_partito (+1.521), tfidf_suit (+1.159), tfidf_verde (+1.142), tfidf_piece (+1.023), tfidf_air (+1.013), tfidf_mask (+0.982), tfidf_dona (+0.972), tfidf_woman (+0.885), tfidf_libero (+0.804), tfidf_legasalvinipremier (+0.791), tfidf_racquet (+0.787), tfidf_berlusconi (+0.755), tfidf_silvia (+0.744), tfidf_black (+0.720), tfidf_flag (+0.668)
+  down: tfidf_ore (-2.478), tfidf_giugno (-2.104), tfidf_scrivi (-1.927), tfidf_maggio (-1.840), tfidf_silhouette (-1.411), tfidf_premier (-1.374), tfidf_microphone (-1.244), tfidf_codice (-1.237), tfidf_europee (-1.146), tfidf_verdisinistrait (-1.032), tfidf_venerdi (-0.996), tfidf_sky (-0.994), tfidf_dark (-0.896), tfidf_elezioni (-0.884), tfidf_europa (-0.856)
+
+
+=== TF-IDF + PCA - binomial GLM (logit link) ===
+In-sample McFadden pseudo-R2: 0.1309
+
+                 Generalized Linear Model Regression Results                  
+==============================================================================
+Dep. Variable:      crowdtangle_score   No. Observations:                 1201
+Model:                            GLM   Df Residuals:                     1139
+Model Family:                Binomial   Df Model:                           61
+Link Function:                  Logit   Scale:                          1.0000
+Method:                          IRLS   Log-Likelihood:                -723.17
+Date:                Mon, 27 Jul 2026   Deviance:                       1446.3
+Time:                        15:27:31   Pearson chi2:                 1.16e+03
+No. Iterations:                     6   Pseudo R-squ. (CS):             0.1659
+Covariance Type:            nonrobust                                         
+================================================================================
+                   coef    std err          z      P>|z|      [0.025      0.975]
+--------------------------------------------------------------------------------
+const           -0.3472      0.134     -2.585      0.010      -0.610      -0.084
+trufor_score     0.5081      0.271      1.874      0.061      -0.023       1.040
+text_pca_1       0.7811      0.291      2.685      0.007       0.211       1.351
+text_pca_2       1.2192      0.370      3.299      0.001       0.495       1.943
+text_pca_3       0.9504      0.375      2.538      0.011       0.216       1.684
+text_pca_4      -1.6857      0.513     -3.284      0.001      -2.692      -0.680
+text_pca_5      -1.1985      0.436     -2.749      0.006      -2.053      -0.344
+text_pca_6      -0.8232      0.420     -1.959      0.050      -1.647       0.000
+text_pca_7       2.2218      0.496      4.476      0.000       1.249       3.195
+text_pca_8      -1.4145      0.477     -2.963      0.003      -2.350      -0.479
+text_pca_9       0.9990      0.538      1.856      0.063      -0.056       2.054
+text_pca_10     -0.0623      0.486     -0.128      0.898      -1.015       0.890
+text_pca_11     -0.0269      0.508     -0.053      0.958      -1.023       0.969
+text_pca_12      1.4999      0.588      2.549      0.011       0.346       2.653
+text_pca_13      0.0374      0.541      0.069      0.945      -1.023       1.098
+text_pca_14     -2.9173      0.695     -4.201      0.000      -4.279      -1.556
+text_pca_15      1.1949      0.574      2.080      0.038       0.069       2.321
+text_pca_16      0.0570      0.593      0.096      0.923      -1.105       1.219
+text_pca_17     -2.1348      0.673     -3.170      0.002      -3.455      -0.815
+text_pca_18     -0.8869      0.628     -1.413      0.158      -2.117       0.343
+text_pca_19      3.8214      0.831      4.599      0.000       2.193       5.450
+text_pca_20      1.0914      0.684      1.595      0.111      -0.250       2.433
+text_pca_21     -2.1425      0.802     -2.670      0.008      -3.715      -0.570
+text_pca_22      2.7772      0.753      3.690      0.000       1.302       4.252
+text_pca_23     -1.3166      0.711     -1.853      0.064      -2.709       0.076
+text_pca_24      2.4939      0.719      3.468      0.001       1.084       3.903
+text_pca_25      0.0824      0.788      0.105      0.917      -1.461       1.626
+text_pca_26     -0.8631      0.760     -1.136      0.256      -2.352       0.626
+text_pca_27     -1.0406      0.774     -1.344      0.179      -2.558       0.477
+text_pca_28      0.0268      0.787      0.034      0.973      -1.516       1.569
+text_pca_29     -1.1611      0.786     -1.478      0.139      -2.701       0.379
+text_pca_30      0.2553      0.796      0.321      0.748      -1.305       1.815
+text_pca_31     -3.0838      0.922     -3.344      0.001      -4.891      -1.276
+text_pca_32     -0.3835      0.787     -0.487      0.626      -1.926       1.159
+text_pca_33     -0.0034      0.903     -0.004      0.997      -1.774       1.767
+text_pca_34     -0.3195      0.778     -0.411      0.681      -1.843       1.205
+text_pca_35      0.2963      0.860      0.345      0.730      -1.389       1.982
+text_pca_36      0.7559      0.889      0.851      0.395      -0.986       2.498
+text_pca_37     -1.0666      0.880     -1.212      0.225      -2.791       0.658
+text_pca_38     -0.1016      0.871     -0.117      0.907      -1.809       1.605
+text_pca_39     -0.2920      0.876     -0.333      0.739      -2.009       1.425
+text_pca_40     -1.0805      0.898     -1.203      0.229      -2.841       0.680
+text_pca_41     -1.7502      0.851     -2.058      0.040      -3.417      -0.083
+text_pca_42      1.5953      0.931      1.714      0.087      -0.229       3.419
+text_pca_43      2.8547      0.990      2.883      0.004       0.914       4.795
+text_pca_44      0.7831      0.921      0.850      0.395      -1.022       2.588
+text_pca_45     -0.6535      0.983     -0.664      0.506      -2.581       1.274
+text_pca_46      1.0753      0.909      1.183      0.237      -0.706       2.857
+text_pca_47     -0.1234      0.928     -0.133      0.894      -1.942       1.695
+text_pca_48     -0.3471      0.936     -0.371      0.711      -2.181       1.487
+text_pca_49      1.3422      0.929      1.444      0.149      -0.479       3.164
+text_pca_50     -1.4273      0.953     -1.498      0.134      -3.295       0.441
+text_pca_51     -0.3576      0.954     -0.375      0.708      -2.228       1.512
+text_pca_52      1.5775      1.023      1.542      0.123      -0.428       3.583
+text_pca_53      1.8206      1.011      1.801      0.072      -0.161       3.802
+text_pca_54      0.3379      1.043      0.324      0.746      -1.706       2.382
+text_pca_55      1.5251      1.017      1.499      0.134      -0.469       3.519
+text_pca_56      3.2241      1.158      2.783      0.005       0.954       5.494
+text_pca_57      2.2482      1.054      2.134      0.033       0.183       4.314
+text_pca_58     -0.1732      1.114     -0.156      0.876      -2.356       2.010
+text_pca_59      0.8941      1.080      0.828      0.408      -1.223       3.011
+text_pca_60      0.2709      1.096      0.247      0.805      -1.878       2.420
+================================================================================
