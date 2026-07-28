@@ -1,0 +1,288 @@
+=============================================================================
+Anomaly Classification - TruFor + text + visual features (nested binomial GLM)
+=============================================================================
+Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)
+Dead zone    : |score| <= 0.5 (kept 1201 of 1201 posts)
+Class balance: 585 high / 616 low  (out of 1201)
+TF-IDF       : min_df=10, max_df=0.7, vocabulary 100 words (cap 100)
+Text         : 60 PCA components of the TF-IDF (90% of the variance)
+
+Visual       : 19 whole-image features from features.py, z-scored
+What each block measures:
+  trufor_score    - how manipulated the image looks                 (whole image)
+  anomaly_txt     - CONTENT: what things or people are present      (the altered region only, describe.py)
+  visual features - CRAFT: is the image well made, social-friendly? (whole image, features.py)
+features.py runs before mask.py, so the visual features describe the whole image, while the text describes the manipulation itself.
+The combined model therefore separates whether engagement tracks WHAT was put into the image or HOW WELL the image is made.
+
+Scope: the visual block is the optional replication of the reference paper's visual-feature work,
+and is supplementary to the main 'does the alteration drive engagement' research question.
+
+All blocks are fitted on the same posts with the same model family (binomial GLM, logit link), so their pseudo-R2 are directly comparable.
+'in-sample R2' always grows when columns are added, even useless ones:
+'CV R2' (5-fold, out-of-sample) and the likelihood-ratio test are what say whether a block really adds information.
+'LR vs parent' tests each block against the smaller block it is nested in.
+
+Nested model comparison:
+  block                    cols  in-sample R2     CV R2        LR vs parent         p
+  -----------------------------------------------------------------------------------
+  TruFor                      1        0.0009   -0.0009                   -         -
+  TruFor + text              61        0.1309    0.0386      216.3 on 60 df    0.0000
+  TruFor + visual            20        0.0634    0.0339      104.1 on 19 df    0.0000
+  TruFor + text + visual     80        0.1557    0.0321       41.2 on 19 df    0.0022
+
+
+=== TruFor - binomial GLM (logit link) ===
+In-sample McFadden pseudo-R2: 0.0009
+
+                 Generalized Linear Model Regression Results                  
+==============================================================================
+Dep. Variable:      crowdtangle_score   No. Observations:                 1201
+Model:                            GLM   Df Residuals:                     1199
+Model Family:                Binomial   Df Model:                            1
+Link Function:                  Logit   Scale:                          1.0000
+Method:                          IRLS   Log-Likelihood:                -831.33
+Date:                Tue, 28 Jul 2026   Deviance:                       1662.7
+Time:                        17:55:15   Pearson chi2:                 1.20e+03
+No. Iterations:                     4   Pseudo R-squ. (CS):           0.001229
+Covariance Type:            nonrobust                                         
+================================================================================
+                   coef    std err          z      P>|z|      [0.025      0.975]
+--------------------------------------------------------------------------------
+const           -0.1655      0.110     -1.503      0.133      -0.381       0.050
+trufor_score     0.2681      0.221      1.215      0.224      -0.164       0.701
+================================================================================
+
+
+=== TruFor + text - binomial GLM (logit link) ===
+In-sample McFadden pseudo-R2: 0.1309
+
+                 Generalized Linear Model Regression Results                  
+==============================================================================
+Dep. Variable:      crowdtangle_score   No. Observations:                 1201
+Model:                            GLM   Df Residuals:                     1139
+Model Family:                Binomial   Df Model:                           61
+Link Function:                  Logit   Scale:                          1.0000
+Method:                          IRLS   Log-Likelihood:                -723.17
+Date:                Tue, 28 Jul 2026   Deviance:                       1446.3
+Time:                        17:55:15   Pearson chi2:                 1.16e+03
+No. Iterations:                     6   Pseudo R-squ. (CS):             0.1659
+Covariance Type:            nonrobust                                         
+================================================================================
+                   coef    std err          z      P>|z|      [0.025      0.975]
+--------------------------------------------------------------------------------
+const           -0.3472      0.134     -2.585      0.010      -0.610      -0.084
+trufor_score     0.5081      0.271      1.874      0.061      -0.023       1.040
+text_pca_1       0.7811      0.291      2.685      0.007       0.211       1.351
+text_pca_2       1.2192      0.370      3.299      0.001       0.495       1.943
+text_pca_3       0.9504      0.375      2.538      0.011       0.216       1.684
+text_pca_4      -1.6857      0.513     -3.284      0.001      -2.692      -0.680
+text_pca_5      -1.1985      0.436     -2.749      0.006      -2.053      -0.344
+text_pca_6      -0.8232      0.420     -1.959      0.050      -1.647       0.000
+text_pca_7       2.2218      0.496      4.476      0.000       1.249       3.195
+text_pca_8      -1.4145      0.477     -2.963      0.003      -2.350      -0.479
+text_pca_9       0.9990      0.538      1.856      0.063      -0.056       2.054
+text_pca_10     -0.0623      0.486     -0.128      0.898      -1.015       0.890
+text_pca_11     -0.0269      0.508     -0.053      0.958      -1.023       0.969
+text_pca_12      1.4999      0.588      2.549      0.011       0.346       2.653
+text_pca_13      0.0374      0.541      0.069      0.945      -1.023       1.098
+text_pca_14     -2.9173      0.695     -4.201      0.000      -4.279      -1.556
+text_pca_15      1.1949      0.574      2.080      0.038       0.069       2.321
+text_pca_16      0.0570      0.593      0.096      0.923      -1.105       1.219
+text_pca_17     -2.1348      0.673     -3.170      0.002      -3.455      -0.815
+text_pca_18     -0.8869      0.628     -1.413      0.158      -2.117       0.343
+text_pca_19      3.8214      0.831      4.599      0.000       2.193       5.450
+text_pca_20      1.0914      0.684      1.595      0.111      -0.250       2.433
+text_pca_21     -2.1425      0.802     -2.670      0.008      -3.715      -0.570
+text_pca_22      2.7772      0.753      3.690      0.000       1.302       4.252
+text_pca_23     -1.3166      0.711     -1.853      0.064      -2.709       0.076
+text_pca_24      2.4939      0.719      3.468      0.001       1.084       3.903
+text_pca_25      0.0824      0.788      0.105      0.917      -1.461       1.626
+text_pca_26     -0.8631      0.760     -1.136      0.256      -2.352       0.626
+text_pca_27     -1.0406      0.774     -1.344      0.179      -2.558       0.477
+text_pca_28      0.0268      0.787      0.034      0.973      -1.516       1.569
+text_pca_29     -1.1611      0.786     -1.478      0.139      -2.701       0.379
+text_pca_30      0.2553      0.796      0.321      0.748      -1.305       1.815
+text_pca_31     -3.0838      0.922     -3.344      0.001      -4.891      -1.276
+text_pca_32     -0.3835      0.787     -0.487      0.626      -1.926       1.159
+text_pca_33     -0.0034      0.903     -0.004      0.997      -1.774       1.767
+text_pca_34     -0.3195      0.778     -0.411      0.681      -1.843       1.205
+text_pca_35      0.2963      0.860      0.345      0.730      -1.389       1.982
+text_pca_36      0.7559      0.889      0.851      0.395      -0.986       2.498
+text_pca_37     -1.0666      0.880     -1.212      0.225      -2.791       0.658
+text_pca_38     -0.1016      0.871     -0.117      0.907      -1.809       1.605
+text_pca_39     -0.2920      0.876     -0.333      0.739      -2.009       1.425
+text_pca_40     -1.0805      0.898     -1.203      0.229      -2.841       0.680
+text_pca_41     -1.7502      0.851     -2.058      0.040      -3.417      -0.083
+text_pca_42      1.5953      0.931      1.714      0.087      -0.229       3.419
+text_pca_43      2.8547      0.990      2.883      0.004       0.914       4.795
+text_pca_44      0.7831      0.921      0.850      0.395      -1.022       2.588
+text_pca_45     -0.6535      0.983     -0.664      0.506      -2.581       1.274
+text_pca_46      1.0753      0.909      1.183      0.237      -0.706       2.857
+text_pca_47     -0.1234      0.928     -0.133      0.894      -1.942       1.695
+text_pca_48     -0.3471      0.936     -0.371      0.711      -2.181       1.487
+text_pca_49      1.3422      0.929      1.444      0.149      -0.479       3.164
+text_pca_50     -1.4273      0.953     -1.498      0.134      -3.295       0.441
+text_pca_51     -0.3576      0.954     -0.375      0.708      -2.228       1.512
+text_pca_52      1.5775      1.023      1.542      0.123      -0.428       3.583
+text_pca_53      1.8206      1.011      1.801      0.072      -0.161       3.802
+text_pca_54      0.3379      1.043      0.324      0.746      -1.706       2.382
+text_pca_55      1.5251      1.017      1.499      0.134      -0.469       3.519
+text_pca_56      3.2241      1.158      2.783      0.005       0.954       5.494
+text_pca_57      2.2482      1.054      2.134      0.033       0.183       4.314
+text_pca_58     -0.1732      1.114     -0.156      0.876      -2.356       2.010
+text_pca_59      0.8941      1.080      0.828      0.408      -1.223       3.011
+text_pca_60      0.2709      1.096      0.247      0.805      -1.878       2.420
+================================================================================
+
+
+=== TruFor + visual - binomial GLM (logit link) ===
+In-sample McFadden pseudo-R2: 0.0634
+
+                 Generalized Linear Model Regression Results                  
+==============================================================================
+Dep. Variable:      crowdtangle_score   No. Observations:                 1201
+Model:                            GLM   Df Residuals:                     1180
+Model Family:                Binomial   Df Model:                           20
+Link Function:                  Logit   Scale:                          1.0000
+Method:                          IRLS   Log-Likelihood:                -779.30
+Date:                Tue, 28 Jul 2026   Deviance:                       1558.6
+Time:                        17:55:15   Pearson chi2:                 1.20e+03
+No. Iterations:                     4   Pseudo R-squ. (CS):            0.08413
+Covariance Type:            nonrobust                                         
+======================================================================================
+                         coef    std err          z      P>|z|      [0.025      0.975]
+--------------------------------------------------------------------------------------
+const                 -0.2026      0.119     -1.706      0.088      -0.435       0.030
+trufor_score           0.3359      0.241      1.395      0.163      -0.136       0.808
+aspect_ratio          -0.2176      0.067     -3.255      0.001      -0.349      -0.087
+brightness            -0.2847      0.163     -1.744      0.081      -0.604       0.035
+contrast               0.2229      0.127      1.759      0.079      -0.026       0.471
+dynamic_range         -0.0219      0.098     -0.223      0.824      -0.215       0.171
+sharpness             -0.0023      0.116     -0.020      0.984      -0.229       0.225
+clearness             -0.0492      0.160     -0.307      0.759      -0.363       0.264
+blur                   0.1495      0.085      1.769      0.077      -0.016       0.315
+depth_of_field        -0.0464      0.072     -0.649      0.517      -0.187       0.094
+colorfulness          -0.0365      0.125     -0.293      0.770      -0.281       0.208
+saturation            -0.2594      0.130     -2.000      0.046      -0.514      -0.005
+warmth                 0.2155      0.076      2.832      0.005       0.066       0.365
+hue_mean              -0.0473      0.082     -0.573      0.566      -0.209       0.114
+kurtosis              -0.0418      0.122     -0.343      0.732      -0.281       0.197
+skewness              -0.1505      0.162     -0.932      0.351      -0.467       0.166
+shannon_entropy       -0.0520      0.118     -0.442      0.659      -0.283       0.179
+symmetry               0.1820      0.074      2.444      0.015       0.036       0.328
+diagonal_dominance     0.0136      0.090      0.152      0.879      -0.162       0.190
+rule_of_thirds         0.1193      0.074      1.618      0.106      -0.025       0.264
+visual_complexity      0.1280      0.102      1.253      0.210      -0.072       0.328
+======================================================================================
+
+
+=== TruFor + text + visual - binomial GLM (logit link) ===
+In-sample McFadden pseudo-R2: 0.1557
+
+                 Generalized Linear Model Regression Results                  
+==============================================================================
+Dep. Variable:      crowdtangle_score   No. Observations:                 1201
+Model:                            GLM   Df Residuals:                     1120
+Model Family:                Binomial   Df Model:                           80
+Link Function:                  Logit   Scale:                          1.0000
+Method:                          IRLS   Log-Likelihood:                -702.54
+Date:                Tue, 28 Jul 2026   Deviance:                       1405.1
+Time:                        17:55:15   Pearson chi2:                 1.14e+03
+No. Iterations:                     6   Pseudo R-squ. (CS):             0.1940
+Covariance Type:            nonrobust                                         
+======================================================================================
+                         coef    std err          z      P>|z|      [0.025      0.975]
+--------------------------------------------------------------------------------------
+const                 -0.3425      0.140     -2.444      0.015      -0.617      -0.068
+trufor_score           0.4869      0.284      1.716      0.086      -0.069       1.043
+text_pca_1             0.3091      0.313      0.987      0.323      -0.304       0.923
+text_pca_2             0.5659      0.404      1.401      0.161      -0.226       1.358
+text_pca_3             0.8344      0.394      2.117      0.034       0.062       1.607
+text_pca_4            -1.3172      0.550     -2.394      0.017      -2.395      -0.239
+text_pca_5            -0.8996      0.463     -1.943      0.052      -1.807       0.008
+text_pca_6            -0.7719      0.443     -1.744      0.081      -1.640       0.096
+text_pca_7             1.7869      0.536      3.335      0.001       0.737       2.837
+text_pca_8            -1.3377      0.494     -2.709      0.007      -2.306      -0.370
+text_pca_9             0.8738      0.559      1.564      0.118      -0.221       1.968
+text_pca_10           -0.1608      0.507     -0.317      0.751      -1.154       0.832
+text_pca_11            0.3040      0.538      0.565      0.572      -0.750       1.358
+text_pca_12            1.0524      0.611      1.723      0.085      -0.145       2.250
+text_pca_13            0.3036      0.558      0.544      0.586      -0.790       1.397
+text_pca_14           -2.4717      0.724     -3.412      0.001      -3.891      -1.052
+text_pca_15            1.0165      0.601      1.692      0.091      -0.161       2.194
+text_pca_16            0.3898      0.627      0.622      0.534      -0.839       1.619
+text_pca_17           -2.1709      0.700     -3.101      0.002      -3.543      -0.799
+text_pca_18           -0.8504      0.646     -1.317      0.188      -2.116       0.415
+text_pca_19            3.7616      0.848      4.435      0.000       2.099       5.424
+text_pca_20            0.9213      0.722      1.276      0.202      -0.494       2.337
+text_pca_21           -2.0760      0.829     -2.504      0.012      -3.701      -0.451
+text_pca_22            2.5492      0.779      3.274      0.001       1.023       4.075
+text_pca_23           -1.1160      0.733     -1.522      0.128      -2.553       0.321
+text_pca_24            2.4367      0.735      3.314      0.001       0.996       3.878
+text_pca_25            0.5064      0.815      0.621      0.535      -1.092       2.105
+text_pca_26           -1.0702      0.778     -1.375      0.169      -2.596       0.455
+text_pca_27           -1.0679      0.789     -1.353      0.176      -2.614       0.478
+text_pca_28           -0.0334      0.802     -0.042      0.967      -1.605       1.538
+text_pca_29           -0.7734      0.807     -0.959      0.338      -2.354       0.808
+text_pca_30            0.1565      0.815      0.192      0.848      -1.441       1.755
+text_pca_31           -3.0596      0.947     -3.232      0.001      -4.915      -1.204
+text_pca_32           -0.3210      0.797     -0.403      0.687      -1.883       1.241
+text_pca_33           -0.2925      0.924     -0.317      0.751      -2.103       1.518
+text_pca_34           -0.3063      0.805     -0.380      0.704      -1.884       1.271
+text_pca_35            0.1924      0.891      0.216      0.829      -1.554       1.939
+text_pca_36            0.8212      0.904      0.908      0.364      -0.951       2.593
+text_pca_37           -1.2735      0.898     -1.418      0.156      -3.033       0.486
+text_pca_38           -0.6133      0.891     -0.689      0.491      -2.359       1.132
+text_pca_39           -0.4033      0.896     -0.450      0.653      -2.160       1.353
+text_pca_40           -1.1901      0.922     -1.291      0.197      -2.997       0.616
+text_pca_41           -1.8221      0.869     -2.096      0.036      -3.526      -0.118
+text_pca_42            1.0786      0.959      1.125      0.261      -0.801       2.958
+text_pca_43            2.2441      1.024      2.191      0.028       0.236       4.252
+text_pca_44            0.6778      0.937      0.723      0.469      -1.158       2.514
+text_pca_45           -1.2455      1.012     -1.231      0.218      -3.229       0.738
+text_pca_46            0.6620      0.937      0.706      0.480      -1.175       2.499
+text_pca_47           -0.3167      0.953     -0.332      0.740      -2.184       1.551
+text_pca_48           -0.0759      0.960     -0.079      0.937      -1.958       1.807
+text_pca_49            1.6471      0.949      1.735      0.083      -0.214       3.508
+text_pca_50           -1.3735      0.979     -1.403      0.161      -3.292       0.545
+text_pca_51           -0.3876      0.968     -0.401      0.689      -2.284       1.509
+text_pca_52            1.1928      1.053      1.133      0.257      -0.870       3.256
+text_pca_53            2.0891      1.052      1.986      0.047       0.028       4.151
+text_pca_54            0.1396      1.079      0.129      0.897      -1.976       2.255
+text_pca_55            1.6414      1.041      1.576      0.115      -0.400       3.683
+text_pca_56            3.1322      1.177      2.661      0.008       0.826       5.439
+text_pca_57            1.8923      1.083      1.748      0.081      -0.230       4.014
+text_pca_58           -0.0106      1.141     -0.009      0.993      -2.247       2.226
+text_pca_59            0.6984      1.113      0.628      0.530      -1.483       2.880
+text_pca_60            0.3470      1.122      0.309      0.757      -1.852       2.546
+aspect_ratio          -0.2027      0.076     -2.674      0.008      -0.351      -0.054
+brightness            -0.0488      0.181     -0.269      0.788      -0.404       0.307
+contrast               0.2157      0.139      1.556      0.120      -0.056       0.488
+dynamic_range         -0.0026      0.106     -0.024      0.980      -0.211       0.206
+sharpness             -0.0321      0.120     -0.267      0.789      -0.267       0.203
+clearness             -0.0670      0.175     -0.383      0.702      -0.410       0.276
+blur                   0.0817      0.093      0.875      0.381      -0.101       0.265
+depth_of_field        -0.0404      0.077     -0.526      0.599      -0.191       0.110
+colorfulness          -0.0247      0.140     -0.177      0.860      -0.299       0.249
+saturation            -0.2016      0.142     -1.416      0.157      -0.481       0.078
+warmth                 0.1508      0.089      1.685      0.092      -0.025       0.326
+hue_mean              -0.0396      0.092     -0.428      0.669      -0.221       0.142
+kurtosis               0.0327      0.124      0.263      0.792      -0.211       0.276
+skewness               0.0187      0.176      0.106      0.915      -0.325       0.363
+shannon_entropy       -0.0065      0.129     -0.050      0.960      -0.259       0.246
+symmetry               0.1091      0.085      1.284      0.199      -0.057       0.276
+diagonal_dominance    -0.0661      0.098     -0.674      0.500      -0.258       0.126
+rule_of_thirds         0.1080      0.082      1.322      0.186      -0.052       0.268
+visual_complexity      0.1492      0.114      1.305      0.192      -0.075       0.373
+======================================================================================
+
+
+=== Significant visual features (binomial GLM, z-scored) ===
+Coefficients are per standard deviation, so they are comparable to each other.
+Significance: * p<.05, ** p<.01, *** p<.001
+
+    saturation             -0.2594 per SD   p=0.0455 *    (pushes engagement down)
+    aspect_ratio           -0.2176 per SD   p=0.0011 **   (pushes engagement down)
+    warmth                 +0.2155 per SD   p=0.0046 **   (pushes engagement up)
+    symmetry               +0.1820 per SD   p=0.0145 *    (pushes engagement up)

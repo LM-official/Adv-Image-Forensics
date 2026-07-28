@@ -23,6 +23,7 @@ On the full dataset (~1,200 photo posts):
 - **Manipulation _intensity_ doesn't predict engagement.** The global `trufor_score` is essentially uncorrelated with the CrowdTangle overperforming score (Pearson *r* ≈ 0.05, *p* ≈ 0.08; OLS R² ≈ 0.003) — how strongly an image is manipulated says nothing about how the post performs.
 - **But what was manipulated carries a weak-but-real signal.** TF-IDF features of the altered-region description (BLIP caption + OCR) separate over- from under-performing posts with a 5-fold cross-validated **AUC ≈ 0.64** (≈ 60% accuracy vs a ≈ 51% majority baseline), on both the raw-word (0.642) and PCA (0.632) feature sets.
 - So the predictive signal is in the **content** of the manipulation (the subjects and words shown), not its **strength**.
+- **Whole-image craft carries a comparable signal — but a largely overlapping one.** A nested binomial-GLM chain (`trufor_score` → + text → + visual features → all) shows the 19 visual features are highly significant on their own (likelihood-ratio 104.1 on 19 df, p < 0.0001) and nearly match the text alone out-of-sample (CV pseudo-R² 0.034 vs 0.039). Stacked on top of the text, though, they only improve the **in-sample** fit (0.131 → 0.156) while cross-validated performance drops (0.039 → 0.032): *how well the image is made* and *what the alteration contains* carry information that is largely **overlapping, not cumulative**. Significant per standard deviation: `saturation` −0.26, `aspect_ratio` −0.22, `warmth` +0.22, `symmetry` +0.18.
 
 ![Engagement (CrowdTangle) score distribution — bimodal, with a low-density valley at 0 and long outlier tails](results/dataset_distribution.png)
 
@@ -48,6 +49,7 @@ On the full dataset (~1,200 photo posts):
 │   ├── classification_logistic_regression.py  # engagement: logistic regression (raw + PCA)
 │   ├── classification_glm.py                  # engagement: inferential binomial GLM (+ --grid-search)
 │   ├── classification_lime_shap.py            # engagement: post-hoc words (permutation + SHAP + LIME)
+│   ├── classification_visual_text.py          # engagement: nested GLM (TruFor + text + visual features)
 │   ├── utils.py                               # shared CSV / .npz / image / text helpers
 │   └── temp/                                  # all generated outputs land here
 ├── TruFor/                                    # vendored TruFor (read-only dependency, GRIP-UNINA)
@@ -102,6 +104,7 @@ Instead of `classification_home.py` it is possible to run each classification mo
 python classification_logistic_regression.py
 python classification_glm.py
 python classification_lime_shap.py
+python classification_visual_text.py
 ```
 
 
@@ -114,10 +117,11 @@ The most useful per-stage flags:
 | `--method` | [`features.py`](scripts/features.py) | `pearson` or `spearman` correlation for the feature plot. |
 | `--threshold`, `--conf-threshold` | [`mask.py`](scripts/mask.py) | Anomaly and confidence cut-offs a pixel must clear to be kept in the mask. |
 | `--batch-size`, `--do-sample`, `--no-ocr` | [`describe.py`](scripts/describe.py) | Images per batch; sampling instead of beam search; caption-only (skip OCR). |
-| `--max-words`, `--dead-zone`, `--min-df`, `--max-df` | [`classification_home.py`](scripts/classification_home.py) | TF-IDF vocabulary cap + document-frequency conditioning; drop the score valley (`\|score\| ≤ x`) before binarising at 0 (`0` disables the cut). Forwarded to the three sub-scripts it runs in turn. |
+| `--max-words`, `--dead-zone`, `--min-df`, `--max-df` | [`classification_home.py`](scripts/classification_home.py) | TF-IDF vocabulary cap + document-frequency conditioning; drop the score valley (`\|score\| ≤ x`) before binarising at 0 (`0` disables the cut). Forwarded to the four sub-scripts it runs in turn. |
 | `--max-words`, `--dead-zone`, `--min-df`, `--max-df` | [`classification_logistic_regression.py`](scripts/classification_logistic_regression.py) | Same flags, for running the logistic classification on its own. |
 | `--max-words`, `--dead-zone`, `--min-df`, `--max-df`, `--alpha`, `--l1-wt`, `--grid-search` | [`classification_glm.py`](scripts/classification_glm.py) | Same TF-IDF/dead-zone flags, plus the GLM elastic-net fallback (`--alpha` strength, `--l1-wt` `0` = ridge … `1` = lasso, between = elastic net) and `--grid-search` to sweep the TF-IDF/regularization grid. |
 | `--max-words`, `--dead-zone`, `--min-df`, `--max-df` | [`classification_lime_shap.py`](scripts/classification_lime_shap.py) | Same flags, for running the post-hoc interpretation (permutation + SHAP + LIME) on its own. |
+| `--max-words`, `--dead-zone`, `--min-df`, `--max-df` | [`classification_visual_text.py`](scripts/classification_visual_text.py) | Same flags, for running the nested GLM comparison (TruFor + text + visual features) on its own. |
 
 > ⚠️ Media is matched to posts by reproducing `sha256(url)[:CHAR_LIMIT]`. `CHAR_LIMIT` (in [`config.py`](scripts/config.py), default `64`) must equal the truncation used at download time, or every URL→file lookup silently misses.
 
@@ -133,7 +137,7 @@ A six-stage pipeline; each stage appends a column to the analysis table or write
 4. **[mask.py](scripts/mask.py)** — binarizes each TruFor map into a mask of the altered region (flagged and confidently localized pixels), denoises it and fixes polarity on synthetic-majority composites, saving one lossless compressed PNG per image.
 5. **[describe.py](scripts/describe.py)** — captions the masked region with **BLIP** and merges the **EasyOCR** words read off it into the `anomaly_txt` column.
 6. **[classification_home.py](scripts/classification_home.py)** — builds the shared text features from `anomaly_txt` — a TF-IDF representation (English + Italian stop-words removed), used both raw (one column per word) and PCA-compressed (enough components to keep 90% of the variance) — drops the posts in the bimodal score's low-density valley (`|crowdtangle_score| ≤ ENGAGEMENT_DEAD_ZONE`) and binarises the rest (over- vs under-performed).  
-It then runs three **independent sub-scripts** one after another: **[classification_logistic_regression.py](scripts/classification_logistic_regression.py)** (5-fold cross-validated **logistic regression**, out-of-sample metrics + odds ratios), **[classification_glm.py](scripts/classification_glm.py)** (inferential **binomial GLM with a logit link** — coefficient table with p-values, plus a `--grid-search` mode), and **[classification_lime_shap.py](scripts/classification_lime_shap.py)** (post-hoc, model-agnostic **word-level interpretation: permutation importance + SHAP + LIME**).
+It then runs four **independent sub-scripts** one after another: **[classification_logistic_regression.py](scripts/classification_logistic_regression.py)** (5-fold cross-validated **logistic regression**, out-of-sample metrics + odds ratios), **[classification_glm.py](scripts/classification_glm.py)** (inferential **binomial GLM with a logit link** — coefficient table with p-values, plus a `--grid-search` mode), **[classification_lime_shap.py](scripts/classification_lime_shap.py)** (post-hoc, model-agnostic **word-level interpretation: permutation importance + SHAP + LIME**), and **[classification_visual_text.py](scripts/classification_visual_text.py)** (a chain of four **nested binomial GLMs** — `trufor_score`, + text, + the z-scored visual features, + both — scoring each block in-sample, out-of-sample and with a **likelihood-ratio test** against the block it nests in, to measure how much each source of information actually adds).
 
 ---
 

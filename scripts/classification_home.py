@@ -161,6 +161,7 @@ CLASSIFICATION_SCRIPTS = (
     # The grid search is a separate  mode (classification_glm.py --grid-search) and is not part of this default run.
     "classification_glm.py",         # inferential binomial GLM, raw + PCA     (GLM_CLASSIFICATION_FILE)
     "classification_lime_shap.py",   # post-hoc word-level interpretation      (EXPLANATION_FILE)
+    "classification_visual_text.py", # nested GLM: TruFor + visual + text      (VISUAL_TEXT_CLASSIFICATION_FILE)
 )
 
 def _run_script(script: str, forwarded: list[str]) -> int:
@@ -198,11 +199,12 @@ def _run_script(script: str, forwarded: list[str]) -> int:
 def main():
     """
     Last pipeline phase entry point: runs the whole classification phase on the anomaly descriptions by launching
-    the three sibling scripts as subprocesses, one after another so each gets the full machine. Each writes its
+    the four sibling scripts as subprocesses, one after another so each gets the full machine. Each writes its
     own report:
       1. classification_logistic_regression.py -> the cross-validated logistic classification (LOGISTIC_CLASSIFICATION_FILE)
-      2. classification_glm.py        -> the inferential binomial GLM, raw + PCA       (GLM_CLASSIFICATION_FILE)
-      3. classification_lime_shap.py  -> the post-hoc word-level interpretation        (EXPLANATION_FILE)
+      2. classification_glm.py                 -> the inferential binomial GLM, raw + PCA     (GLM_CLASSIFICATION_FILE)
+      3. classification_lime_shap.py           -> the post-hoc word-level interpretation      (EXPLANATION_FILE)
+      4. classification_visual_text.py         -> the nested GLM over TruFor + visual + text  (VISUAL_TEXT_CLASSIFICATION_FILE)
 
     This module also exports the shared text features (STOP_WORDS / tf_idf / pca / prepare_dataset) those script import.
     The GLM grid search is a separate exploratory mode (classification_glm.py --grid-search), not run here.
@@ -215,7 +217,7 @@ def main():
     """
 
     # Initialize the argument parser
-    parser = argparse.ArgumentParser(description="Run the full anomaly-classification phase (logistic classification, binomial GLM, post-hoc LIME/SHAP) as subprocesses, one after another.")
+    parser = argparse.ArgumentParser(description="Run the full anomaly-classification phase (logistic classification, binomial GLM, post-hoc LIME/SHAP, nested visual+text GLM) as subprocesses, one after another.")
 
     # Flags shared by the three scripts, forwarded to each
     parser.add_argument("--max-words", type=int,   default=MAX_NUMBER_OF_WORDS, help=f"Maximum number of TF-IDF words. Default: {MAX_NUMBER_OF_WORDS}")

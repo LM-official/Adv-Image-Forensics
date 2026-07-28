@@ -238,3 +238,15 @@ EXPLAIN_TOP_N       = 20
 EXPLAIN_N_REPEATS   = 30
 # Individual posts explained locally by LIME
 EXPLAIN_N_SAMPLES   = 5
+
+# =============================================================================
+# (5) VISUAL + TEXT
+# =============================================================================
+
+# Nested binomial GLM comparison on:
+# 1. TruFor alone,
+# 2. + the visual features (whole-image craft),
+# 3. + the TF-IDF description of the altered region compressed by PCA
+VISUAL_TEXT_CLASSIFICATION_FILE = TEMP_DIR / "classification_visual_text.txt"
+# Significance markers used in the visual-feature digest (p < .05 / .01 / .001)
+VISUAL_SIGNIFICANCE_LEVELS      = ((0.001, "***"), (0.01, "**"), (0.05, "*"))

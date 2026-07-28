@@ -61,6 +61,10 @@ Un insieme di caratteristiche rilevate su una o più [unità statistiche](#unita
 Manipolazione multimediale che richiede un basso livello di sofisticazione tecnica, esempio senza l’uso di intelligenza artificiale, ma solo con software di modifica foto/video/audio.  
 *Fonte: [Università degli studi di Torino](https://iris.unito.it/retrieve/c65c505b-470d-4c0f-a424-74e142e25f88/SELA-D-23-00161_R1.pdf)*.
 
+## **Chi-quadrato:**
+Fornisce un criterio per stabilire se ci sia connessione o meno tra due caratteri statistici X e Y qualitativi, ponendo a confronto le frequenze osservate nelle distribuzioni dei due caratteri con le corrispondenti frequenze teoriche che si avrebbero nel caso di loro assoluta indipendenza.  
+*Fonte: [Treccani](https://www.treccani.it/enciclopedia/chi-quadrato_(Enciclopedia-della-Matematica))*.
+
 ## **Classificazione statistica:**
 È lo strumento per organizzare le [unità statistiche](#unita-statistica) di una [popolazione](#popolazione-statistica) in gruppi distinti.  
 *Fonte: [Istat](https://www.istat.it/classificazioni-e-strumenti/classificazioni)*.
