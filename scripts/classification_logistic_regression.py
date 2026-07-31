@@ -65,6 +65,7 @@ def logistic_regression(title: str, X: pd.DataFrame, y: pd.Series, top_n: int = 
         up   = ", ".join(f"{name} ({ratio:.2f})" for name, ratio in odds.tail(top_n)[::-1].items())
         down = ", ".join(f"{name} ({ratio:.2f})" for name, ratio in odds.head(top_n).items())
 
+        print(f"Logistic regression of {title} computed successfully.")
         return (
             f"=== {title} - logistic regression (cross-validated) ===\n"
             f"Features           : {X.shape[1]}\n"
@@ -78,6 +79,7 @@ def logistic_regression(title: str, X: pd.DataFrame, y: pd.Series, top_n: int = 
         )
 
     except Exception as e:
+        print(f"ERROR: during the logistic regression of {title}: {e}")
         return f"=== {title} - logistic regression (cross-validated) ===\nERROR: {e}"
 
 
@@ -109,6 +111,8 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = LOGISTIC_CLAS
         None.
     """
 
+    print("Computing logistic regression of anomaly descriptions...")
+
     # Clamp to 0 (kept for a consistent header; binarize_engagement clamps internally too)
     if dead_zone < 0:
         dead_zone = 0
@@ -119,7 +123,7 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = LOGISTIC_CLAS
     prep = prepare_dataset(dataset, dead_zone, max_words, min_df, max_df)
     if prep is None:
         return
-    df, y, tfidf = prep
+    df, y, tfidf, n = prep
 
     # Two feature variants: the raw TF-IDF columns and their PCA-compressed version
     variants = [("Raw TF-IDF", tfidf)]
@@ -143,12 +147,13 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = LOGISTIC_CLAS
         "Anomaly Classification - Logistic Regression\n"
         f"{'=' *77}\n"
         f"Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)\n"
-        f"Dead zone    : |score| <= {dead_zone:g} (kept {len_y} of {len(df)} posts)\n"
+        f"Dead zone    : |score| <= {dead_zone:g} (kept {len_y} of {n} posts)\n"
         f"Class balance: {int(y.sum())} high / {int((y == 0).sum())} low  (out of {len_y})\n"
         f"TF-IDF       : min_df={min_df}, max_df={max_df:g}, vocabulary {tfidf.shape[1]} words (cap {max_words})\n"
         "Logistic-regression metrics are 5-fold cross-validated (out-of-sample).\n\n\n"
     )
     save_report(header + "\n\n\n".join(sections), report)
+    print("Logistic regression of anomaly descriptions computed successfully.")
 
 
 # =============================================================================
@@ -177,7 +182,6 @@ def main():
     parser.add_argument("--min-df",    type=int,   default=TFIDF_MIN_DF,         help=f"Keep only words appearing in at least this many descriptions. Default: {TFIDF_MIN_DF}")
     parser.add_argument("--max-df",    type=float, default=TFIDF_MAX_DF,         help=f"Keep only words appearing in at most this fraction of descriptions. Default: {TFIDF_MAX_DF}")
     args = parser.parse_args()
-
 
     # Logistic classification of the descriptions
     classify(max_words=args.max_words, dead_zone=args.dead_zone, min_df=args.min_df, max_df=args.max_df)

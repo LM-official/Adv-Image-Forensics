@@ -92,9 +92,9 @@ cd scripts
 
 python filter.py
 python trufor.py [--generate-truth]
-python features.py
 python mask.py
 python describe.py
+python features.py
 python classification_home.py
 ```
 `--generate-truth` (first run only) writes the empty `trufor_truth.csv` label template and pauses so you can fill the `label` column (`0` = real, `1` = AI); later runs reuse it.
@@ -136,7 +136,7 @@ A six-stage pipeline; each stage appends a column to the analysis table or write
 3. **[features.py](scripts/features.py)** — extracts ~19 (no-ML) visual features per image (aspect ratio, brightness, contrast, sharpness, blur, colorfulness, warmth, entropy, symmetry, rule of thirds, depth of field, visual complexity, …) with OpenCV/NumPy/SciPy/scikit-image, merges them into the table, and renders a feature scatter: each feature plotted by its correlation with engagement (`crowdtangle_score`, X) and with the AI-manipulation score (`trufor_score`, Y), with a fitted regression line and a `y = x` reference.
 4. **[mask.py](scripts/mask.py)** — binarizes each TruFor map into a mask of the altered region (flagged and confidently localized pixels), denoises it and fixes polarity on synthetic-majority composites, saving one lossless compressed PNG per image.
 5. **[describe.py](scripts/describe.py)** — captions the masked region with **BLIP** and merges the **EasyOCR** words read off it into the `anomaly_txt` column.
-6. **[classification_home.py](scripts/classification_home.py)** — builds the shared text features from `anomaly_txt` — a TF-IDF representation (English + Italian stop-words removed), used both raw (one column per word) and PCA-compressed (enough components to keep 90% of the variance) — drops the posts in the bimodal score's low-density valley (`|crowdtangle_score| ≤ ENGAGEMENT_DEAD_ZONE`) and binarises the rest (over- vs under-performed).  
+6. **[classification_home.py](scripts/classification_home.py)** — builds the shared text features from `anomaly_txt` — a TF-IDF representation (English + Italian stop-words + `EMPTY_MASK_LABEL` removed), used both raw (one column per word) and PCA-compressed (enough components to keep 90% of the variance) — drops the posts in the bimodal score's low-density valley (`|crowdtangle_score| ≤ ENGAGEMENT_DEAD_ZONE`) and binarises the rest (over- vs under-performed).  
 It then runs four **independent sub-scripts** one after another: **[classification_logistic_regression.py](scripts/classification_logistic_regression.py)** (5-fold cross-validated **logistic regression**, out-of-sample metrics + odds ratios), **[classification_glm.py](scripts/classification_glm.py)** (inferential **binomial GLM with a logit link** — coefficient table with p-values, plus a `--grid-search` mode), **[classification_lime_shap.py](scripts/classification_lime_shap.py)** (post-hoc, model-agnostic **word-level interpretation: permutation importance + SHAP + LIME**), and **[classification_visual_text.py](scripts/classification_visual_text.py)** (a chain of four **nested binomial GLMs** — `trufor_score`, + text, + the z-scored visual features, + both — scoring each block in-sample, out-of-sample and with a **likelihood-ratio test** against the block it nests in, to measure how much each source of information actually adds).
 
 ---
@@ -165,7 +165,7 @@ The calls are governed by a handful of thresholds in [`config.py`](scripts/confi
 - **Detection** — an image is manipulated when `trufor_score > TRUFOR_THRESHOLD` (default `0.5`; set per run with `trufor.py --threshold`).
 - **Mask** — a pixel is kept only when both flagged (`anomaly ≥ MASK_THRESHOLD`) and confidently localized (`confidence ≥ MASK_CONFIDENCE_THRESHOLD`); the raw mask is then denoised (morphological open/close + small-blob removal).
 - **Polarity** — on synthetic-majority composites (a real subject on a flat banner) TruFor's mask can invert; texture asymmetry detects this and flips it so the overlay is kept, not the subject.
-- **Honest empties** — a near-black mask is not captioned (the model would hallucinate) and gets the fixed label `empty`.
+- **Honest empties** — a near-black mask is not captioned (the model would hallucinate) and gets the fixed label `nomask`.
 - **OCR text** — captioning can't read, so OCR supplies the words: low-confidence and 1–2-letter recognitions are dropped, the rest de-duplicated and capped most-confident-first.
 - **Engagement** — a post over-performs when `crowdtangle_score > 0`; the bimodal distribution's low-density valley (`|crowdtangle_score| ≤ ENGAGEMENT_DEAD_ZONE`) is dropped first so the cut-off doesn't slice through ambiguous posts.
 

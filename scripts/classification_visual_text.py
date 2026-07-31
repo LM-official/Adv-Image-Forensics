@@ -1,17 +1,18 @@
 import argparse
-from   classification_glm      import glm, _cv_pseudo_r2
-from   classification_home     import prepare_dataset, pca
-from   config                  import (FILTERED_DATASET_FILE, VISUAL_TEXT_CLASSIFICATION_FILE, VISUAL_SIGNIFICANCE_LEVELS,
-                                       MAX_NUMBER_OF_WORDS, ENGAGEMENT_DEAD_ZONE, TFIDF_MIN_DF, TFIDF_MAX_DF,
-                                       GLM_ALPHA, GLM_L1_WT, PCA_VARIANCE)
-from   features                import FEATURE_NAMES
-import numpy                   as     np
-import pandas                  as     pd
-from   pathlib                 import Path
-from   scipy.stats             import chi2
-from   sklearn.preprocessing   import StandardScaler
-import statsmodels.api         as     sm
-from   utils                   import save_report
+from   classification_glm          import glm, _cv_pseudo_r2
+from   classification_home         import prepare_dataset, pca
+from   config                      import (FILTERED_DATASET_FILE, VISUAL_TEXT_CLASSIFICATION_FILE, VISUAL_SIGNIFICANCE_LEVELS,
+                                           MAX_NUMBER_OF_WORDS, ENGAGEMENT_DEAD_ZONE, TFIDF_MIN_DF, TFIDF_MAX_DF,
+                                           GLM_ALPHA, GLM_L1_WT, PCA_VARIANCE)
+from   features                    import FEATURE_NAMES
+import numpy                       as     np
+import pandas                      as     pd
+from   pathlib                     import Path
+from   scipy.stats                 import chi2
+from   sklearn.preprocessing       import StandardScaler
+import statsmodels.api             as     sm
+from   statsmodels.stats.multitest import multipletests
+from   utils                       import save_report
 import warnings
 
 
@@ -40,19 +41,23 @@ def standardize(features: pd.DataFrame) -> pd.DataFrame | None:
         A DataFrame of z-scored features with the same columns and index, or None on invalid input or failure.
     """
 
+    print(f"Standardizing visual features (z-score)...")
+    
     if features is None or features.empty:
         print("ERROR: invalid input for the visual feature standardization.")
         return None
 
-    print(f"Standardizing {features.shape[1]} visual features (z-score)...")
     try:
         # A constant column has zero variance: StandardScaler leaves it at 0 instead of dividing by zero,
         # so it simply carries no information rather than breaking the fit
-        return pd.DataFrame(
+        standardized = pd.DataFrame(
             StandardScaler().fit_transform(features.values),
             columns = features.columns,
             index   = features.index,
         )
+
+        print("Visual features standardized successfully.")
+        return standardized
 
     except Exception as e:
         print(f"ERROR: during the visual feature standardization: {e}")
@@ -125,17 +130,26 @@ def _likelihood_ratio(full: tuple | None, reduced: tuple | None) -> str:
     return f"{statistic:>9.1f} on {degrees:>2} df  {chi2.sf(statistic, degrees):>8.4f}"
 
 
-def _significant_features(X: pd.DataFrame, y: pd.Series, levels: tuple = VISUAL_SIGNIFICANCE_LEVELS) -> str:
+def _significant_features(X: pd.DataFrame, y: pd.Series, levels: tuple = VISUAL_SIGNIFICANCE_LEVELS,
+                          exclude: tuple = ("trufor_score",)) -> str:
     """
     Digest of the visual features whose coefficient is significant, strongest effect first.
 
     The full GLM summary already lists every feature, but it is sorted by column order and padded with standard errors and confidence intervals.
     This pulls out the readable answer: which visual properties actually move engagement, in which direction, and how confidently.
 
+    The raw p-values cannot be read straight off this table: the GLM tests all 19 visual features at once,
+    so at the .05 threshold roughly one of them is expected to look significant by chance alone.
+    They are therefore corrected with Benjamini-Hochberg, which rescales each p-value by the size of the search:
+    sorted ascending, the k-th smallest of m tests is scaled by m/k, so the smallest carries the full penalty and later ones progressively less.
+    The result is a q-value, read against the same thresholds as a p-value,
+    and it bounds the expected share of false positives among the features this digest reports.
+
     Args:
-        X:      Design matrix of z-scored visual features (no intercept column), index-aligned with y.
-        y:      Binary target (1 = high engagement, 0 = low), index-aligned with X.
-        levels: (threshold, marker) pairs, strictest first, for the significance stars.
+        X:       Design matrix of z-scored visual features (no intercept column), index-aligned with y.
+        y:       Binary target (1 = high engagement, 0 = low), index-aligned with X.
+        levels:  (threshold, marker) pairs, strictest first, for the significance stars. Read against the q-values.
+        exclude: Columns kept in the model as controls but left out of both the correction family and the digest.
 
     Returns:
         The digest as text, opened by the significance legend generated from `levels`
@@ -154,24 +168,33 @@ def _significant_features(X: pd.DataFrame, y: pd.Series, levels: tuple = VISUAL_
     coefs  = fit.params.drop("const")
     pvals  = fit.pvalues.drop("const")
 
+    # trufor_score stays in the model (the visual coefficients are adjusted for it) but out of the correction family:
+    # it is the project's pre-registered hypothesis, not one of the features this digest screens
+    screened = [name for name in pvals.index if name not in exclude]
+    coefs, pvals = coefs[screened], pvals[screened]
+
+    # Benjamini-Hochberg over every screened feature, not just the ones that ended up looking good:
+    # correcting only the survivors would hide the tests that produced them and defeat the correction
+    qvals = pd.Series(multipletests(pvals.values, method="fdr_bh")[1], index=pvals.index)
+
     # Keep only what clears the cutoff, strongest absolute effect first
-    keep  = pvals[pvals < cutoff].index
+    keep  = qvals[qvals < cutoff].index
     order = coefs[keep].abs().sort_values(ascending=False).index
 
     rows = []
     for name in order:
-        # Strictest matching level wins, so a p of .0004 is starred *** rather than *
-        marker    = next(mark for threshold, mark in levels if pvals[name] < threshold)
+        # Strictest matching level wins, so a q of .0004 is starred *** rather than *
+        marker    = next(mark for threshold, mark in levels if qvals[name] < threshold)
         direction = "up" if coefs[name] > 0 else "down"
-        rows.append(f"    {name:<22} {coefs[name]:+.4f} per SD   p={pvals[name]:.4f} {marker:<3}  (pushes engagement {direction})")
+        rows.append(f"    {name:<22} {coefs[name]:+.4f} per SD   q={qvals[name]:.4f} {marker:<3}  (pushes engagement {direction})")
 
     # Legend built from the levels that produced the markers, so editing VISUAL_SIGNIFICANCE_LEVELS can never
     # leave the report explaining a notation it no longer uses. Loosest first, the order a reader scans them in
-    legend = ", ".join(f"{mark} p<{f'{threshold:g}'.lstrip('0')}" for threshold, mark in reversed(levels))
+    legend = ", ".join(f"{mark} q<{f'{threshold:g}'.lstrip('0')}" for threshold, mark in reversed(levels))
 
     return (
-        f"Significance: {legend}\n\n"
-        + ("\n".join(rows) if rows else f"    (no feature reaches p < {cutoff:g})")
+        f"Significance (Benjamini-Hochberg FDR, {len(screened)} features screened): {legend}\n\n"
+        + ("\n".join(rows) if rows else f"    (no feature reaches q < {cutoff:g})")
     )
 
 
@@ -212,6 +235,8 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_C
         None.
     """
 
+    print("Computing nested binomial GLM (TruFor + text + visual)...")
+
     # Clamp to 0 (kept for a consistent header; binarize_engagement clamps internally too)
     if dead_zone < 0:
         dead_zone = 0
@@ -232,7 +257,7 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_C
                            columns=("trufor_score", "anomaly_txt", "crowdtangle_score", *FEATURE_NAMES))
     if prep is None:
         return
-    df, y, tfidf = prep
+    df, y, tfidf, n = prep
     len_y  = len(y)
 
     # Visual block: z-scored so the coefficients are per standard deviation and comparable to each other
@@ -280,8 +305,10 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_C
 
     # The readable payoff: which whole-image properties actually move engagement
     sections.append(
-        "=== Significant visual features (binomial GLM, z-scored) ===\n"
+        "=== Significant visual features (binomial GLM, z-scored, BH-FDR corrected) ===\n"
         "Coefficients are per standard deviation, so they are comparable to each other.\n"
+        "q-values are Benjamini-Hochberg corrected for the whole visual block:\n"
+        "the GLM tests every feature at once, so an uncorrected p < .05 would flag about one of them by chance alone.\n"
         + _significant_features(pd.concat([trufor, visual], axis=1), y)
     )
 
@@ -297,7 +324,7 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_C
         "Anomaly Classification - TruFor + text + visual features (nested binomial GLM)\n"
         f"{'=' * 77}\n"
         f"Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)\n"
-        f"Dead zone    : |score| <= {dead_zone:g} (kept {len_y} of {len(df)} posts)\n"
+        f"Dead zone    : |score| <= {dead_zone:g} (kept {len_y} of {n} posts)\n"
         f"Class balance: {int(y.sum())} high / {int((y == 0).sum())} low  (out of {len_y})\n"
         f"TF-IDF       : min_df={min_df}, max_df={max_df:g}, vocabulary {tfidf.shape[1]} words (cap {max_words})\n"
         f"Text         : {text.shape[1]} PCA components of the TF-IDF ({pca_variance:.0%} of the variance)\n\n"
@@ -318,6 +345,7 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_C
         f"{table}\n\n\n"
     )
     save_report(header + "\n\n\n".join(sections), report)
+    print("Nested binomial GLM comparison completed successfully.")
 
 
 # =============================================================================
@@ -348,7 +376,6 @@ def main():
     parser.add_argument("--min-df",    type=int,   default=TFIDF_MIN_DF,         help=f"Keep only words appearing in at least this many descriptions. Default: {TFIDF_MIN_DF}")
     parser.add_argument("--max-df",    type=float, default=TFIDF_MAX_DF,         help=f"Keep only words appearing in at most this fraction of descriptions. Default: {TFIDF_MAX_DF}")
     args = parser.parse_args()
-
 
     # Nested GLM comparison of the visual and textual blocks
     classify(max_words=args.max_words, dead_zone=args.dead_zone, min_df=args.min_df, max_df=args.max_df)

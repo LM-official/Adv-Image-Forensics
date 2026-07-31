@@ -125,6 +125,8 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
         None.
     """
 
+    print("Filtering dataset...")
+
     if not dataset.is_file() or not dataset_images.is_dir():
         print("ERROR: dataset or images directory not found.")
         return
@@ -134,6 +136,7 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
     print("Indexing images directory...")
     hash_map = _build_hash_map(dataset_images)
     if hash_map is None:
+        print("ERROR: could not index the images directory.")
         return
 
 
@@ -147,7 +150,6 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
 
 
     # Filter
-    print("Filtering dataset...")
     try:
         # buffering=1<<16 (64KB) reduces the number of disk writes significantly on large outputs compared to the default line-by-line flushing
         with open(dataset, mode="r", encoding="utf-8") as infile, \
@@ -215,6 +217,7 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
         None.
     """
     
+    print("Analyzing the distribution of Crowdtangle scores...")
     # Load dataset
     df = load_csv(dataset, ["crowdtangle_score"])
     if df is None:
@@ -225,7 +228,6 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
 
 
     # Distribution
-    print("Analyzing the distribution of Crowdtangle scores...")
     scores = df["crowdtangle_score"]
     del df
 
@@ -239,7 +241,6 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
     iqr = q3 - q1
     low_fence, high_fence = q1 - 1.5 * iqr, q3 + 1.5 * iqr
     outliers = scores[(scores < low_fence) | (scores > high_fence)]
-    print("Distribution analyzed successfully.")
 
 
     # Report
@@ -258,6 +259,7 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
 
     # Save
     save_report(text, report)
+    print("Distribution analyzed successfully.")
 
 
     # Plot: histogram clipped to the fences (the bulk) + boxplot over the full range (the outliers)

@@ -1,5 +1,5 @@
 import argparse
-from   config                          import (SCRIPTS_DIR, MAX_NUMBER_OF_WORDS, ENGAGEMENT_DEAD_ZONE, TFIDF_MIN_DF, TFIDF_MAX_DF)
+from   config                          import (SCRIPTS_DIR, MAX_NUMBER_OF_WORDS, ENGAGEMENT_DEAD_ZONE, TFIDF_MIN_DF, TFIDF_MAX_DF, EMPTY_MASK_LABEL)
 import pandas                          as     pd
 from   pathlib                         import Path
 from   sklearn.decomposition           import PCA
@@ -17,12 +17,18 @@ from   utils                           import load_csv, clean_text, binarize_eng
 # TF-IDF stop words: the descriptions mix English BLIP captions with English-Italian OCR text,
 # so we union both languages from the `stop-words` package.
 # Each word is run through clean_text (the same applied to the descriptions) so match the tokens
+
+# EMPTY_MASK_LABEL is added on purpose.
+# A post whose mask is (near-)empty and a post whose caption survives the filters with no usable word
+# are the same case for this model - "no content to read" -
+# and the mask cutoff that separates them is a hard line drawn on a continuous quantity (mask area), not a real boundary.
+# Excluding the sentinel merges the two into identical all-zero rows and keeps the vocabulary for words that actually describe something.
 STOP_WORDS = sorted({
     word
     for lang in ("english", "italian")
     for word in clean_text(" ".join(get_stop_words(lang)), dedup_words=True).split()
     if len(word) >= 2
-})
+} | {EMPTY_MASK_LABEL}) # "|" is the union operator for sets
 
 
 def tf_idf(descriptions: pd.Series, max_words: int, min_df: int = TFIDF_MIN_DF, max_df: float = TFIDF_MAX_DF, verbose: bool = True) -> pd.DataFrame | None:
@@ -47,6 +53,9 @@ def tf_idf(descriptions: pd.Series, max_words: int, min_df: int = TFIDF_MIN_DF, 
         or None on invalid input or failure.
     """
 
+    if verbose:
+        print("Vectorizing text descriptions (TF-IDF)...")
+        
     if descriptions is None or descriptions.empty or descriptions.nunique() <= 1:
         print("ERROR: invalid input for text feature extraction.")
         return None
@@ -54,8 +63,6 @@ def tf_idf(descriptions: pd.Series, max_words: int, min_df: int = TFIDF_MIN_DF, 
     # max_words, min_df and max_df have delegated checks
 
 
-    if verbose:
-        print("Vectorizing text descriptions (TF-IDF)...")
     try:
         # Ignore common English + Italian stop words, trim the document-frequency tails (min_df/max_df),
         # limit the vocabulary to the most frequent words, and extract single words (unigrams)
@@ -63,6 +70,8 @@ def tf_idf(descriptions: pd.Series, max_words: int, min_df: int = TFIDF_MIN_DF, 
         vectorizer   = TfidfVectorizer(stop_words=STOP_WORDS, max_features=max_words, min_df=min_df, max_df=max_df)
         tfidf_matrix = vectorizer.fit_transform(descriptions)
 
+        if verbose:
+            print("Text descriptions vectorized successfully.")
         return pd.DataFrame(
             tfidf_matrix.toarray(),
             columns = [f"tfidf_{word}" for word in vectorizer.get_feature_names_out()],
@@ -99,6 +108,7 @@ def pca(tfidf: pd.DataFrame, pca_variance: float) -> pd.DataFrame | None:
         pca_features = pca.fit_transform(tfidf.values)
         print(f"PCA kept {pca.n_components_} components ({pca.explained_variance_ratio_.sum():.1%} of the variance).")
 
+        print("PCA compression completed successfully.")
         return pd.DataFrame(
             pca_features,
             columns = [f"text_pca_{i + 1}" for i in range(pca.n_components_)],
@@ -111,7 +121,7 @@ def pca(tfidf: pd.DataFrame, pca_variance: float) -> pd.DataFrame | None:
 
 
 def prepare_dataset(dataset: Path, dead_zone: float, max_words: int, min_df: int, max_df: float,
-            columns: tuple = ("trufor_score", "anomaly_txt", "crowdtangle_score")) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame] | None:
+            columns: tuple = ("trufor_score", "anomaly_txt", "crowdtangle_score")) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, int] | None:
     """
     Shared data preparation for the other classification modules:
     loads the needed columns, drops the dead zone and binarises the engagement label and vectorises the descriptions with TF-IDF.
@@ -127,13 +137,18 @@ def prepare_dataset(dataset: Path, dead_zone: float, max_words: int, min_df: int
         columns:   Columns to load (add "filename" when the caller needs per-post context).
 
     Returns:
-        A (df, y, tfidf) tuple, or None on failure.
+        A (df, y, tfidf, n) tuple, or None on failure.
+        `n` is the row count before the dead-zone cut:.
     """
+
+    print("Preparing the dataset for the classification...")
 
     # Load only the columns needed
     df = load_csv(dataset, list(columns))
     if df is None:
         return None
+    # Read the count before binarize_engagement drops the dead zone, so the report headers can state how many posts the cut actually removed
+    n = len(df)
 
     # Shared dead-zone cut + binarisation (binarize_engagement clamps a negative dead_zone to 0)
     result = binarize_engagement(df, dead_zone)
@@ -146,7 +161,8 @@ def prepare_dataset(dataset: Path, dead_zone: float, max_words: int, min_df: int
     if tfidf is None:
         return None
 
-    return df, y, tfidf
+    print("Dataset prepared successfully.")
+    return df, y, tfidf, n
 
 
 # =============================================================================
@@ -241,7 +257,7 @@ def main():
     len_failed = len(failed)
     print(f"\n{len_scripts - len_failed} of {len_scripts} classification scripts completed successfully.")
     if failed:
-        print(f"{len_failed} of {len_scripts} classification scripts failed: {', '.join(failed)}")
+        print(f"ERROR: {len_failed} of {len_scripts} classification scripts failed: {', '.join(failed)}")
 
 if __name__ == "__main__":
     main()

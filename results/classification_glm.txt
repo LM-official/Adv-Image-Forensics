@@ -2,7 +2,7 @@
 Anomaly Classification - Binomial GLM (inferential)
 =============================================================================
 Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)
-Dead zone    : |score| <= 0.5 (kept 1201 of 1201 posts)
+Dead zone    : |score| <= 0.5 (kept 1201 of 1217 posts)
 Class balance: 585 high / 616 low  (out of 1201)
 TF-IDF       : min_df=10, max_df=0.7, vocabulary 100 words (cap 100)
 The GLM table is in-sample inference: on the raw TF-IDF a regularised fallback is used (no p-values),
@@ -31,8 +31,8 @@ Model:                            GLM   Df Residuals:                     1139
 Model Family:                Binomial   Df Model:                           61
 Link Function:                  Logit   Scale:                          1.0000
 Method:                          IRLS   Log-Likelihood:                -723.17
-Date:                Mon, 27 Jul 2026   Deviance:                       1446.3
-Time:                        15:27:31   Pearson chi2:                 1.16e+03
+Date:                Fri, 31 Jul 2026   Deviance:                       1446.3
+Time:                        17:06:31   Pearson chi2:                 1.16e+03
 No. Iterations:                     6   Pseudo R-squ. (CS):             0.1659
 Covariance Type:            nonrobust                                         
 ================================================================================

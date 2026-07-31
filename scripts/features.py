@@ -295,8 +295,11 @@ def extract_features(image_path: Path) -> dict | None:
         A dict mapping every feature name to a finite float, or None if the image could not be read.
     """
 
+    print("Extracting the visual features of the image...")
+
     bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)
     if bgr is None:
+        print("ERROR: image not found or corrupted.")
         return None
 
     # Aspect ratio is resolution-independent; read it before any resize
@@ -351,6 +354,7 @@ def extract_features(image_path: Path) -> dict | None:
     }
 
     # Replace any non-finite value (e.g. kurtosis of a flat image) with 0
+    print("Visual features extracted successfully.")
     return {name: (float(value) if np.isfinite(value) else 0.0) for name, value in features.items()}
 
 
@@ -367,6 +371,8 @@ def features(dataset: Path = FILTERED_DATASET_FILE, images: Path = FILTERED_IMGS
         None.
     """
 
+    print(f"Updating the dataset with images features...")
+
     if not images.is_dir():
         print("ERROR: images directory not found.")
         return
@@ -378,7 +384,6 @@ def features(dataset: Path = FILTERED_DATASET_FILE, images: Path = FILTERED_IMGS
         return
 
 
-    print(f"Extracting features from {len(imgs)} images...")
     rows = []
     for image in tqdm(imgs, desc="Features"):
         feats = extract_features(image)
@@ -394,10 +399,11 @@ def features(dataset: Path = FILTERED_DATASET_FILE, images: Path = FILTERED_IMGS
     data = pd.DataFrame(rows)
     print(f"Extracted {len(data)} feature rows ({len(FEATURE_NAMES)} features each).")
     update_csv(dataset, data)
+    print("Dataset updated with images features successfully.")
 
 
 # =============================================================================
-# (3) PLOT
+# (2) CORRELATIONS
 # =============================================================================
 
 def _feature_correlations(df: pd.DataFrame, target: str, feature_cols: list[str], method: str) -> pd.Series:
@@ -417,42 +423,41 @@ def _feature_correlations(df: pd.DataFrame, target: str, feature_cols: list[str]
     return pd.Series({columns: df[columns].corr(df[target], method=method) for columns in feature_cols})
 
 
-def plot(dataset: Path = FILTERED_DATASET_FILE, report: Path = IMAGE_FEATURES_FILE, plot: Path = IMAGE_FEATURES_PLOT_FILE,
-         x_target: str = FEATURE_PLOT_X_TARGET, y_target: str = FEATURE_PLOT_Y_TARGET, method: str = FEATURE_CORR_METHOD):
+def correlations(dataset: Path = FILTERED_DATASET_FILE, report: Path = IMAGE_FEATURES_FILE,
+                 x_target: str = FEATURE_PLOT_X_TARGET, y_target: str = FEATURE_PLOT_Y_TARGET,
+                 method: str = FEATURE_CORR_METHOD) -> tuple[pd.Series, pd.Series] | None:
     """
-    Create a plot in whitch every visual feature is a single point whose coordinates are its correlation with
-    the two outcome columns (x_target, y_target).
-    A dashed regression line is fit through the points and a dotted identity line (y = x) is draw. for reference.
-    Also writes a text report listing each feature's (x_corr, y_corr).
+    Correlates every visual feature with the two outcome columns (x_target, y_target)
+    and writes the text report listing each feature's (x_corr, y_corr), sorted by |Y|.
 
     Args:
         dataset:  Dataset CSV (must contain the feature columns and both target columns).
         report:   Output path for the text correlation report.
-        plot:     Output path for the PNG figure.
         x_target: Column used for the X axis correlation (default crowdtangle_score).
         y_target: Column used for the Y axis correlation (default trufor_score).
         method:   Correlation method, "pearson" or "spearman".
 
     Returns:
-        None.
+        A (corr_x, corr_y) tuple of Series indexed by feature name, ready for plot(), or None on failure.
     """
+
+    print(f"Computing {method} correlations features: '{x_target}' (X) and '{y_target}' (Y)...")
 
     df = load_csv(dataset)
     if df is None:
-        return
+        return None
 
     # Only the features actually present in the CSV
     feature_cols = [name for name in FEATURE_NAMES if name in df.columns]
     if not feature_cols:
         print("ERROR: no feature columns in the dataset.")
-        return
+        return None
 
-    print(f"Computing {method} correlations of {len(feature_cols)} features: '{x_target}' (X) and '{y_target}' (Y)...")
     corr_x = _feature_correlations(df, x_target, feature_cols, method)
     corr_y = _feature_correlations(df, y_target, feature_cols, method)
 
 
-    # Eeport (sorted by |Y correlation|, strongest first)
+    # Report (sorted by |Y correlation|, strongest first)
     order = corr_y.abs().sort_values(ascending=False).index
     lines = [f"\t{name:<20} X={corr_x[name]:+.4f}  Y={corr_y[name]:+.4f}" for name in order]
     text = (
@@ -467,13 +472,33 @@ def plot(dataset: Path = FILTERED_DATASET_FILE, report: Path = IMAGE_FEATURES_FI
     )
     save_report(text, report)
 
+    print("Correlations computed successfully.")
+    return corr_x, corr_y
 
-    # Plot
+
+# =============================================================================
+# (3) PLOT
+# =============================================================================
+
+def plot(corr_x: pd.Series, corr_y: pd.Series, plot: Path = IMAGE_FEATURES_PLOT_FILE):
+    """
+    Create a plot in whitch every visual feature is a single point whose coordinates are its correlation with the two outcome columns.
+    A dashed regression line is fit through the points and a dotted identity line (y = x) is draw. for reference.
+
+    Args:
+        corr_x: Correlation of every feature with the X target, from correlations().
+        corr_y: Correlation of every feature with the Y target, indexed like corr_x.
+        plot:   Output path for the PNG figure.
+
+    Returns:
+        None.
+    """
+
     print("Plotting features...")
     # A constant feature (zero variance) has an undefined (NaN) correlation:
     # matplotlib cannot place such a point and np.polyfit would crash on it,
     # so keep only the features with finite correlations
-    plot_cols = [name for name in feature_cols if np.isfinite(corr_x[name]) and np.isfinite(corr_y[name])]
+    plot_cols = [name for name in corr_x.index if np.isfinite(corr_x[name]) and np.isfinite(corr_y[name])]
     if not plot_cols:
         print("ERROR: no features have a defined correlation; nothing to plot.")
         return
@@ -524,7 +549,8 @@ def plot(dataset: Path = FILTERED_DATASET_FILE, report: Path = IMAGE_FEATURES_FI
 def main():
     """
     (1) Extracts visual features for every filtered image and merges them into the dataset CSV,
-    (2) plots (each feature's correlation with the engagement and AI-generated).
+    (2) correlates each feature with the engagement and the AI-generated score (and reports it),
+    (3) plots those correlations against each other.
 
     Args:
         None (arguments are read from the command line via argparse).
@@ -543,8 +569,11 @@ def main():
     # Extract featurs
     features()
 
-    # Plot the features
-    plot(method=args.method)
+    # Correlate the features with both targets, then plot the two correlations against each other
+    corr = correlations(method=args.method)
+    if corr is None:
+        return
+    plot(*corr)
 
 if __name__ == "__main__":
     main()

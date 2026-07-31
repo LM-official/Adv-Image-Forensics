@@ -215,7 +215,7 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
     prep = prepare_dataset(dataset, dead_zone, max_words, min_df, max_df, columns=("trufor_score", "anomaly_txt", "crowdtangle_score", "filename"))
     if prep is None:
         return
-    df, y, tfidf = prep
+    df, y, tfidf, n = prep
     len_y  = len(y)
 
     # Raw TF-IDF (the interpretable words); no PCA on purpose
@@ -245,7 +245,7 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
         f"{'=' * 77}\n"
         "Explains the logistic regression on the Raw TF-IDF features (the words), bypassing the GLM convergence problem.\n"
         "Permutation importance & SHAP are global; LIME is local (per-post).\n"
-        f"Dead zone    : |score| <= {dead_zone:g} (kept {len_y} of {len(df)} posts)\n"
+        f"Dead zone    : |score| <= {dead_zone:g} (kept {len_y} of {n} posts)\n"
         f"Class balance: {int(y.sum())} high / {int((y == 0).sum())} low  (out of {len_y})\n"
         f"TF-IDF       : min_df={min_df}, max_df={max_df:g}, vocabulary {tfidf.shape[1]} words (cap {max_words})\n\n\n"
     )

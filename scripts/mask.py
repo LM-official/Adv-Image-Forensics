@@ -133,6 +133,8 @@ def mask(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, masked: Path = M
         None.
     """
 
+    print("Creating masked images for all images...")
+
     if not images.is_dir() or not npz.is_dir():
         print("ERROR: invalid input directories for creating masked images.")
         return
@@ -145,7 +147,6 @@ def mask(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, masked: Path = M
     masked.mkdir(parents=True, exist_ok = True)
 
     # Masking
-    print("Creating masked images for all images...")
     for item in tqdm(npz.glob("*.npz"), desc="Masking", unit="img"):
         # TruFor appends .npz to the original filename, so .stem is the original image name (with extension)
         image_name = item.stem
@@ -153,7 +154,6 @@ def mask(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, masked: Path = M
         # Load image
         image = cv2.imread(images / image_name)
         if image is None:
-            print("WARNING: image not found or corrupted at path.")
             continue
 
         # Load the anomaly map (where TruFor sees manipulation) and the confidence map (how reliable that is)
@@ -219,19 +219,19 @@ def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
         None.
     """
 
-    if not masked.is_dir():
-        print("ERROR: invalid masked directory for computing the confusion matrix.")
-        return
-
+    print(f"Computing the pixel-level confusion matrix with truth threshold {truth_threshold}...")
+    
     # The ground truth is optional. Without it there is nothing to score against
     if not truth.is_dir():
         print("Skipping mask confusion matrix: no ground-truth directory found.")
         return
-
+    
+    if not masked.is_dir():
+        print("ERROR: invalid masked directory for computing the confusion matrix.")
+        return
+    
 
     # Compute performance
-    print(f"Computing the pixel-level confusion matrix with truth threshold {truth_threshold}...")
-
     # Global pixel counters (every pixel of every image is one sample)
     # true positives  (manipulated pixel -> correctly kept)
     # true negatives  (authentic pixel -> correctly removed)
@@ -241,17 +241,15 @@ def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
 
     # Per-image IoU, to spot which masks are wrong (the global counters alone hide them)
     ious = []
-    for item in masked.iterdir():
+    for item in tqdm(masked.iterdir(), desc="Comparing masks", unit="img"):
         # Load masked image
         image = cv2.imread(item)
         if image is None:
-            print("WARNING: masked image not found or corrupted.")
             continue
 
         # Load the matching ground-truth mask
         truth_mask = cv2.imread(truth / f"{item.stem}.jpg", cv2.IMREAD_GRAYSCALE)
         if truth_mask is None:
-            print("WARNING: ground-truth mask not found or corrupted at path.")
             continue
 
         # Prediction: masked-out pixels are exactly 0, so a pixel is predicted manipulated when any channel is non-zero
@@ -335,7 +333,18 @@ def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
     iou      = tp / (tp + fp + fn) if (tp + fp + fn) > 0 else 1.0
     mean_iou = sum(value for _, value in ious) / len(ious)
 
-    print("Confusion matrix computed successfully.")
+    """
+    all-positive baseline:
+    What a mask that simply kept every pixel would score. None of the metrics above mean anything without it:
+    the trivial answer gets easier the more of the canvas the ground truth paints as manipulated, so the
+    baseline is a property of the annotation and the pipeline's score is only readable next to it.
+    Precision, accuracy and IoU all collapse to the positive-pixel rate, and recall is 1 by construction.
+    Scoring below the baseline is not by itself a localization failure: a prediction that sits inside the annotated region
+    but is tighter than it loses recall against a loosely drawn truth while still pointing at the right place.
+    """
+    positives     = tp + fn # pixels the truth calls manipulated
+    positive_rate = positives / total if total > 0 else 0.0
+    base_f1       = 2 * positive_rate / (positive_rate + 1) if positive_rate > 0 else 0.0
 
     # Report
     text = (
@@ -345,12 +354,20 @@ def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
         f"Total images analyzed: {len(ious)}\n"
         f"Total pixels analyzed: {total}\n"
         f"Truth threshold: {truth_threshold}\n\n"
-        f"Accuracy  :\t{accuracy:.2%}\t(percentage of correctly classified pixels)\n"
-        f"Precision :\t{precision:.2%}\t(reliability of the kept pixels)\n"
-        f"Recall    :\t{recall:.2%}\t(ability to keep all the manipulated pixels)\n"
-        f"F1-score  :\t{f1_score:.4f}\t(final harmonic mean)\n"
-        f"IoU       :\t{iou:.4f}\t(overlap / union of the manipulated regions, all pixels pooled)\n"
-        f"Mean IoU  :\t{mean_iou:.4f}\t(average of the per-image IoU below)\n\n"
+        f"Manipulated pixels in the truth: {positive_rate:.2%}\n\n"
+        f"  {'metric':<10} {'pipeline':>10}  {'all-positive baseline':>22}\n"
+        f"  {'-' * 45}\n"
+        f"  {'Accuracy':<10} {accuracy:>9.2%}  {positive_rate:>21.2%}\t(correctly classified pixels)\n"
+        f"  {'Precision':<10} {precision:>9.2%}  {positive_rate:>21.2%}\t(reliability of the kept pixels)\n"
+        f"  {'Recall':<10} {recall:>9.2%}  {1.0:>21.2%}\t(ability to keep all the manipulated pixels)\n"
+        f"  {'F1-score':<10} {f1_score:>9.4f}  {base_f1:>21.4f}\t(final harmonic mean)\n"
+        f"  {'IoU':<10} {iou:>9.4f}  {positive_rate:>21.4f}\t(overlap / union, all pixels pooled)\n"
+        f"  {'Mean IoU':<10} {mean_iou:>9.4f}  {'-':>21}\t(average of the per-image IoU below)\n\n"
+        "The baseline column is what 'keep every pixel' would score: it rises with the share of the truth painted manipulated,\n"
+        "so it says how hard the trivial answer is to beat on this ground truth.\n"
+        "Read the two columns together. Precision above recall means the predicted masks sit inside the drawn regions but are tighter than them\n"
+        "- a difference of granularity, not a failure to localise;\n"
+        "recall above precision means the opposite, the masks spill outside the annotated regions.\n\n"
         "Confusion matrix (pixels):\n"
         f"True positives  :\t{tp}\n"
         f"True negatives  :\t{tn}\n"
@@ -366,6 +383,7 @@ def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
 
     # Save
     save_report(text, report)
+    print("Confusion matrix computed successfully.")
 
 
 # =============================================================================

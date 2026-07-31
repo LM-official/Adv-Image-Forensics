@@ -60,6 +60,7 @@ def glm(title: str, X: pd.DataFrame, y: pd.Series, alpha: float = GLM_ALPHA, l1_
             # McFadden pseudo-R2 from the deviance: deviance = -2*LL, so 1 - dev/null_dev = 1 - LL/LL_null
             pseudo_r2 = 1 - glm.deviance / glm.null_deviance
 
+            print(f"Binomial GLM ({title}) fitted successfully.")
             return (
                 f"=== {title} - binomial GLM (logit link) ===\n"
                 f"In-sample McFadden pseudo-R2: {pseudo_r2:.4f}\n\n"
@@ -87,6 +88,7 @@ def glm(title: str, X: pd.DataFrame, y: pd.Series, alpha: float = GLM_ALPHA, l1_
                 up     = ", ".join(f"{name} ({value:+.3f})" for name, value in alive.tail(top_n)[::-1].items())
                 down   = ", ".join(f"{name} ({value:+.3f})" for name, value in alive.head(top_n).items())
 
+                print(f"Binomial GLM ({title}) fitted successfully (elastic-net regularised fallback).")
                 return (
                     f"=== {title} - binomial GLM (logit link, elastic-net regularised) ===\n"
                     "The plain GLM did not converge (quasi-complete separation), so this is a regularised fit:\n"
@@ -99,6 +101,7 @@ def glm(title: str, X: pd.DataFrame, y: pd.Series, alpha: float = GLM_ALPHA, l1_
                     f"  down: {down}"
                 )
 
+        print(f"ERROR: the binomial GLM ({title}) did not converge, its coefficients and p-values are not interpretable.")
         return (
             f"=== {title} - binomial GLM (logit link) ===\n"
             "Skipped: the unregularised GLM did not converge (quasi-complete separation on the sparse TF-IDF features),\n"
@@ -110,6 +113,7 @@ def glm(title: str, X: pd.DataFrame, y: pd.Series, alpha: float = GLM_ALPHA, l1_
         )
 
     except Exception as e:
+        print(f"ERROR: during the binomial GLM ({title}): {e}")
         return f"=== {title} - binomial GLM (logit link) ===\nERROR: {e}"
 
 
@@ -137,6 +141,8 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = GLM_CLASSIFIC
         None.
     """
 
+    print("Computing binomial GLM of anomaly descriptions...")
+
     # Clamp to 0 (kept for a consistent header; binarize_engagement clamps internally too)
     if dead_zone < 0:
         dead_zone = 0
@@ -155,7 +161,7 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = GLM_CLASSIFIC
     prep = prepare_dataset(dataset, dead_zone, max_words, min_df, max_df)
     if prep is None:
         return
-    df, y, tfidf = prep
+    df, y, tfidf, n = prep
 
     # Two feature variants: the raw TF-IDF columns and their PCA-compressed version
     variants = [("Raw TF-IDF", tfidf)]
@@ -179,13 +185,14 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = GLM_CLASSIFIC
         "Anomaly Classification - Binomial GLM (inferential)\n"
         f"{'=' *77}\n"
         f"Target label : crowdtangle_score > 0 (over-performed) vs < 0 (under-performed)\n"
-        f"Dead zone    : |score| <= {dead_zone:g} (kept {len_y} of {len(df)} posts)\n"
+        f"Dead zone    : |score| <= {dead_zone:g} (kept {len_y} of {n} posts)\n"
         f"Class balance: {int(y.sum())} high / {int((y == 0).sum())} low  (out of {len_y})\n"
         f"TF-IDF       : min_df={min_df}, max_df={max_df:g}, vocabulary {tfidf.shape[1]} words (cap {max_words})\n"
         "The GLM table is in-sample inference: on the raw TF-IDF a regularised fallback is used (no p-values),\n"
         "on the PCA-compressed features the plain GLM converges (valid p-values).\n\n\n"
     )
     save_report(header + "\n\n\n".join(sections), report)
+    print("Binomial GLM of anomaly descriptions computed successfully.")
 
 
 # =============================================================================
@@ -277,6 +284,8 @@ def grid_search(dataset: Path = FILTERED_DATASET_FILE, report: Path = GRID_SEARC
         None.
     """
 
+    print(f"Grid search: min_df/max_df pairs x regularization grid...")
+    
     # Clamp to 0
     if dead_zone < 0:
         dead_zone = 0
@@ -315,10 +324,8 @@ def grid_search(dataset: Path = FILTERED_DATASET_FILE, report: Path = GRID_SEARC
 
     # The vectorization only depends on min_df/max_df, so build it once per pair and reuse it for every (alpha, L1_wt) of the inner loop
     pairs = list(itertools.product(min_dfs, max_dfs))
-    len_pairs = len(pairs)
     rows  = []
 
-    print(f"Grid search: {len_pairs} min_df/max_df pairs x regularization grid...")
     for min_df, max_df in tqdm(pairs, desc="Grid search", unit="pair"):
         tfidf = tf_idf(df["anomaly_txt"], max_words, min_df, max_df, verbose=False)
 
@@ -398,6 +405,7 @@ def grid_search(dataset: Path = FILTERED_DATASET_FILE, report: Path = GRID_SEARC
         + (("\n\nDid not converge / impossible:\n" + "\n".join(_row(row) for row in failed)) if failed else "")
     )
     save_report(text, report)
+    print("Grid search completed successfully.")
 
 
 # =============================================================================

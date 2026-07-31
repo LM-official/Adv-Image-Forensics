@@ -10,7 +10,7 @@ import unicodedata
 # TEXT HELPERS
 # =============================================================================
 
-def clean_text(text: str, dedup_words: bool, fallback: str = "") -> str:
+def clean_text(text: str, dedup_words: bool) -> str:
     """
     Forces model-generated text (BLIP caption or OCR words) to letters only and (optionally) drops repeated words.
 
@@ -28,8 +28,11 @@ def clean_text(text: str, dedup_words: bool, fallback: str = "") -> str:
         The cleaned text, or fallback if nothing survives.
     """
 
+    print("Cleaning text...")
+
     if not text:
-        return fallback
+        print("ERROR: no text to clean.")
+        return ""
 
     # Fold accents to plain ascii so the a-z filter keeps the whole word
     text  = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
@@ -41,7 +44,12 @@ def clean_text(text: str, dedup_words: bool, fallback: str = "") -> str:
         seen  = set()
         words = [word for word in words if not (word in seen or seen.add(word))]
     cleaned = " ".join(words)
-    return cleaned if cleaned else fallback
+    if not cleaned:
+        print("ERROR: nothing left after cleaning the text.")
+        return ""
+
+    print("Text cleaned successfully.")
+    return cleaned
 
 
 def save_report(text: str, path: Path):
@@ -56,10 +64,12 @@ def save_report(text: str, path: Path):
         None.
     """
     
+    print("Saving report...")
+
     if not text:
         print("ERROR: No text to save in the report.")
         return
-    
+
     # Save
     # Create the output directories if they don't exist
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -71,36 +81,6 @@ def save_report(text: str, path: Path):
 # =============================================================================
 # CSV HELPERS
 # =============================================================================
-
-def update_csv(csv: Path, data: pd.DataFrame, rename: dict[str, str] | None = None):
-    """
-    Merges a DataFrame into the CSV and saves it back to the same file.
-
-    Merges on the 'filename' column.
-
-    Args:
-        csv:     Path to the CSV file.
-        data:    DataFrame to merge into the dataset.
-        rename:  Optional mapping to rename columns before merging.
-    """
-
-    df = load_csv(csv)
-    if df is None:
-        return
-    
-    # Update
-    print("Updating CSV...")
-    if rename:
-        data = data.rename(columns=rename)
-    # Drop columns already present in the dataset (except the merge key) so the incoming values replace the old ones instead of producing _x/_y duplicates
-    overlap = [col for col in data.columns if col != "filename" and col in df.columns]
-    df = df.drop(columns=overlap)
-    df = pd.merge(df, data, on="filename", how="inner")
-    # Keep the dataset dense: drop any row that has an empty/null value
-    df = df.dropna()
-    df.to_csv(csv, index=False, encoding="utf-8")
-    print("CSV updated successfully.")
-
 
 def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None:
     """
@@ -129,6 +109,37 @@ def load_csv(csv: Path, columns: list[str] | None = None) -> pd.DataFrame | None
         return None
 
 
+def update_csv(csv: Path, data: pd.DataFrame, rename: dict[str, str] | None = None):
+    """
+    Merges a DataFrame into the CSV and saves it back to the same file.
+
+    Merges on the 'filename' column.
+
+    Args:
+        csv:     Path to the CSV file.
+        data:    DataFrame to merge into the dataset.
+        rename:  Optional mapping to rename columns before merging.
+    """
+
+    print("Updating CSV...")
+
+    df = load_csv(csv)
+    if df is None:
+        return
+
+    # Update
+    if rename:
+        data = data.rename(columns=rename)
+    # Drop columns already present in the dataset (except the merge key) so the incoming values replace the old ones instead of producing _x/_y duplicates
+    overlap = [col for col in data.columns if col != "filename" and col in df.columns]
+    df = df.drop(columns=overlap)
+    df = pd.merge(df, data, on="filename", how="inner")
+    # Keep the dataset dense: drop any row that has an empty/null value
+    df = df.dropna()
+    df.to_csv(csv, index=False, encoding="utf-8")
+    print("CSV updated successfully.")
+
+
 # =============================================================================
 # STATISTIC HELPERS
 # =============================================================================
@@ -151,6 +162,8 @@ def binarize_engagement(df: pd.DataFrame, dead_zone: float) -> tuple[pd.DataFram
         or None if no usable posts remain.
     """
 
+    print("Binarising the engagement target...")
+
     # Negatives are meaningless: clamp them to 0. 0 disables the cut and keeps every post
     if dead_zone < 0:
         dead_zone = 0
@@ -165,6 +178,7 @@ def binarize_engagement(df: pd.DataFrame, dead_zone: float) -> tuple[pd.DataFram
     # Binarise the target: 1 = over-performed (score > 0), 0 = under-performed (score <= 0)
     # With the dead zone removed every remaining post sits clearly on one side
     y = (df["crowdtangle_score"] > 0).astype(int)
+    print("Engagement target binarised successfully.")
     return df, y
 
 
@@ -186,8 +200,10 @@ def load_npz(npz: Path, columns: set[str]) -> pd.DataFrame | None:
         A single-row DataFrame with the requested columns, or None on failure.
     """
     
+    #print("Loading .npz file...")
+
     if not columns or any(col not in NPZ_COLS for col in columns):
-        print(f"WARNING: Invalid .npz file or columns. Expected a non-empty subset of: {NPZ_COLS}")
+        #print(f"ERROR: Invalid .npz file or columns. Expected a non-empty subset of: {NPZ_COLS}")
         return None
 
 
@@ -200,9 +216,10 @@ def load_npz(npz: Path, columns: set[str]) -> pd.DataFrame | None:
             for col in columns:
                 value = data[col]
                 result[col] = float(value) if value.ndim == 0 else value.tolist()
+        #print(".npz file loaded successfully.")
         return pd.DataFrame([result])
-    except Exception as e:
-        print(f"WARNING: reading npz: {e}")
+    except Exception:
+        #print(f"ERROR: reading npz: {e}")
         return None
 
 
@@ -220,12 +237,13 @@ def load_npzs(npzs: Path, columns: set[str]) -> pd.DataFrame | None:
         A DataFrame where each row is one .npz file, or None on failure.
     """
 
+    print("Loading .npz files...")
+
     if not npzs.is_dir():
         print("ERROR: Invalid directory.")
         return None
 
     # Extracting values
-    print("Extracting values from .npz file...")
     result = []
     for item in npzs.glob("*.npz"):
         df = load_npz(item, columns)
@@ -238,5 +256,5 @@ def load_npzs(npzs: Path, columns: set[str]) -> pd.DataFrame | None:
         print("ERROR: No valid .npz files found.")
         return None
 
-    print("Values extracted successfully.")
+    print(".npz files loaded successfully.")
     return pd.DataFrame(result)

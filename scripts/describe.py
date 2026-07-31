@@ -211,7 +211,6 @@ def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGe
             # Force the image to be read in color mode
             image = cv2.imread(image_path, cv2.IMREAD_COLOR)
             if image is None:
-                print("WARNING: image not found or corrupted.")
                 continue
 
             # (Near-)all-black mask: TruFor found no confident manipulation. Skip BLIP (it would hallucinate) and assign a fixed, non-empty label
@@ -226,8 +225,7 @@ def _describe_images_batch(processor: BlipProcessor, model: BlipForConditionalGe
             # An OCR failure on one image must not lose the whole batch: degrade to caption-only and keep going
             try:
                 words = read_text(reader, image) if reader else ""
-            except Exception as e:
-                print(f"WARNING: OCR failed ({e}): describing with the caption only.")
+            except Exception:
                 words = ""
 
             # Hugging Face processors accept numpy arrays directly in RGB format
@@ -296,6 +294,9 @@ def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE,
     Returns:
         None.
     """
+
+    print("Describing masked images...")
+
     if not dataset.is_file() or not masked.is_dir():
         print("ERROR: invalid dataset.")
         return
@@ -350,7 +351,6 @@ def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE,
 
 
     # Generating descriptions
-    print("Describing masked images...")
     # Seed once per run: captions stay diverse across images but a full rerun reproduces them
     if do_sample and seed >= 0:
         torch.manual_seed(seed)
@@ -363,6 +363,9 @@ def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE,
         if descriptions:
             update_csv(dataset, pd.DataFrame(descriptions, columns=["filename", "anomaly_txt"]))
             _report_descriptions(descriptions)
+            print("Masked images described successfully.")
+        else:
+            print("ERROR: no descriptions were generated.")
         return
 
     # Process images in chunks of size = batch_size: caption -> append to the checkpoint -> free memory
@@ -383,12 +386,16 @@ def describe_images(use_ocr: bool = True, dataset: Path = FILTERED_DATASET_FILE,
     # Merge every description (any resumed + this run) into the dataset in one pass, then drop the checkpoint
     desc_df = load_csv(temp)
     if desc_df is None:
+        # Delete temp file
+        temp.unlink(missing_ok=True)
         print("ERROR: no descriptions were generated.")
-    else:
-        update_csv(dataset, desc_df)
-        _report_descriptions(list(desc_df.itertuples(index=False, name=None)))
+        return
+
+    update_csv(dataset, desc_df)
+    _report_descriptions(list(desc_df.itertuples(index=False, name=None)))
     # Delete temp file
     temp.unlink(missing_ok=True)
+    print("Masked images described successfully.")
 
 
 # =============================================================================
@@ -446,8 +453,10 @@ def read_text(reader: easyocr.Reader, image: np.ndarray,
         The recognized words joined by spaces, or "" when the region contains no readable text.
     """
     
+    print("Reading the text printed in the altered region (OCR)...")
+
     if max_words < 0:
-        print(f"max_words must be non-negative, got {max_words}")
+        print(f"ERROR: max_words must be non-negative, got {max_words}")
         return ""
 
 
@@ -471,6 +480,7 @@ def read_text(reader: easyocr.Reader, image: np.ndarray,
             break
 
     # Keep the kept words most-confident first
+    print("Text read successfully.")
     return " ".join(ordered)
 
 
@@ -505,7 +515,6 @@ def main():
     parser.add_argument("--no-ocr", dest="use_ocr", action="store_false", help="Caption only: do not merge the OCR words of the altered region into the descriptions.")
     parser.set_defaults(use_ocr=OCR_ENABLED, do_sample=DESCRIPTION_DO_SAMPLE)
     args = parser.parse_args()
-
 
     # Describe
     describe_images(use_ocr=args.use_ocr, batch_size=args.batch_size, do_sample=args.do_sample)

@@ -7,6 +7,7 @@ import numpy           as     np
 import pandas          as     pd
 from   pathlib         import Path
 from   scipy.stats     import pearsonr, spearmanr
+from   sklearn.metrics import roc_auc_score
 import statsmodels.api as     sm
 import subprocess
 import sys
@@ -79,6 +80,8 @@ def run_trufor(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, trufor_run
         True if every batch completed successfully, False otherwise.
     """
 
+    print("Running TruFor on the images...")
+
     if not images.is_dir() or not trufor_run.is_file():
         print("ERROR: Invalid images directory or TruFor run file.")
         return
@@ -89,6 +92,7 @@ def run_trufor(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, trufor_run
     # No batch
     if batch_size <= 0:
         _run_trufor_batch(images, npz, trufor_run)
+        print("TruFor run successfully.")
         return
 
     # TruFor skips already analyzed images
@@ -112,7 +116,7 @@ def run_trufor(images: Path = FILTERED_IMGS_DIR, npz: Path = NPZ_DIR, trufor_run
         if i < batches and wait > 0:
             time.sleep(wait)
 
-    print("Batches computed successufully.")
+    print("TruFor batches computed successfully.")
 
 
 # =============================================================================
@@ -168,6 +172,8 @@ def confusion_matrix(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_
         None.
     """
 
+    print(f"Computing performance...")
+
     if not dataset.is_file() or not (0.0 <= threshold <= 1.0):
         print("ERROR: Invalid input parameters.")
         return
@@ -194,18 +200,17 @@ def confusion_matrix(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_
     df_score = load_csv(dataset, ["filename", "trufor_score"])
     if df_score is None:
         return
-    
+
 
     # Merge
     df = pd.merge(df, df_score, on="filename", how="inner")
     if df is None or df.empty:
         print("ERROR: No valid data after merging scores and truth.")
         return
+    len_df = len(df)
 
 
     # Compute performance
-    print(f"Computing performance with threshold {threshold:.2f}...")
-
     # Vectorized prediction: 1 if trufor_score > threshold, else 0
     df["prediction"] = (df["trufor_score"] > threshold).astype(int)
 
@@ -226,7 +231,7 @@ def confusion_matrix(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_
     (both true positives and true negatives) to the total number of observations.
     It can be misleading if the dataset is imbalanced.
     """
-    accuracy = (tp + tn) / len(df)
+    accuracy = (tp + tn) / len_df
 
     """
     precision:
@@ -257,20 +262,67 @@ def confusion_matrix(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_
     # precision + recall > 0 check to avoid division by zero when both precision and recall are zero
     f1_score = 2 * ((precision * recall) / (precision + recall)) if (precision + recall) > 0 else 0.0
 
-    print("Confusion matrix computed successfully.")
+    """
+    majority-class baseline:
+    The accuracy reached by always answering with whichever label is more frequent in the truth file, without looking the images.
+    Accuracy is not interpretable on its own: on an unbalanced ground truth a detector that blindly answers the majority class
+    already scores the share of that class, so only the excess over this line is evidence that the detector works.
+    When accuracy sits at the baseline it has shown nothing.
+    """
+    positives = tp + fn # images actually manipulated
+    negatives = tn + fp # images actually real
+    baseline  = max(positives, negatives) / len_df if len_df > 0 else 0.0
+
+    """
+    ROC AUC:
+    Probability that a randomly chosen manipulated image scores higher than a randomly chosen real one.
+    The four metrics above read `prediction`, so thresholding has already collapsed the score to 0/1 and
+    two images on the same side of the cut become indistinguishable;
+    this reads `trufor_score` directly and keeps the whole ranking.
+    It therefore answers a different question - does the score separate the two classes at all? -
+    independently of whether the chosen threshold cuts it in a good place.
+    An AUC of one half means chance, 1.0 a perfect ranking.
+    """
+    # Needs both classes present, otherwise the ranking is undefined
+    auc = roc_auc_score(df["label"], df["trufor_score"]) if 0 < positives < len_df else float("nan")
+
+    # Threshold sweep: the default cut is inherited from TruFor's own evaluation, it is not tuned on this dataset,
+    # so it is a choice and not a result.
+    # Recomputing the metrics across a range of cuts separates what the detector can do from what the particular cut happens to give.
+    sweep = []
+    for cut in np.arange(0.20, 0.55, 0.05):
+        prediction = (df["trufor_score"] > cut).astype(int)
+        s_tp = int(((df["label"] == 1) & (prediction == 1)).sum())
+        s_tn = int(((df["label"] == 0) & (prediction == 0)).sum())
+        s_fp = int(((df["label"] == 0) & (prediction == 1)).sum())
+        s_fn = int(((df["label"] == 1) & (prediction == 0)).sum())
+        s_precision = s_tp / (s_tp + s_fp) if (s_tp + s_fp) > 0 else 0.0
+        s_recall    = s_tp / (s_tp + s_fn) if (s_tp + s_fn) > 0 else 0.0
+        s_f1        = 2 * ((s_precision * s_recall) / (s_precision + s_recall)) if (s_precision + s_recall) > 0 else 0.0
+        sweep.append((cut, (s_tp + s_tn) / len_df, s_precision, s_recall, s_f1))
 
     # Report
     text = (
         f"{'=' * 77}\n"
         "TRUFOR CONFUSION MATRIX\n"
         f"{'=' * 77}\n"
-        f"Total files analyzed: {len(df)}\n"
+        f"Total files analyzed: {len_df}\n"
+        f"Truth balance: {positives} manipulated / {negatives} real\n"
         f"Threshold: {threshold:.2f}\n\n"
+        f"ROC AUC   :\t{auc:.4f}\t(threshold-independent: does the score separate the classes at all? one half = chance)\n\n"
+        f"At threshold {threshold:.2f}:\n"
         f"Accuracy  :\t{accuracy:.2%}\t(percentage of correct predictions)\n"
+        f"Baseline  :\t{baseline:.2%}\t(always answering the majority class - accuracy is only meaningful above this)\n"
         f"Precision :\t{precision:.2%}\t(reliability when it claims 'It is AI')\n"
         f"Recall    :\t{recall:.2%}\t(sensitivity, ability to detect all AI images)\n"
         f"F1-score  :\t{f1_score:.4f}\t(final harmonic mean)\n\n"
-        "Confusion matrix:\n"
+        "Threshold sweep (the cut above is TruFor's own default, it is not tuned on this dataset):\n"
+        f"  {'cut':>5}  {'accuracy':>9}  {'precision':>10}  {'recall':>8}  {'F1':>7}\n"
+        f"  {'-' * 46}\n"
+        + "".join(f"  {cut:>5.2f}  {acc:>8.2%}  {prec:>9.2%}  {rec:>7.2%}  {f1:>7.4f}"
+                  f"{'   <- reported above' if abs(cut - threshold) < 1e-9 else ''}\n"
+                  for cut, acc, prec, rec, f1 in sweep)
+        + "\nConfusion matrix:\n"
         f"True positives  :\t{tp}\n"
         f"True negatives  :\t{tn}\n"
         f"False positives :\t{fp}\t(real mistaken for AI)\n"
@@ -291,6 +343,7 @@ def confusion_matrix(dataset: Path = FILTERED_DATASET_FILE, truth: Path = TRUTH_
 
     # Save
     save_report(text, report)
+    print("Confusion matrix computed successfully.")
 
 
 # =============================================================================
@@ -309,6 +362,8 @@ def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATIO
         None.
     """
 
+    print("Calculating correlation between TruFor scores and Crowdtangle scores...")
+
     # Load dataset
     df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
     if df is None:
@@ -320,8 +375,6 @@ def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATIO
 
     
     # Correlation
-    print("Calculating correlation between TruFor scores and Crowdtangle scores...")
-    
     """
     Pearson Correlation: Measures linearity. It asks, 'Do these data points form a perfectly straight line?'
     It calculates using exact numbers, making it very sensitive to extreme outliers.
@@ -335,8 +388,7 @@ def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATIO
     """
     # Spearman correlation (measures monotonic relationship / rank-based)
     spearman_corr, p_value_s = spearmanr(df["trufor_score"], df["crowdtangle_score"])
-    print("Correlation calculated successfully.")
-    
+
 
     # Report
     text = (
@@ -350,6 +402,7 @@ def correlation(dataset: Path = FILTERED_DATASET_FILE, report: Path = CORRELATIO
 
     # Save
     save_report(text, report)
+    print("Correlation computed successfully.")
 
 
 # =============================================================================
@@ -367,6 +420,8 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_
     Returns:
         None.
     """
+
+    print("Calculating regression between TruFor Scores and Crowdtangle scores...")
     
     # Load dataset
     df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
@@ -378,8 +433,6 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_
 
 
     # Regression
-    print("Calculating regression between TruFor Scores and Crowdtangle scores...")
-    
     # Independent variable (X): What we use to predict
     X = df["trufor_score"]
     # In statsmodels, we must explicitly add a constant to X to calculate the intercept (q in y = mx + q)
@@ -405,8 +458,7 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_
     """
     # Define and fit the Ordinary Least Squares (OLS) model
     model = sm.OLS(Y, X).fit()
-    print("Regression calculated successfully.")
-    
+
 
     # Report
     text = (
@@ -418,6 +470,7 @@ def regression(dataset: Path = FILTERED_DATASET_FILE, report: Path = REGRESSION_
 
     # Save
     save_report(text, report)
+    print("Regression computed successfully.")
 
 
 # =============================================================================
@@ -438,6 +491,8 @@ def glm(dataset: Path = FILTERED_DATASET_FILE, report: Path = GLM_FILE, dead_zon
         None.
     """
 
+    print("Fitting binomial GLM (logit link) between TruFor scores and Crowdtangle scores...")
+    
     # Load dataset
     df = load_csv(dataset, ["trufor_score", "crowdtangle_score"])
     if df is None:
@@ -459,7 +514,6 @@ def glm(dataset: Path = FILTERED_DATASET_FILE, report: Path = GLM_FILE, dead_zon
 
 
     # GLM
-    print("Fitting binomial GLM (logit link) between TruFor scores and Crowdtangle scores...")
     try:
         # add_constant adds the intercept column; Binomial() defaults to the logit link
         model     = sm.GLM(y, sm.add_constant(df["trufor_score"]), family=sm.families.Binomial()).fit()
@@ -474,7 +528,6 @@ def glm(dataset: Path = FILTERED_DATASET_FILE, report: Path = GLM_FILE, dead_zon
 
     # McFadden pseudo-R2 from the deviance: deviance = -2*LL, so 1 - dev/null_dev = 1 - LL/LL_null
     pseudo_r2 = 1 - model.deviance / model.null_deviance
-    print("GLM fitted successfully.")
 
 
     # Report
@@ -491,6 +544,7 @@ def glm(dataset: Path = FILTERED_DATASET_FILE, report: Path = GLM_FILE, dead_zon
 
     # Save
     save_report(text, report)
+    print("GLM fitted successfully.")
 
 
 # =============================================================================
@@ -524,7 +578,6 @@ def main():
     # GLM
     parser.add_argument("--dead-zone", type=float, default=ENGAGEMENT_DEAD_ZONE, help=f"Drop posts with |crowdtangle_score| <= this (the distribution's valley) before binarising; 0 disables the cut. Default: {ENGAGEMENT_DEAD_ZONE}")
     args = parser.parse_args()
-    
 
     # =============================================================================
     # (1) RUN TRUFOR AND UPDATE DATASET

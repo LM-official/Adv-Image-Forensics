@@ -51,7 +51,7 @@ NPZ_COLS          = frozenset(("map", "imgsize", "score", "conf"))
 # Confusion matrix
 TRUTH_FILE                   = TEMP_DIR / "trufor_truth.csv"
 TRUFOR_CONFUSION_MATRIX_FILE = TEMP_DIR / "trufor_confusion_matrix.txt"
-TRUFOR_THRESHOLD             = 0.5
+TRUFOR_THRESHOLD             = 0.25
 
 # Correlation, regression and GLM Trufor score - Crowdtangle score
 CORRELATION_FILE = TEMP_DIR / "trufor_crowdtangle_correlation.txt"
@@ -107,6 +107,7 @@ MASK_MORPH_KERNEL         = 9
 MASK_MIN_AREA_RATIO       = 0.002
 
 # Confusion matrix
+# Optional extra: computed only when a hand-made ground truth is present, the pipeline does not need it
 # Ground-truth: white = manipulated, black = authentic
 MASKED_TRUTH_DIR           = TEMP_DIR / "masked_truth"
 MASK_CONFUSION_MATRIX_FILE = TEMP_DIR / "mask_confusion_matrix.txt"
@@ -125,7 +126,7 @@ MASK_TRUTH_THRESHOLD       = 127
 DESCRIPTION_REPORT_FILE        = TEMP_DIR / "description_report.txt"
 DESCRIPTION_TEMP_FILE          = TEMP_DIR / "description_temp.csv"
 DESCRIPTION_MODEL              = "Salesforce/blip-image-captioning-large"
-DESCRIPTION_BATCH_SIZE         = 25
+DESCRIPTION_BATCH_SIZE         = 30
 # Wait time (seconds) after each batch
 DESCRIPTION_WAIT               = 25
 # Length of the BLIP caption
@@ -150,7 +151,10 @@ DESCRIPTION_NO_REPEAT_NGRAM    = 2
 DESCRIPTION_CROP               = True
 # if the non-black pixel fraction is <= this, skip BLIP and write EMPTY_MASK_LABEL
 EMPTY_MASK_PIXEL_RATIO         = 0.02
-EMPTY_MASK_LABEL               = "empty"
+# Must not be an English or Italian stop word: classification_home.STOP_WORDS is handed to the TF-IDF vectorizer
+# otherwise the sentinel will be stripped and every mask-less post became an all-zero row - indistinguishable from a caption of pure stop words
+# mask lable must survive clean_text and carries the "TruFor found nothing here" case into the model
+EMPTY_MASK_LABEL               = "nomask"
 # Drop duplicate consecutive words
 DESCRIPTION_DEDUP_WORDS        = True
 # Number of most frequent words shown in the report
@@ -248,5 +252,6 @@ EXPLAIN_N_SAMPLES   = 5
 # 2. + the visual features (whole-image craft),
 # 3. + the TF-IDF description of the altered region compressed by PCA
 VISUAL_TEXT_CLASSIFICATION_FILE = TEMP_DIR / "classification_visual_text.txt"
-# Significance markers used in the visual-feature digest (p < .05 / .01 / .001)
+# Significance markers used in the visual-feature digest,
+# read against the Benjamini-Hochberg q-values (FDR < .05 / .01 / .001), not the raw p-values
 VISUAL_SIGNIFICANCE_LEVELS      = ((0.001, "***"), (0.01, "**"), (0.05, "*"))

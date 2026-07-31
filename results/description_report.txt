@@ -1,2 +1,2 @@
-Description summary: 1211 images of which 306 empty; words per description min/median/max = 1/13/35
-Most frequent words: a x872, is x732, of x674, there x665, in x415, man x403, with x392, and x307, picture x253, poster x200
+Description summary: 1211 images of which 313 empty; words per description min/median/max = 1/13/36
+Most frequent words: a x865, is x727, of x666, there x659, in x415, man x401, with x395, and x309, picture x246, poster x199

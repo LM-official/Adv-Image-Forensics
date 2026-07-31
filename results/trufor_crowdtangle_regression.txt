@@ -6,8 +6,8 @@ REGRESSION TRUFOR SCORE - CROWDTANGLE SCORE
 Dep. Variable:      crowdtangle_score   R-squared:                       0.003
 Model:                            OLS   Adj. R-squared:                  0.002
 Method:                 Least Squares   F-statistic:                     3.160
-Date:                Thu, 23 Jul 2026   Prob (F-statistic):             0.0757
-Time:                        15:22:20   Log-Likelihood:                -5591.8
+Date:                Thu, 30 Jul 2026   Prob (F-statistic):             0.0757
+Time:                        16:07:17   Log-Likelihood:                -5591.8
 No. Observations:                1217   AIC:                         1.119e+04
 Df Residuals:                    1215   BIC:                         1.120e+04
 Df Model:                           1                                         
