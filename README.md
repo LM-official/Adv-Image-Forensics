@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🔍 AI Forensics in Advertising
+# 🔍 Forensics Image in Advertising
 
 **A TruFor-based pipeline for detecting image manipulation in social-media advertising, written in Python.**
 It scores how likely each image is manipulated, describes what was altered, and relates manipulation to engagement.
@@ -28,6 +28,8 @@ On the full dataset (~1,200 photo posts):
 ![Engagement (CrowdTangle) score distribution — bimodal, with a low-density valley at 0 and long outlier tails](results/dataset_distribution.png)
 
 ![Visual features plotted by their correlation with engagement (X) and the manipulation score (Y)](results/images_features.png)
+
+![Word-effect bubble chart — horizontal position is the logistic coefficient (right of zero raises engagement, left lowers it), vertical is the share of posts containing the word, bubble area is the aggregate influence](results/classification_explanations.png)
 
 ---
 
@@ -65,7 +67,7 @@ On the full dataset (~1,200 photo posts):
 **1. Clone**
 
 ```sh
-git clone https://github.com/MercuriLorenzo/AI-forense-in-advertising.git
+git clone https://github.com/MercuriLorenzo/Adv-Image-Forensics.git
 ```
 
 **2. TruFor weights** — not in the repo (gitignored). Download [`TruFor_weights.zip`](https://www.grip.unina.it/download/prog/TruFor/TruFor_weights.zip), unzip, and place the checkpoint at `TruFor/TruFor_train_test/weights/trufor_ph3/best.pth.tar`. The `weights_only=False` fix upstream TruFor requires is already applied in this vendored copy.
@@ -73,7 +75,7 @@ git clone https://github.com/MercuriLorenzo/AI-forense-in-advertising.git
 **3. Python environment**
 
 ```sh
-cd AI-forense-in-advertising
+cd Adv-Image-Forensics
 python3.14 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -97,7 +99,7 @@ python describe.py
 python features.py
 python classification_home.py
 ```
-`--generate-truth` (first run only) writes the empty `trufor_truth.csv` label template and pauses so you can fill the `label` column (`0` = real, `1` = AI); later runs reuse it.
+`--generate-truth` (first run only) writes the empty `trufor_truth.csv` label template and pauses so you can fill the `label` column (`0` = real, `1` = altered); later runs reuse it.
 
 Instead of `classification_home.py` it is possible to run each classification module individually:
 ```sh
@@ -133,7 +135,7 @@ A six-stage pipeline; each stage appends a column to the analysis table or write
 
 1. **[filter.py](scripts/filter.py)** — keeps the photo-only scored posts and symlinks their images into `scripts/temp/images/` (TruFor's input dir), then reports the `crowdtangle_score` distribution (median/skew/outliers + histogram & boxplot).
 2. **[trufor.py](scripts/trufor.py)** — runs TruFor's `test.py` over those images in batches (**resumable**: one `.npz` per image, existing ones skipped; multi-megapixel images downscaled then upsampled back), records the global `trufor_score`, and — against a manually labelled `trufor_truth.csv` — writes the **detector confusion matrix** (accuracy/precision/recall/F1) plus the **Pearson/Spearman correlation** and an **OLS regression** of `crowdtangle_score ~ trufor_score`.
-3. **[features.py](scripts/features.py)** — extracts ~19 (no-ML) visual features per image (aspect ratio, brightness, contrast, sharpness, blur, colorfulness, warmth, entropy, symmetry, rule of thirds, depth of field, visual complexity, …) with OpenCV/NumPy/SciPy/scikit-image, merges them into the table, and renders a feature scatter: each feature plotted by its correlation with engagement (`crowdtangle_score`, X) and with the AI-manipulation score (`trufor_score`, Y), with a fitted regression line and a `y = x` reference.
+3. **[features.py](scripts/features.py)** — extracts ~19 (no-ML) visual features per image (aspect ratio, brightness, contrast, sharpness, blur, colorfulness, warmth, entropy, symmetry, rule of thirds, depth of field, visual complexity, …) with OpenCV/NumPy/SciPy/scikit-image, merges them into the table, and renders a feature scatter: each feature plotted by its correlation with engagement (`crowdtangle_score`, X) and with the manipulation score (`trufor_score`, Y), with a fitted regression line and a `y = x` reference.
 4. **[mask.py](scripts/mask.py)** — binarizes each TruFor map into a mask of the altered region (flagged and confidently localized pixels), denoises it and fixes polarity on synthetic-majority composites, saving one lossless compressed PNG per image.
 5. **[describe.py](scripts/describe.py)** — captions the masked region with **BLIP** and merges the **EasyOCR** words read off it into the `anomaly_txt` column.
 6. **[classification_home.py](scripts/classification_home.py)** — builds the shared text features from `anomaly_txt` — a TF-IDF representation (English + Italian stop-words + `EMPTY_MASK_LABEL` removed), used both raw (one column per word) and PCA-compressed (enough components to keep 90% of the variance) — drops the posts in the bimodal score's low-density valley (`|crowdtangle_score| ≤ ENGAGEMENT_DEAD_ZONE`) and binarises the rest (over- vs under-performed).  

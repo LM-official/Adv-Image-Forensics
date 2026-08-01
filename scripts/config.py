@@ -243,6 +243,14 @@ EXPLAIN_N_REPEATS   = 30
 # Individual posts explained locally by LIME
 EXPLAIN_N_SAMPLES   = 5
 
+# Bubble chart of the same words: x = coefficient (direction + strength), y = how many posts contain the word, area = mean|SHAP|
+EXPLANATION_PLOT_FILE   = TEMP_DIR / "classification_explanations.png"
+# Words labelled per side; the rest stay unlabelled dots
+EXPLAIN_PLOT_TOP_N      = 15
+# Diverging pair: raises vs lowers engagement. The direction is also carried by the x position, so it never depends on colour alone
+EXPLAIN_PLOT_UP_COLOR   = "#2a78d6"
+EXPLAIN_PLOT_DOWN_COLOR = "#e34948"
+
 # =============================================================================
 # (5) VISUAL + TEXT
 # =============================================================================

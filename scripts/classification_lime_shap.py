@@ -1,8 +1,13 @@
 import argparse
 from   classification_home  import prepare_dataset
 from   config               import (FILTERED_DATASET_FILE, EXPLANATION_FILE, MAX_NUMBER_OF_WORDS, ENGAGEMENT_DEAD_ZONE,
-                                    TFIDF_MIN_DF, TFIDF_MAX_DF, EXPLAIN_TOP_N, EXPLAIN_N_REPEATS, EXPLAIN_N_SAMPLES)
+                                    TFIDF_MIN_DF, TFIDF_MAX_DF, EXPLAIN_TOP_N, EXPLAIN_N_REPEATS, EXPLAIN_N_SAMPLES,
+                                    EXPLANATION_PLOT_FILE, EXPLAIN_PLOT_TOP_N, EXPLAIN_PLOT_UP_COLOR, EXPLAIN_PLOT_DOWN_COLOR)
 from   lime.lime_tabular    import LimeTabularExplainer
+import matplotlib
+matplotlib.use("Agg") # Non-interactive backend: render straight to file, no display needed
+import matplotlib.pyplot    as     plt
+from   matplotlib.ticker    import FuncFormatter
 import numpy                as     np
 import pandas               as     pd
 from   pathlib              import Path
@@ -15,10 +20,10 @@ import warnings
 
 
 # =============================================================================
-# WORD-LEVEL INTERPRETATION
+# (1) WORD-LEVEL INTERPRETATION
 # =============================================================================
 
-def _permutation(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, top_n: int, n_repeats: int) -> str:
+def permutation(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, top_n: int, n_repeats: int) -> str:
     """
     Global word importance by permutation: shuffles each feature and measures the drop in ROC AUC.
     Model-agnostic and needs no convergence, so it works where the raw TF-IDF GLM fails.
@@ -56,6 +61,7 @@ def _permutation(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, top_n
                     for name, row in side.iterrows()]
             return "\n".join(rows) if rows else "    (none)"
 
+        print("Permutation importance computed successfully.")
         return (
             "=== Permutation importance (global, model-agnostic) ===\n"
             f"Importance = drop in ROC AUC when the feature is shuffled (mean +/- std over {n_repeats} repeats);\n"
@@ -67,10 +73,11 @@ def _permutation(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, top_n
         )
 
     except Exception as e:
+        print(f"ERROR: during permutation importance: {e}.")
         return f"=== Permutation importance (global, model-agnostic) ===\nERROR: {e}"
 
 
-def _shap(model: LogisticRegression, X: pd.DataFrame, top_n: int) -> str:
+def shap_(model: LogisticRegression, X: pd.DataFrame, top_n: int) -> tuple[str, pd.Series | None]:
     """
     Global word importance by SHAP on the linear logistic model (exact via LinearExplainer):
     importance = mean(|SHAP|) per feature, direction = sign of the coefficient.
@@ -82,11 +89,11 @@ def _shap(model: LogisticRegression, X: pd.DataFrame, top_n: int) -> str:
         top_n: Words listed per side (up/down).
 
     Returns:
-        The report section as text (an ERROR line on failure).
+        A (text, importances) tuple: the report section (an ERROR line on failure)
+        and the mean(|SHAP|) per feature, reused as the bubble area in plot (None on failure).
     """
 
     print("Computing SHAP values...")
-
     try:
         # Full background (all rows) instead of shap's default 100-sample subsample: exact feature means
         explainer = shap.LinearExplainer(model, shap.maskers.Independent(X, max_samples=len(X)))
@@ -109,6 +116,7 @@ def _shap(model: LogisticRegression, X: pd.DataFrame, top_n: int) -> str:
             rows = [f"    {name:<28} {value:.4f}" for name, value in side.items()]
             return "\n".join(rows) if rows else "    (none)"
 
+        print("SHAP values computed successfully.")
         return (
             "=== SHAP (global; LinearExplainer) ===\n"
             "Importance = mean(|SHAP|) per feature (coefficient weighted by the word's spread);\n"
@@ -117,13 +125,14 @@ def _shap(model: LogisticRegression, X: pd.DataFrame, top_n: int) -> str:
             f"{_side(signs >= 0)}\n\n"
             "Words pushing engagement DOWN:\n"
             f"{_side(signs < 0)}"
-        )
+        ), imp
 
     except Exception as e:
-        return f"=== SHAP (global) ===\nERROR: {e}"
+        print(f"ERROR: during SHAP computation: {e}.")
+        return f"=== SHAP (global) ===\nERROR: {e}", None
 
 
-def _lime(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, df: pd.DataFrame, top_n: int, n_samples: int) -> str:
+def lime(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, df: pd.DataFrame, top_n: int, n_samples: int) -> str:
     """
     Local explanations: for a spread of individual posts (from lowest to highest predicted engagement),
     LIME perturbs the features and reports which words locally pushed that post toward high engagement (+) or low (-).
@@ -142,7 +151,6 @@ def _lime(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, df: pd.DataF
     """
 
     print("Computing LIME local explanations...")
-
     try:
         # discretize_continuous=False keeps the near-binary TF-IDF values continuous instead of quartile-binning them
         explainer = LimeTabularExplainer(X.values, feature_names=list(X.columns), class_names=["low", "high"],
@@ -162,6 +170,7 @@ def _lime(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, df: pd.DataF
                 f"    local drivers: {drivers}"
             )
 
+        print("LIME local explanations computed successfully.")
         return (
             "=== LIME (local, per-post) ===\n"
             f"{len(picks)} posts spanning lowest -> highest predicted engagement;\n"
@@ -170,13 +179,152 @@ def _lime(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, df: pd.DataF
         )
 
     except Exception as e:
+        print(f"ERROR: during LIME computation: {e}.")
         return f"=== LIME (local, per-post) ===\nERROR: {e}"
 
 
-def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FILE,
+# =============================================================================
+# (2) PLOT
+# =============================================================================
+
+def plot(plot: Path, model: LogisticRegression, X: pd.DataFrame, tfidf: pd.DataFrame, influence: pd.Series, top_n: int):
+    """
+    Bubble chart of the whole vocabulary: what the three ranked text lists cannot show, namely a strong but rare word against a weak but common one.
+
+    Each word is one bubble: the horizontal position is the logistic coefficient (which way and how hard it moves engagement, 0 = no effect),
+    the vertical position is how many posts actually contain that word, and the area is the mean(|SHAP|).
+    Only the most influential words per side are labelled.
+
+    `trufor_score` is dropped: it is not a word and it is present in every post, so "how frequently it occurs" has no meaning for it.
+
+    Args:
+        plot:      Output image path.
+        model:     Fitted logistic model exposing coef_.
+        X:         Design matrix the model was fitted on (gives the coefficient order).
+        tfidf:     TF-IDF matrix alone (the word columns), used for the document frequencies.
+        influence: mean(|SHAP|) per feature from shap_, used as the bubble area.
+        top_n:     Words labelled per side (up/down).
+
+    Returns:
+        None (writes the PNG; prints an ERROR line and returns on failure).
+    """
+
+    print("Plotting the word effects...")
+
+    if influence is None:
+        print("ERROR: no SHAP importances available; skipping the word plot.")
+        return
+
+    FIG_WIDTH  = 11
+    FONT_SIZE  = 7.5
+    PLOT_WIDTH_POINTS = FIG_WIDTH * 72 * 0.75
+
+    try:
+        words = list(tfidf.columns)
+        coefs = pd.Series(model.coef_[0], index=X.columns)
+
+        # One row per word: effect (x), how many posts contain it (y), aggregate influence (area)
+        data = pd.DataFrame({
+            "coef":      coefs.reindex(words).astype(float),
+            # A word is "in" a post when its TF-IDF weight is non-zero
+            "freq":      (tfidf > 0).sum() / len(tfidf) * 100,
+            "influence": influence.reindex(words).astype(float),
+        }, index=words)
+        # A non-finite coefficient or a word present in no post cannot be placed on the axes
+        data = data[np.isfinite(data["coef"]) & np.isfinite(data["influence"]) & (data["freq"] > 0)]
+
+        if data.empty:
+            print("ERROR: no plottable words; skipping the word plot.")
+            return
+
+        data["label"] = [name.removeprefix("tfidf_") for name in data.index]
+
+        # Scale mean(|SHAP|) into a readable marker area: the least influential word must stay visible,
+        # the most influential must not swallow its neighbours
+        span  = float(data["influence"].max() - data["influence"].min())
+        area  = 20 + (data["influence"] - data["influence"].min()) / span * 380 if span > 0 else pd.Series(120.0, index=data.index)
+        up    = data["coef"] >= 0
+
+        fig, ax = plt.subplots(figsize=(FIG_WIDTH, 7))
+        for mask, color, name in ((up, EXPLAIN_PLOT_UP_COLOR, "raises engagement"), (~up, EXPLAIN_PLOT_DOWN_COLOR, "lowers engagement")):
+            ax.scatter(data.loc[mask, "coef"], data.loc[mask, "freq"], s=area[mask], color=color,
+                       alpha=0.75, edgecolors="white", linewidths=0.8, label=name, zorder=3)
+
+        # Reference line at "no effect" + recessive grid
+        ax.axvline(0, color="gray", lw=1.2, zorder=1)
+        ax.grid(True, color="0.9", lw=0.6, zorder=0)
+
+        # Log scale: min_df puts the floor near 1% and packs most of the vocabulary below 5%,
+        # which a linear axis would pile onto the bottom edge
+        ax.set_yscale("log")
+        percent = FuncFormatter(lambda value, _: f"{value:g}%")
+        ax.yaxis.set_major_formatter(percent)
+        ax.yaxis.set_minor_formatter(percent)
+        ax.tick_params(axis="y", which="minor", labelsize=7)
+
+        # Label only the most influential words per side, offset clear of their own bubble
+        labelled = pd.concat([data[up].nlargest(top_n, "influence"), data[~up].nlargest(top_n, "influence")])
+        labelled = labelled.sort_values("influence", ascending=False)
+
+        # Normalised positions, so "too close" means the same thing on the linear x and the logarithmic y
+        x_min, x_max = data["coef"].min(), data["coef"].max()
+        y_min, y_max = np.log10(data["freq"].min()), np.log10(data["freq"].max())
+        placed       = []
+
+        for name, row in labelled.iterrows():
+            norm_x = (row["coef"] - x_min) / (x_max - x_min)
+            norm_y = (np.log10(row["freq"]) - y_min) / (y_max - y_min)
+            # Half the label width as a fraction of the axes, from the character count at this font size
+            half_w = len(row["label"]) * FONT_SIZE * 0.6 / 2 / PLOT_WIDTH_POINTS
+            above  = not any(abs(norm_x - other_x) < (half_w + other_w) and abs(norm_y - other_y) < 0.035
+                             for other_x, other_y, other_w, other_above in placed if other_above)
+            placed.append((norm_x, norm_y, half_w, above))
+
+            # Clear the bubble itself: its radius grows with the marker area
+            offset = np.sqrt(area[name]) / 2 + 4
+            ax.annotate(row["label"], (row["coef"], row["freq"]), textcoords="offset points",
+                        xytext=(0, offset if above else -offset - FONT_SIZE), ha="center", fontsize=FONT_SIZE, zorder=4)
+
+        ax.set_xlabel("Logistic coefficient (log-odds) - 0 = no effect on engagement")
+        ax.set_ylabel("Posts containing the word")
+        ax.set_title("Which words move engagement, how strongly, and how often they occur")
+
+        # Both legends outside the axes: the corners of the plot carry data
+        colors_legend = ax.legend(title="Direction", loc="upper left", bbox_to_anchor=(1.02, 1.0), frameon=False, fontsize=8)
+        ax.add_artist(colors_legend)
+        sizes  = [data["influence"].max(), data["influence"].median(), data["influence"].min()]
+        handles = [ax.scatter([], [], s=20 + (value - data["influence"].min()) / span * 380 if span > 0 else 120,
+                              color="0.6", edgecolors="white", linewidths=0.8, label=f"{value:.4f}")
+                   for value in sizes]
+        ax.legend(handles=handles, title="Aggregate influence\nmean(|SHAP|)", loc="upper left",
+                  bbox_to_anchor=(1.02, 0.72), frameon=False, fontsize=8, labelspacing=1.8, borderpad=1.0)
+
+        fig.text(0.0, -0.02,
+                 "In-sample logistic fit, for interpretation only: there are no word-level p-values (the raw TF-IDF GLM does not converge),\n"
+                 "so distance from zero ranks the words, it does not test them. For a linear model mean(|SHAP|) is |coefficient| x the word's spread,\n"
+                 "so the bubble area tracks both axes by construction: it reads which words actually move the model, not a fourth measurement.\n"
+                 "trufor_score is excluded - it is not a word and occurs in every post.",
+                 fontsize=7.5, color="0.35", va="top")
+
+        plot.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(plot, dpi=120, bbox_inches="tight")
+        plt.close(fig)
+        print("Plot saved successfully.")
+
+    except Exception as e:
+        print(f"ERROR: during the word plot: {e}")
+        return
+
+
+# =============================================================================
+# EXECUTOR
+# =============================================================================
+
+def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FILE, plot_file: Path = EXPLANATION_PLOT_FILE,
             max_words: int = MAX_NUMBER_OF_WORDS, dead_zone: float = ENGAGEMENT_DEAD_ZONE,
             min_df: int = TFIDF_MIN_DF, max_df: float = TFIDF_MAX_DF,
-            top_n: int = EXPLAIN_TOP_N, n_repeats: int = EXPLAIN_N_REPEATS, n_samples: int = EXPLAIN_N_SAMPLES):
+            top_n: int = EXPLAIN_TOP_N, n_repeats: int = EXPLAIN_N_REPEATS, n_samples: int = EXPLAIN_N_SAMPLES,
+            plot_top_n: int = EXPLAIN_PLOT_TOP_N):
     """
     Model-agnostic word-level interpretation of the logistic regression on the raw TF-IDF.
 
@@ -187,25 +335,29 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
     on purpose, since its components are not words (and the PCA GLM already gives valid p-values).
 
     Args:
-        dataset:   Path to the dataset CSV (trufor_score, anomaly_txt, crowdtangle_score, filename).
-        report:    Output file for the combined interpretation report.
-        max_words: Maximum size of the TF-IDF vocabulary.
-        dead_zone: Drop posts with |crowdtangle_score| <= this before binarising. 0 disables the cut.
-        min_df:    Keep only words appearing in at least this many documents.
-        max_df:    Keep only words appearing in at most this fraction of documents.
-        top_n:     Words listed per side / per local explanation.
-        n_repeats: Permutation-importance shuffles per feature.
-        n_samples: Posts explained locally by LIME.
+        dataset:    Path to the dataset CSV (trufor_score, anomaly_txt, crowdtangle_score, filename).
+        report:     Output file for the combined interpretation report.
+        plot_file:  Output image for the word bubble chart (not named `plot`: that is the plotting function).
+        max_words:  Maximum size of the TF-IDF vocabulary.
+        dead_zone:  Drop posts with |crowdtangle_score| <= this before binarising. 0 disables the cut.
+        min_df:     Keep only words appearing in at least this many documents.
+        max_df:     Keep only words appearing in at most this fraction of documents.
+        top_n:      Words listed per side / per local explanation.
+        n_repeats:  Permutation-importance shuffles per feature.
+        n_samples:  Posts explained locally by LIME.
+        plot_top_n: Words labelled per side in the bubble chart.
 
     Returns:
         None.
     """
 
+    print("Explaining the logistic model word by word (permutation importance, SHAP, LIME)...")
+
     # Clamp to 0 (kept for a consistent header; binarize_engagement clamps internally too)
     if dead_zone < 0:
         dead_zone = 0
 
-    if top_n < 1 or n_repeats < 1 or n_samples < 1:
+    if top_n < 1 or n_repeats < 1 or n_samples < 1 or plot_top_n < 1:
         print("ERROR: invalid arguments.")
         return
 
@@ -232,10 +384,13 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="X does not have valid feature names")
         warnings.filterwarnings("ignore", message="Background dataset has")
+        permutation_section     = permutation(model, X, y, top_n, n_repeats)
+        # SHAP also hands back its per-feature importances, reused as the bubble area of the word plot
+        shap_section, influence = shap_(model, X, top_n)
         sections = [
-            _permutation(model, X, y, top_n, n_repeats),
-            _shap(model, X, top_n),
-            _lime(model, X, y, df, top_n, n_samples),
+            permutation_section,
+            shap_section,
+            lime(model, X, y, df, top_n, n_samples),
         ]
 
     # save report
@@ -250,6 +405,10 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
         f"TF-IDF       : min_df={min_df}, max_df={max_df:g}, vocabulary {tfidf.shape[1]} words (cap {max_words})\n\n\n"
     )
     save_report(header + "\n\n\n".join(sections), report)
+
+    # The same words as a figure: direction and strength against how often they actually occur
+    plot(plot_file, model, X, tfidf, influence, plot_top_n)
+    print("Word-level interpretation completed successfully.")
 
 
 # =============================================================================
@@ -277,7 +436,6 @@ def main():
     parser.add_argument("--min-df",    type=int,   default=TFIDF_MIN_DF,         help=f"Keep only words appearing in at least this many descriptions. Default: {TFIDF_MIN_DF}")
     parser.add_argument("--max-df",    type=float, default=TFIDF_MAX_DF,         help=f"Keep only words appearing in at most this fraction of descriptions. Default: {TFIDF_MAX_DF}")
     args = parser.parse_args()
-
 
     explain(max_words=args.max_words, dead_zone=args.dead_zone, min_df=args.min_df, max_df=args.max_df)
 
