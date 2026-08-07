@@ -295,7 +295,7 @@ def extract_features(image_path: Path) -> dict | None:
         A dict mapping every feature name to a finite float, or None if the image could not be read.
     """
 
-    print("Extracting the visual features of the image...")
+    # print("Extracting the visual features of the image...")
 
     bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)
     if bgr is None:
@@ -354,7 +354,7 @@ def extract_features(image_path: Path) -> dict | None:
     }
 
     # Replace any non-finite value (e.g. kurtosis of a flat image) with 0
-    print("Visual features extracted successfully.")
+    # print("Visual features extracted successfully.")
     return {name: (float(value) if np.isfinite(value) else 0.0) for name, value in features.items()}
 
 

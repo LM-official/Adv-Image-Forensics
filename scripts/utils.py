@@ -28,7 +28,7 @@ def clean_text(text: str, dedup_words: bool) -> str:
         The cleaned text, or fallback if nothing survives.
     """
 
-    print("Cleaning text...")
+    # print("Cleaning text...")
 
     if not text:
         print("ERROR: no text to clean.")
@@ -45,10 +45,10 @@ def clean_text(text: str, dedup_words: bool) -> str:
         words = [word for word in words if not (word in seen or seen.add(word))]
     cleaned = " ".join(words)
     if not cleaned:
-        print("ERROR: nothing left after cleaning the text.")
+        # print("ERROR: nothing left after cleaning the text.")
         return ""
 
-    print("Text cleaned successfully.")
+    # print("Text cleaned successfully.")
     return cleaned
 
 

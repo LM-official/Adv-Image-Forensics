@@ -141,6 +141,8 @@ def _report_descriptions(descriptions: list[tuple[str, str]], top: int = DESCRIP
 
     Meant as a quick post-run audit: a high empty share, extreme lengths or mask artifacts at the
     top of the word ranking (e.g. black/dark) are visible at a glance instead of requiring spot checks.
+    The empty share is counted over every image, while the length stats and the word ranking describe
+    the real descriptions only.
 
     Args:
         descriptions: List of (filename_stem, description) tuples produced by the run.
@@ -151,13 +153,16 @@ def _report_descriptions(descriptions: list[tuple[str, str]], top: int = DESCRIP
         None.
     """
 
-    lengths = sorted(len(description.split()) for _, description in descriptions)
-    empties = sum(description == EMPTY_MASK_LABEL for _, description in descriptions)
-    # Word ranking over the real descriptions only (the fixed empty label would dominate it)
-    counts  = Counter(word for _, description in descriptions if description != EMPTY_MASK_LABEL for word in description.split())
+    # Length stats and word ranking over the real descriptions only
+    described = [description for _, description in descriptions if description != EMPTY_MASK_LABEL]
+    empties   = len(descriptions) - len(described)
+    lengths   = sorted(len(description.split()) for description in described)
+    counts    = Counter(word for description in described for word in description.split())
+    # Every mask was empty: there is no length distribution to summarise
+    quantiles = f"{lengths[0]}/{lengths[len(lengths) // 2]}/{lengths[-1]}" if lengths else "-/-/-"
     text = (
         f"Description summary: {len(descriptions)} images of which {empties} empty; "
-        f"words per description min/median/max = {lengths[0]}/{lengths[len(lengths) // 2]}/{lengths[-1]}\n"
+        f"words per non-empty description min/median/max = {quantiles}\n"
         f"Most frequent words: {', '.join(f'{word} x{count}' for word, count in counts.most_common(top))}"
     )
     save_report(text, report)
@@ -453,7 +458,7 @@ def read_text(reader: easyocr.Reader, image: np.ndarray,
         The recognized words joined by spaces, or "" when the region contains no readable text.
     """
     
-    print("Reading the text printed in the altered region (OCR)...")
+    # print("Reading the text printed in the altered region (OCR)...")
 
     if max_words < 0:
         print(f"ERROR: max_words must be non-negative, got {max_words}")
@@ -480,7 +485,7 @@ def read_text(reader: easyocr.Reader, image: np.ndarray,
             break
 
     # Keep the kept words most-confident first
-    print("Text read successfully.")
+    # print("Text read successfully.")
     return " ".join(ordered)
 
 
