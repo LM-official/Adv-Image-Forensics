@@ -1,6 +1,6 @@
 =============================================================================
 CORRELATION TRUFOR SCORE - CROWDTANGLE SCORE
 =============================================================================
-Rows analyzed: 1217
-Pearson correlation: 0.051 (p-value: 7.574e-02)
-Spearman correlation: 0.041 (p-value: 1.518e-01)
+Rows analyzed: 1211
+Pearson correlation: 0.055 (p-value: 5.760e-02)
+Spearman correlation: 0.043 (p-value: 1.368e-01)

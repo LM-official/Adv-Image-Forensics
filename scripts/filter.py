@@ -28,20 +28,20 @@ def _url_to_stem(url: str, char_limit: int = CHAR_LIMIT) -> str:
     return hashlib.sha256(url.encode()).hexdigest()[:char_limit]
 
 
-def _is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Path]] | None:
+def _is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> Path | None:
     """
-    Checks if a post is valid based on the specified filters and returns the list of image paths if valid.
+    Checks if a post is valid based on the specified filters and returns the image representing it if valid.
 
     A post is valid if:
     - It has a score
-    - All its media items are photos and have a matching file in the hash map
+    - Its first media item is a photo and has a matching file in the hash map
 
     Args:
         data:     Parsed JSON object representing a single post.
         hash_map: Mapping from URL sha256 hash (filename stem) to the list of matching image paths.
 
     Returns:
-        A list of image paths associated with the post, or None if the post does not pass the filters.
+        The image path representing the post, or None if the post does not pass the filters.
     """
 
     if not isinstance(data, dict) or len(data) == 0:
@@ -59,35 +59,32 @@ def _is_valid_post(data: dict, hash_map: dict[str, list[Path]]) -> tuple[list[Pa
     if not media or not isinstance(media, list) or len(media) == 0:
         print(f"WARNING: post '{data.get('id')}' rejected for missing media.")
         return None
+    # Save only the first media (the one that represents more the post)
+    image = media[0]
 
-    images = []
-    for item in media:
-        # Reject the entire post if ANY media item is not a photo
-        if item.get("type") != "photo":
-            print(f"WARNING: post '{data.get('id')}' rejected for non-photo media item.")
-            return None
-        image_url = item.get("url") or item.get("full")
-        if not image_url:
-            print(f"WARNING: post '{data.get('id')}' rejected for missing image URL.")
-            return None
+    # Reject the post if its first media item is not a photo
+    if image.get("type") != "photo":
+        print(f"WARNING: post '{data.get('id')}' rejected for non-photo media item.")
+        return None
+    image_url = image.get("url") or image.get("full")
+    if not image_url:
+        print(f"WARNING: post '{data.get('id')}' rejected for missing image URL.")
+        return None
 
-        # Hash the URL the same way the file was named on disk
-        url_hash = _url_to_stem(image_url)
+    # Hash the URL the same way the file was named on disk
+    url_hash = _url_to_stem(image_url)
 
-        # Dictionary lookup
-        founds = hash_map.get(url_hash, [])
-        if not founds:
-            print(f"WARNING: post '{data.get('id')}' rejected for missing image file for URL.")
-            return None
-        # With a full-length hash this is always a single file; more than one means a truncated-hash collision (different URLs sharing a stem)
-        if len(founds) > 1:
-            print(f"WARNING: hash collision for stem '{url_hash}': {founds}")
-            return None
+    # Dictionary lookup
+    founds = hash_map.get(url_hash, [])
+    if not founds:
+        print(f"WARNING: post '{data.get('id')}' rejected for missing image file for URL.")
+        return None
+    # With a full-length hash this is always a single file; more than one means a truncated-hash collision (different URLs sharing a stem)
+    if len(founds) > 1:
+        print(f"WARNING: hash collision for stem '{url_hash}': {founds}")
+        return None
 
-        # Append all found images
-        images.extend(founds)
-
-    return images
+    return founds[0]
 
 
 def _build_hash_map(images: Path) -> dict[str, list[Path]] | None:
@@ -130,6 +127,8 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
     if not dataset.is_file() or not dataset_images.is_dir():
         print("ERROR: dataset or images directory not found.")
         return
+    # Resolve the images dir once — avoids one .resolve() call per image in the loop
+    resolved_images_dir = dataset_images.resolve()
 
 
     # Build the hash map
@@ -140,10 +139,6 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
         return
 
 
-    # Resolve the images dir once — avoids one .resolve() call per image in the loop
-    resolved_images_dir = dataset_images.resolve()
-
-
     # Create the output directories if they don't exist
     output_csv.parent.mkdir(parents=True, exist_ok=True)
     output_images.mkdir(parents=True, exist_ok=True)
@@ -151,9 +146,8 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
 
     # Filter
     try:
-        # buffering=1<<16 (64KB) reduces the number of disk writes significantly on large outputs compared to the default line-by-line flushing
         with open(dataset, mode="r", encoding="utf-8") as infile, \
-             open(output_csv, mode="w", encoding="utf-8", newline="", buffering=1 << 16) as outfile:
+             open(output_csv, mode="w", encoding="utf-8", newline="") as outfile:
 
             # Define the CSV columns
             cols = ["id", "crowdtangle_score", "filename"]
@@ -163,8 +157,8 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
             writer.writeheader()
 
 
-            # Buffer the kept rows so the output can be sorted
-            rows = []
+            # Buffer to keep only the best-performing post for each image (same filename stem)
+            best = {}
             for line in infile:
                 try:
                     data = json.loads(line)
@@ -173,27 +167,34 @@ def filter(dataset: Path = DATASET_FILE, dataset_images: Path = DATASET_IMGS_DIR
                     continue
 
                 # Filters
-                images = _is_valid_post(data, hash_map)
-                if not images:
+                image = _is_valid_post(data, hash_map)
+                if image is None:
                     continue
 
-                for image in images:
-                    # Save only interesting columns
-                    rows.append({
-                        "id":                 data.get("id"),
-                        "crowdtangle_score":  data.get("score"),
-                        "filename":           image.stem
-                    })
+                # Save only interesting columns
+                row = {
+                    "id":                 data.get("id"),
+                    "crowdtangle_score":  data.get("score"),
+                    "filename":           image.stem
+                }
 
-                    # Create a symlink for the image
-                    symlink = output_images / image.name
-                    if not (symlink.exists() or symlink.is_symlink()):
-                        symlink.symlink_to(resolved_images_dir / image.name)
+                # May be a duplicate image (same filename stem) across multiple posts, keep only the best-performing post for each image
+                current = best.get(row["filename"])
+                if current is None or row["crowdtangle_score"] > current[0]["crowdtangle_score"]:
+                    best[row["filename"]] = (row, image)
+
 
             # Order the output by filename (hash stem), ascending
-            rows.sort(key=lambda row: row["filename"])
-            writer.writerows(rows)
+            rows = sorted(best.values(), key=lambda item: item[0]["filename"])
 
+            for row, image in rows:
+                # Write the row to the CSV
+                writer.writerow(row)
+
+                # Create symlink
+                symlink = output_images / image.name
+                if not (symlink.exists() or symlink.is_symlink()):
+                    symlink.symlink_to(resolved_images_dir / image.name)
         print("Dataset filtered and saved successfully.")
 
     except Exception as e:
