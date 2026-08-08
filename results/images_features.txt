@@ -4,25 +4,25 @@ IMAGE FEATURES
 Correlation method: pearson
 X axis: correlation(feature, crowdtangle_score)
 Y axis: correlation(feature, trufor_score)
-Samples: 1217
+Samples: 1211
 
 Features (sorted by |Y|):
-	dynamic_range        X=+0.0288  Y=+0.1402
-	contrast             X=+0.0640  Y=+0.1367
-	depth_of_field       X=+0.0090  Y=-0.1334
-	diagonal_dominance   X=-0.0430  Y=-0.0958
-	visual_complexity    X=-0.0713  Y=-0.0865
-	clearness            X=-0.0032  Y=+0.0784
-	rule_of_thirds       X=+0.0283  Y=-0.0704
-	aspect_ratio         X=-0.0484  Y=-0.0658
-	colorfulness         X=-0.0231  Y=+0.0611
-	saturation           X=-0.0350  Y=+0.0509
-	brightness           X=+0.0167  Y=+0.0508
-	shannon_entropy      X=-0.0535  Y=-0.0495
-	kurtosis             X=-0.0147  Y=-0.0286
-	symmetry             X=+0.0066  Y=-0.0202
-	blur                 X=+0.0524  Y=-0.0160
-	warmth               X=+0.0291  Y=-0.0107
-	hue_mean             X=-0.0360  Y=+0.0056
-	skewness             X=-0.0108  Y=-0.0049
-	sharpness            X=-0.0182  Y=-0.0015
+	dynamic_range        X=+0.0347  Y=+0.1406
+	contrast             X=+0.0729  Y=+0.1394
+	depth_of_field       X=+0.0098  Y=-0.1331
+	diagonal_dominance   X=-0.0406  Y=-0.0976
+	visual_complexity    X=-0.0665  Y=-0.0874
+	clearness            X=+0.0008  Y=+0.0802
+	rule_of_thirds       X=+0.0288  Y=-0.0722
+	aspect_ratio         X=-0.0496  Y=-0.0658
+	colorfulness         X=-0.0164  Y=+0.0610
+	brightness           X=+0.0194  Y=+0.0521
+	saturation           X=-0.0408  Y=+0.0516
+	shannon_entropy      X=-0.0547  Y=-0.0492
+	kurtosis             X=-0.0187  Y=-0.0304
+	symmetry             X=+0.0065  Y=-0.0197
+	blur                 X=+0.0474  Y=-0.0154
+	warmth               X=+0.0334  Y=-0.0136
+	hue_mean             X=-0.0455  Y=+0.0069
+	skewness             X=-0.0134  Y=-0.0050
+	sharpness            X=-0.0097  Y=-0.0009

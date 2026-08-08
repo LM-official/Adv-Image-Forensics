@@ -194,8 +194,8 @@ MAX_NUMBER_OF_WORDS = 100
 # Drop words appearing in fewer than MIN documents (absolute count) or more than MAX fraction of documents
 # (non-discriminative head/tail of the frequency curve)
 # Tuned with --grid-search: min_df=10 keeps the ~100-word core vocabulary (CV pseudo-R2 peak); max_df is inert here
-TFIDF_MIN_DF        = 10
-TFIDF_MAX_DF        = 0.7
+TFIDF_MIN_DF        = 5
+TFIDF_MAX_DF        = 0.4
 
 # =============================================================================
 # (2) LOGISTIC REGRESSION
@@ -221,13 +221,11 @@ PCA_VARIANCE        = 0.9
 
 # Grid search over the two convergence strategies (matrix conditioning x regularization)
 GRID_SEARCH_FILE    = TEMP_DIR / "classification_glm_grid_search.txt"
-GRID_MIN_DF         = (1, 2, 5, 10)
-GRID_MAX_DF         = (0.7, 0.8, 0.9, 1.0)
+GRID_MIN_DF         = (2, 5, 10)
+GRID_MAX_DF         = (0.4, 0.5, 0.6, 0.7, 0.8)
 GRID_ALPHA          = (0.0, 0.0001, 0.0005, 0.0007, 0.001, 0.005, 0.01)
-#GRID_ALPHA          = (0.0, 0.0005, 0.001, 0.005)
 # L1_wt: 0 = ridge, 1 = lasso, in-between = elastic net
-GRID_L1_WT          = (0.0,)
-#GRID_L1_WT          = (0.0, 0.5, 1.0)
+GRID_L1_WT          = (0.0, 0.5, 1.0)
 
 # =============================================================================
 # (4) LIME / SHAP
