@@ -1,0 +1,12 @@
+# File generati durante la compilazione LaTeX.
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.synctex.gz
+*.toc

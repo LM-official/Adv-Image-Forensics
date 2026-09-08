@@ -1,0 +1,65 @@
+% !TeX encoding = UTF-8
+% !TeX program = pdflatex
+% !TeX spellcheck = it_IT
+
+% Cerca la classe e il logo direttamente nel pacchetto originale.
+% Il percorso va impostato prima che la classe verifichi la presenza del logo.
+\makeatletter
+\def\input@path{{sapthesis/}}
+\makeatother
+
+\documentclass[oneside, noexaminfo]{sapthesis}
+
+\input{packages}
+
+% Frontespizio: sostituire i segnaposto e verificare i dati del corso.
+\title{Titolo della tesi}
+% \subtitle{Eventuale sottotitolo}
+\author{Lorenzo Mercuri}
+\IDnumber{2145783}
+\course{Laurea Triennale in Informatica}
+\courseorganizer{Facoltà di Ingegneria dell'informazione, informatica e statistica}
+\AcademicYear{2025/2026}
+\advisor{Prof.~Mattia Samory}
+\authoremail{mercuri.2145783@studenti.uniroma1.it}
+\copyyear{2026}
+\thesistype{Tesi di laurea}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+% \dedication{Eventuale dedica}
+
+% Attivare quando il riassunto sarà pronto.
+% \begin{abstract}
+% Testo del riassunto.
+% \end{abstract}
+
+\tableofcontents
+
+\mainmatter
+
+% Aggiungere un file per ogni capitolo, nell'ordine definitivo di lettura.
+% La numerazione dei capitoli viene assegnata automaticamente.
+
+% Attivare quando saranno disponibili le appendici.
+% \appendix
+% \include{capitoli/appendice}
+
+\backmatter
+
+% Attivare dopo aver aggiunto le fonti a references.bib e le citazioni al testo.
+% \cleardoublepage
+% \phantomsection
+% \addcontentsline{toc}{chapter}{\bibname}
+% \bibliographystyle{ieeetr}
+% \bibliography{references}
+
+% Attivare quando i ringraziamenti saranno pronti.
+% \chapter*{Ringraziamenti}
+% \addcontentsline{toc}{chapter}{Ringraziamenti}
+% Testo dei ringraziamenti.
+
+\end{document}

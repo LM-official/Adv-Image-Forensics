@@ -9,5 +9,6 @@ scripts/temp/
 # Priority to .gitkeep
 !.gitkeep
 
-# Heavy files
-*.pdf
+# Thesis
+docs/6 Paper TruFor.pdf
+docs/varie_tesi
