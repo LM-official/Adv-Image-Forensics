@@ -3,8 +3,13 @@ from   classification_glm          import glm, _cv_pseudo_r2
 from   classification_home         import prepare_dataset, pca
 from   config                      import (FILTERED_DATASET_FILE, VISUAL_TEXT_CLASSIFICATION_FILE, VISUAL_SIGNIFICANCE_LEVELS,
                                            MAX_NUMBER_OF_WORDS, ENGAGEMENT_DEAD_ZONE, TFIDF_MIN_DF, TFIDF_MAX_DF,
-                                           GLM_ALPHA, GLM_L1_WT, PCA_VARIANCE)
+                                           GLM_ALPHA, GLM_L1_WT, PCA_VARIANCE, VISUAL_TEXT_PLOT_FILE,
+                                           VISUAL_TEXT_PLOT_FIT_COLOR, VISUAL_TEXT_PLOT_CV_COLOR)
 from   features                    import FEATURE_NAMES
+import matplotlib
+matplotlib.use("Agg") # Non-interactive backend: render straight to file
+import matplotlib.pyplot           as     plt
+from   matplotlib.ticker           import FuncFormatter
 import numpy                       as     np
 import pandas                      as     pd
 from   pathlib                     import Path
@@ -31,8 +36,8 @@ def standardize(features: pd.DataFrame) -> pd.DataFrame | None:
     After z-scoring every beta reads as "the change in the log-odds per one standard deviation of that feature",
     so the coefficients can be ranked against each other and the largest one really is the strongest driver.
 
-    Fitted on all rows, outside the cross-validation loop: the scaling only uses the features themselves and never the target,
-    so it leaks nothing about the label (the same reasoning already applied to pca()).
+    Fitted on all rows, outside the cross-validation loop, like TF-IDF and PCA.
+    The reported CV scores therefore do not validate the full preprocessing pipeline.
 
     Args:
         features: DataFrame of raw visual features, one column per feature.
@@ -198,10 +203,75 @@ def _significant_features(X: pd.DataFrame, y: pd.Series, levels: tuple = VISUAL_
     )
 
 
+def plot_comparison(plot_file: Path, scores: pd.DataFrame):
+    """
+    Plot the report's in-sample and CV pseudo-R2 for the four model blocks.
+
+    `scores` is indexed by block title, with numeric `in_sample` and `cv` columns.
+    Negative scores are retained; unavailable estimates are labelled, never replaced by zero.
+    CV reuses the current report calculation (preprocessing fitted on all rows).
+    """
+
+    print("Plotting the four-model comparison...")
+    fig = None
+    try:
+        labels = {"TruFor": "TruFor",
+                  "TruFor + text": "TruFor + testo",
+                  "TruFor + visual": "TruFor + caratteristiche visive",
+                  "TruFor + text + visual": "TruFor + testo + caratteristiche visive"}
+        values = scores[["in_sample", "cv"]].astype(float)
+        positions = np.arange(len(values))
+        fig, ax = plt.subplots(figsize=(11, 5.6))
+        paired = np.isfinite(values).all(axis=1)
+        ax.hlines(positions[paired], values.loc[paired].min(axis=1), values.loc[paired].max(axis=1),
+                  color="0.82", linewidth=2, zorder=1)
+
+        for column, color, marker, label, offset in (
+            ("in_sample", VISUAL_TEXT_PLOT_FIT_COLOR, "s", r"$R^{2}_{\mathrm{MCF}}$ (dati stima)", 10),
+            ("cv", VISUAL_TEXT_PLOT_CV_COLOR, "o", r"$Q_{\mathrm{cv}}$ (validazione incrociata, 5 partizioni)", -16),
+        ):
+            valid = np.isfinite(values[column])
+            ax.scatter(values.loc[valid, column], positions[valid], color=color, marker=marker,
+                       s=65, label=label, zorder=3)
+            for i, value in enumerate(values[column]):
+                if np.isfinite(value):
+                    ax.annotate(f"{value:.4f}".replace(".", ","), (value, i),
+                                xytext=(0, offset), textcoords="offset points", ha="center", fontsize=9, color=color)
+                else:
+                    ax.annotate("n.d.", (0.98, i), xycoords=("axes fraction", "data"),
+                                xytext=(0, offset), textcoords="offset points", ha="right", fontsize=9, color=color)
+
+        finite = values.to_numpy()[np.isfinite(values.to_numpy())]
+        lower = min(0.0, float(finite.min())) if finite.size else 0.0
+        upper = max(0.0, float(finite.max())) if finite.size else 0.1
+        margin = max(upper - lower, 0.01) * 0.15
+        ax.set_xlim(lower - margin, upper + margin)
+        ax.set_ylim(len(values) - 0.4, -0.6)
+        ax.set_yticks(positions, [labels.get(title, title) for title in values.index])
+        ax.axvline(0, color="0.5", linestyle="--", linewidth=1, zorder=0)
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:.3f}".replace(".", ",")))
+        ax.set_xlabel("Valore dell'indice")
+        ax.set_title("Confronto tra i quattro modelli", pad=42)
+        ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncol=2, frameon=False, fontsize=9)
+        ax.set_axisbelow(True)
+        ax.grid(axis="x", color="0.92")
+        ax.tick_params(axis="y", length=0, pad=10)
+        ax.spines[["top", "right", "left"]].set_visible(False)
+        fig.tight_layout(rect=(0, 0.19, 1, 1))
+        plot_file.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(plot_file, bbox_inches="tight")
+        print("Four-model comparison saved successfully.")
+    except Exception as e:
+        print(f"ERROR: during the model comparison plot: {e}")
+    finally:
+        if fig is not None:
+            plt.close(fig)
+
+
 def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_CLASSIFICATION_FILE,
              max_words: int = MAX_NUMBER_OF_WORDS, dead_zone: float = ENGAGEMENT_DEAD_ZONE,
              min_df: int = TFIDF_MIN_DF, max_df: float = TFIDF_MAX_DF, alpha: float = GLM_ALPHA, l1_wt: float = GLM_L1_WT,
-             pca_variance: float = PCA_VARIANCE):
+             pca_variance: float = PCA_VARIANCE, plot_file: Path = VISUAL_TEXT_PLOT_FILE):
     """
     Fits a nested chain of binomial GLMs and writes the comparison plus every coefficient summary to one report.
 
@@ -230,6 +300,7 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_C
         alpha:        Elastic-net strength for the GLM fallback when a plain fit does not converge; 0 disables it.
         l1_wt:        Mix of that penalty: 0 = ridge, 1 = lasso, in-between = elastic net.
         pca_variance: Fraction of variance the text PCA must retain.
+        plot_file:    Output PDF comparing in-sample and cross-validated pseudo-R2.
 
     Returns:
         None.
@@ -282,7 +353,7 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_C
     )
 
     # One pass per block: the formatted summary, the plain-fit numbers for the table, and the out-of-sample score
-    fits, rows, sections = {}, [], []
+    fits, scores, rows, sections = {}, {}, [], []
     for title, X, parent in blocks:
         # The TruFor baseline is a single column, so it comes out of the dataset as a Series
         # while every other block is a concatenated DataFrame
@@ -297,6 +368,8 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_C
         fits[title] = _fit(X, y)
         print(f"Cross-validating the binomial GLM ({title})...")
         cv_score = _cv_pseudo_r2(sm.add_constant(X), y, alpha=0, l1_wt=0)
+        scores[title] = {"in_sample": fits[title][2] if fits[title] is not None else np.nan,
+                         "cv": cv_score if cv_score is not None else np.nan}
 
         in_sample = f"{fits[title][2]:>12.4f}" if fits[title] is not None else f"{'n/a':>12}"
         cv        = f"{cv_score:>8.4f}"        if cv_score      is not None else f"{'n/a':>8}"
@@ -341,10 +414,12 @@ def classify(dataset: Path = FILTERED_DATASET_FILE, report: Path = VISUAL_TEXT_C
         "'in-sample R2' always grows when columns are added, even useless ones:\n"
         "'CV R2' (5-fold, out-of-sample) and the likelihood-ratio test are what say whether a block really adds information.\n"
         "'LR vs parent' tests each block against the smaller block it is nested in.\n\n"
+        "CV evaluates the model with TF-IDF, PCA and scaling fitted on all posts; it does not validate the full preprocessing pipeline.\n\n"
         "Nested model comparison:\n"
         f"{table}\n\n\n"
     )
     save_report(header + "\n\n\n".join(sections), report)
+    plot_comparison(plot_file, pd.DataFrame.from_dict(scores, orient="index"))
     print("Nested binomial GLM comparison completed successfully.")
 
 

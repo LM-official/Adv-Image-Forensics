@@ -1,0 +1,28 @@
+=============================================================================
+IMAGE FEATURES
+=============================================================================
+Correlation method: spearman
+X axis: correlation(feature, crowdtangle_score)
+Y axis: correlation(feature, trufor_score)
+Samples: 1211
+
+Features (sorted by |Y|):
+	dynamic_range        X=+0.1300  Y=+0.1851
+	contrast             X=+0.1108  Y=+0.1559
+	depth_of_field       X=+0.0295  Y=-0.1388
+	shannon_entropy      X=+0.0014  Y=-0.1242
+	diagonal_dominance   X=+0.0407  Y=-0.1084
+	colorfulness         X=-0.1110  Y=+0.0796
+	clearness            X=-0.0305  Y=+0.0794
+	rule_of_thirds       X=+0.0763  Y=-0.0772
+	aspect_ratio         X=-0.1493  Y=-0.0730
+	visual_complexity    X=-0.0425  Y=-0.0617
+	brightness           X=-0.0118  Y=+0.0553
+	saturation           X=-0.1481  Y=+0.0486
+	sharpness            X=-0.0468  Y=+0.0453
+	symmetry             X=+0.0519  Y=-0.0392
+	kurtosis             X=-0.0675  Y=-0.0188
+	hue_mean             X=-0.1490  Y=-0.0104
+	skewness             X=-0.0410  Y=+0.0051
+	warmth               X=+0.1304  Y=+0.0009
+	blur                 X=+0.1069  Y=+0.0004

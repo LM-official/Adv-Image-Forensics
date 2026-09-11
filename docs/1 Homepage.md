@@ -15,16 +15,17 @@ Il progetto si articola in una [Exploratory Data Analysis (EDA)](3%20Definizioni
 
 Il punteggio di engagement su cui poggia tutta l’analisi è [bimodale](4%20Dataset.md#punteggio-di-engagement-score), con una valle a bassa densità attorno allo 0: i post appena sopra ed appena sotto lo zero vengono perciò scartati prima di separare chi supera le aspettative da chi le delude.
 
-![Distribuzione del punteggio CrowdTangle — istogramma e box-plot](../results/dataset_distribution.png)
+![Distribuzione del punteggio CrowdTangle — istogramma](../results/dataset_distribution_histogram.svg)
+![Distribuzione del punteggio CrowdTangle — box-plot](../results/dataset_distribution_boxplot.svg)
 
 ## **Risultati (finora):**
 Sulle circa 1200 immagini analizzate, l’intensità della manipolazione non predice da sola l’engagement: il punteggio globale di [TruFor](6%20TruFor.md) è sostanzialmente scorrelato dal punteggio CrowdTangle ([Pearson](3%20Definizioni.md#indice-di-correlazione-pearson-coefficiente-di-correlazione-lineare) r ≈ 0.05) e, da predittore unico, fuori campione non batte il modello nullo. Il contenuto delle alterazioni porta invece un segnale debole ma reale: le descrizioni testuali delle regioni alterate (didascalia [BLIP](3%20Definizioni.md#blip-bootstrapping-language-image-pre-training) e parole lette via [OCR](3%20Definizioni.md#ocr-optical-character-recognition)) vettorizzate con [TF-IDF](3%20Definizioni.md#tf-idf-term-frequency---inverse-document-frequency), affiancate al punteggio TruFor, distinguono i post che superano le aspettative di engagement da quelli che le deludono con [AUC](3%20Definizioni.md#auc-area-under-the-curve) ≈ 0.64 (≈ 60% di [accuratezza](3%20Definizioni.md#accuratezza) contro il ≈ 51% della baseline di maggioranza). Il segnale predittivo sta quindi nel contenuto della manipolazione, non nella sua intensità: le regioni alterate che ritraggono persone (suit, woman, black, poster) alzano l’engagement, quelle occupate da banner di testo con date ed inviti all’azione (ore, giugno, scrivi, codice) lo abbassano.
 
-![Effetto di ogni parola sull’engagement — posizione orizzontale: coefficiente logistico (a destra dello zero alza, a sinistra abbassa), verticale: quanti post contengono la parola, area: influenza aggregata](../results/classification_explanations.png)
+![Effetto di ogni parola sull’engagement — posizione orizzontale: coefficiente logistico (a destra dello zero alza, a sinistra abbassa), verticale: quanti post contengono la parola, area: influenza aggregata](../results/classification_explanations.svg)
 
 Un confronto tra blocchi di predittori, condotto con una catena di [GLM binomiali](3%20Definizioni.md#glm-generalized-linear-model-binomiale) annidati, mostra che anche le [feature visive](5%20Approfondimento%20teorico.md#feature-visive) dell’immagine intera (contrasto, simmetria, regola dei terzi, …) portano un segnale reale, che da solo quasi eguaglia quello del testo. Unite al testo, però, migliorano soltanto il fit in-sample, mentre fuori campione il modello completo peggiora: il “come è fatta l’immagine” ed il “che cosa contiene l’alterazione” veicolano informazione in larga parte **sovrapposta**, non cumulativa.
 
-![Feature visive a confronto — ogni punto è una feature, con X = correlazione con l’engagement ed Y = correlazione con il punteggio di manipolazione](../results/images_features.png)
+![Feature visive a confronto — ogni punto è una feature, con X = correlazione con l’engagement ed Y = correlazione con il punteggio di manipolazione](../results/images_features.svg)
 
 Sul sottoinsieme di 100 immagini etichettate a mano, TruFor come rilevatore risulta equilibrato: 75% di accuratezza (contro il 62% della baseline di maggioranza), 78.5% di [precisione](3%20Definizioni.md#precisione) e 82.3% di [sensibilità](3%20Definizioni.md#sensibilita) alla soglia 0.25, con un’[AUC](3%20Definizioni.md#auc-area-under-the-curve) di 0.754 indipendente dalla soglia scelta — quando segnala un’immagine come alterata ha ragione circa 4 volte su 5, e ne intercetta poco più di 4 su 5 tra quelle effettivamente manipolate.
 

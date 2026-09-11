@@ -25,11 +25,12 @@ On the full dataset (~1,200 photo posts):
 - So the predictive signal is in the **content** of the manipulation (the subjects and words shown), not its **strength**.
 - **Whole-image craft carries a comparable signal — but a largely overlapping one.** A nested binomial-GLM chain (`trufor_score` → + text → + visual features → all) shows the 19 visual features are highly significant on their own (likelihood-ratio 104.1 on 19 df, p < 0.0001) and nearly match the text alone out-of-sample (CV pseudo-R² 0.034 vs 0.039). Stacked on top of the text, though, they only improve the **in-sample** fit (0.131 → 0.156) while cross-validated performance drops (0.039 → 0.032): *how well the image is made* and *what the alteration contains* carry information that is largely **overlapping, not cumulative**. Significant per standard deviation: `saturation` −0.26, `aspect_ratio` −0.22, `warmth` +0.22, `symmetry` +0.18.
 
-![Engagement (CrowdTangle) score distribution — bimodal, with a low-density valley at 0 and long outlier tails](results/dataset_distribution.png)
+![Engagement (CrowdTangle) score distribution — bimodal, with a low-density valley at 0 and long outlier tails](results/dataset_distribution_histogram.svg)
+![Engagement (CrowdTangle) score distribution — bimodal, with a low-density valley at 0 and long outlier tails](results/dataset_distribution_boxplot.svg)
 
-![Visual features plotted by their correlation with engagement (X) and the manipulation score (Y)](results/images_features.png)
+![Visual features plotted by their correlation with engagement (X) and the manipulation score (Y)](results/images_features.svg)
 
-![Word-effect bubble chart — horizontal position is the logistic coefficient (right of zero raises engagement, left lowers it), vertical is the share of posts containing the word, bubble area is the aggregate influence](results/classification_explanations.png)
+![Word-effect bubble chart — horizontal position is the logistic coefficient (right of zero raises engagement, left lowers it), vertical is the share of posts containing the word, bubble area is the aggregate influence](results/classification_explanations.svg)
 
 ---
 

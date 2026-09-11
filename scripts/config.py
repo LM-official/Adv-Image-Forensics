@@ -30,7 +30,9 @@ FILTERED_IMGS_DIR      = TEMP_DIR / "images"
 # This must match the char_limit used at CrowdTangle download time, otherwise every URL->file lookup silently misses.
 CHAR_LIMIT             = 64
 DISTRIBUTION_FILE      = TEMP_DIR / "dataset_distribution.txt"
-DISTRIBUTION_PLOT_FILE = TEMP_DIR / "dataset_distribution.png"
+PLOT_MAIN_COLOR = "#822433"
+PLOT_SECOND_COLOR = "#676767ff"
+DISTRIBUTION_PLOT_FILE = TEMP_DIR / "engagement"
 
 
 # =============================================================================
@@ -63,15 +65,16 @@ GLM_FILE         = TEMP_DIR / "trufor_crowdtangle_glm.txt"
 # IMAGE FEATURES
 # =============================================================================
 
+# Base output paths: features.py appends _pearson or _spearman before the extension
 IMAGE_FEATURES_FILE      = TEMP_DIR / "images_features.txt"
-IMAGE_FEATURES_PLOT_FILE = TEMP_DIR / "images_features.png"
+IMAGE_FEATURES_PLOT_FILE = TEMP_DIR / "images_features.pdf"
 
-FEATURE_PLOT_X_LABEL  = "Engagement (CrowdTangle score)"
+FEATURE_PLOT_X_LABEL  = "Correlazione con il punteggio di engagement"
 FEATURE_PLOT_X_TARGET = "crowdtangle_score"
-FEATURE_PLOT_Y_LABEL  = "AI-generated (TruFor score)"
+FEATURE_PLOT_Y_LABEL  = "correlazione con il punteggio di TruFor"
 FEATURE_PLOT_Y_TARGET = "trufor_score"
-# Correlation used for both axes: "pearson" (linear) or "spearman" (rank/monotonic)
-FEATURE_CORR_METHOD   = "pearson"
+# Correlations computed in this order after a single feature extraction
+FEATURE_CORR_METHODS  = ("pearson", "spearman")
 
 # Feature tunables
 # Long side an image is resized to before extraction; 0 = no resize
@@ -242,12 +245,15 @@ EXPLAIN_N_REPEATS   = 30
 EXPLAIN_N_SAMPLES   = 5
 
 # Bubble chart of the same words: x = coefficient (direction + strength), y = how many posts contain the word, area = mean|SHAP|
-EXPLANATION_PLOT_FILE   = TEMP_DIR / "classification_explanations.png"
+EXPLANATION_PLOT_FILE   = TEMP_DIR / "classification_explanations.pdf"
 # Words labelled per side; the rest stay unlabelled dots
 EXPLAIN_PLOT_TOP_N      = 15
 # Diverging pair: raises vs lowers engagement. The direction is also carried by the x position, so it never depends on colour alone
-EXPLAIN_PLOT_UP_COLOR   = "#2a78d6"
-EXPLAIN_PLOT_DOWN_COLOR = "#e34948"
+EXPLAIN_PLOT_UP_COLOR   = "#132a7fff"
+EXPLAIN_PLOT_DOWN_COLOR = "#822433"
+# SHAP ranking: two panels, one per coefficient sign, using the bubble-chart colours
+EXPLANATION_BAR_PLOT_FILE = TEMP_DIR / "classification_explanations_bars.pdf"
+EXPLAIN_BAR_TOP_N         = 8
 
 # =============================================================================
 # (5) VISUAL + TEXT
@@ -258,6 +264,10 @@ EXPLAIN_PLOT_DOWN_COLOR = "#e34948"
 # 2. + the visual features (whole-image craft),
 # 3. + the TF-IDF description of the altered region compressed by PCA
 VISUAL_TEXT_CLASSIFICATION_FILE = TEMP_DIR / "classification_visual_text.txt"
+# Same in-sample and cross-validated scores as the nested-comparison report
+VISUAL_TEXT_PLOT_FILE      = TEMP_DIR / "classification_model_comparison.pdf"
+VISUAL_TEXT_PLOT_FIT_COLOR = PLOT_SECOND_COLOR
+VISUAL_TEXT_PLOT_CV_COLOR  = PLOT_MAIN_COLOR
 # Significance markers used in the visual-feature digest,
 # read against the Benjamini-Hochberg q-values (FDR < .05 / .01 / .001), not the raw p-values
 VISUAL_SIGNIFICANCE_LEVELS      = ((0.001, "***"), (0.01, "**"), (0.05, "*"))

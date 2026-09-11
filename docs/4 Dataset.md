@@ -31,7 +31,8 @@ Le interazioni attese (benchmark) sono calcolate dagli ultimi 100 post comparabi
 
 Sul dataset filtrato la [distribuzione](3%20Definizioni.md#distribuzione-statistica) del punteggio è bimodale, con una valle a bassa densità attorno allo 0: [mediana](3%20Definizioni.md#mediana) -0.75, [media](3%20Definizioni.md#media-aritmetica) -3.51 (trascinata dagli estremi negativi, minimo -304), [asimmetria](3%20Definizioni.md#asimmetria-statistica-skewness) -8.47, e il 10.5% di [outlier](3%20Definizioni.md#outlier) oltre le [Tukey fences](3%20Definizioni.md#intervalli-tra-quartili-iqr---tukey-fence). Si riportano [istogramma](3%20Definizioni.md#istogramma) e [box-plot](3%20Definizioni.md#box-plot):
 
-![Distribuzione del punteggio CrowdTangle — istogramma e box-plot](../results/dataset_distribution.png)
+![Distribuzione del punteggio CrowdTangle — istogramma](../results/dataset_distribution_histogram.svg)
+![Distribuzione del punteggio CrowdTangle — istogramma](../results/dataset_distribution_boxplot.svg)
 
 ## **Nomenclatura dei file multimediali:**
 Ogni file in `crowdtangle_media/` è nominato con l’hash SHA-256 (in esadecimale) dell’URL da cui è stato scaricato, troncato a `CHAR_LIMIT` caratteri (64 di default, cioè l’intero hash). La pipeline ([filter.py](../scripts/filter.py)) ricalcola lo stesso hash dagli URL dei post per associare ogni post ai suoi file su disco: per questo `CHAR_LIMIT` (in [config.py](../scripts/config.py)) deve coincidere con il troncamento usato al momento del download, altrimenti ogni ricerca URL→file fallisce silenziosamente.

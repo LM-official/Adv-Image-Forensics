@@ -241,6 +241,7 @@ def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
 
     # Per-image IoU, to spot which masks are wrong (the global counters alone hide them)
     ious = []
+    baseline_ious = []
     for item in tqdm(masked.iterdir(), desc="Comparing masks", unit="img"):
         # Load masked image
         image = cv2.imread(item)
@@ -276,6 +277,8 @@ def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
         # when both masks are empty (union = 0) prediction and truth agree on "nothing manipulated here", which is a perfect score
         union = img_tp + img_fp + img_fn
         ious.append((item.stem, img_tp / union if union > 0 else 1.0))
+        # Keeping every pixel makes the union the whole image, including for an empty truth
+        baseline_ious.append((img_tp + img_fn) / label.size)
 
 
     total = tp + tn + fp + fn
@@ -345,6 +348,7 @@ def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
     positives     = tp + fn # pixels the truth calls manipulated
     positive_rate = positives / total if total > 0 else 0.0
     base_f1       = 2 * positive_rate / (positive_rate + 1) if positive_rate > 0 else 0.0
+    base_mean_iou = sum(baseline_ious) / len(baseline_ious)
 
     # Report
     text = (
@@ -362,7 +366,7 @@ def confusion_matrix(masked: Path = MASKED_DIR, truth: Path = MASKED_TRUTH_DIR,
         f"  {'Recall':<10} {recall:>9.2%}  {1.0:>21.2%}\t(ability to keep all the manipulated pixels)\n"
         f"  {'F1-score':<10} {f1_score:>9.4f}  {base_f1:>21.4f}\t(final harmonic mean)\n"
         f"  {'IoU':<10} {iou:>9.4f}  {positive_rate:>21.4f}\t(overlap / union, all pixels pooled)\n"
-        f"  {'Mean IoU':<10} {mean_iou:>9.4f}  {'-':>21}\t(average of the per-image IoU below)\n\n"
+        f"  {'Mean IoU':<10} {mean_iou:>9.4f}  {base_mean_iou:>21.4f}\t(average of the per-image IoU for each method)\n\n"
         "The baseline column is what 'keep every pixel' would score: it rises with the share of the truth painted manipulated,\n"
         "so it says how hard the trivial answer is to beat on this ground truth.\n"
         "Read the two columns together. Precision above recall means the predicted masks sit inside the drawn regions but are tighter than them\n"

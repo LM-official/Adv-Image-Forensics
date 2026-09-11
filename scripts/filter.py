@@ -1,4 +1,5 @@
-from   config           import CHAR_LIMIT, DATASET_FILE, DATASET_IMGS_DIR, FILTERED_DATASET_FILE, FILTERED_IMGS_DIR, DISTRIBUTION_FILE, DISTRIBUTION_PLOT_FILE
+from   config           import (CHAR_LIMIT, DATASET_FILE, DATASET_IMGS_DIR, FILTERED_DATASET_FILE, FILTERED_IMGS_DIR, DISTRIBUTION_FILE,
+                                PLOT_MAIN_COLOR, PLOT_SECOND_COLOR, DISTRIBUTION_PLOT_FILE)
 import csv
 import hashlib
 import json
@@ -212,7 +213,8 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
     Args:
         dataset: Path to the dataset CSV (must contain crowdtangle_score).
         report:  Output file path where the distribution report will be written.
-        plot:    Output image path where the histogram + boxplot figure will be saved.
+        plot:    Base path used to derive the two output SVG plot files:
+                 "<plot.stem>_histogram.svg" and "<plot.stem>_boxplot.svg", saved in plot's parent directory.
 
     Returns:
         None.
@@ -263,31 +265,55 @@ def distribution(dataset: Path = FILTERED_DATASET_FILE, report: Path = DISTRIBUT
     print("Distribution analyzed successfully.")
 
 
-    # Plot: histogram clipped to the fences (the bulk) + boxplot over the full range (the outliers)
+    # Plot: histogram clipped to the fences (the bulk) and boxplot over the full range (the outliers)
     print("Plotting the distribution...")
-    # One figure with two charts (1, 2). ax_hist to the left and ax_box to the right. size 10x4
-    _, (ax_hist, ax_box) = plt.subplots(1, 2, figsize=(10, 4))
-    
+    # Create the output directory if it doesn't exist
+    plot.parent.mkdir(parents=True, exist_ok=True)
+    histogram_plot = plot.with_name(f"{plot.stem}_istogramma.pdf")
+    boxplot_plot = plot.with_name(f"{plot.stem}_boxplot.pdf")
+
     # Histogram: clip to the fences so the outliers don't squash the bulk into a single bar
-    scores.clip(low_fence, high_fence).hist(bins=40, ax=ax_hist)
-    # Reference red line at zero to judge the centering
-    ax_hist.axvline(0, color="r", ls="--")
-    ax_hist.set_title("Histogram (clipped to fences)")
+    fig_hist, ax_hist = plt.subplots(figsize=(6, 4))
+    # Bars in the main color, with a light separator between adjacent bars
+    scores.clip(low_fence, high_fence).hist(
+        bins=40, ax=ax_hist, color=PLOT_MAIN_COLOR, edgecolor="white", linewidth=0.8
+    )
+    # Reference dotted black line at zero to judge the centering
+    ax_hist.axvline(0, color="black", ls="--")
+    ax_hist.set_title("Distribuzione del punteggio di engagement")
+    ax_hist.set_xlabel("Punteggio di engagement")
+    ax_hist.set_ylabel("Numero di immagini")
+    # Clean background: white, no horizontal gridlines, only light vertical gridlines running the full height at each x tick
+    fig_hist.patch.set_facecolor("white")
+    ax_hist.set_facecolor("white")
+    ax_hist.set_axisbelow(True)
+    ax_hist.grid(axis="y", visible=False)
+    ax_hist.grid(axis="x", color="#dddddd", linewidth=0.8)
+    ax_hist.spines["top"].set_visible(False)
+    ax_hist.spines["right"].set_visible(False)
+    fig_hist.tight_layout()
+    fig_hist.savefig(histogram_plot, bbox_inches="tight")
+    plt.close(fig_hist)
 
     # Boxplot: full range (no clip) so the outliers are visible as separate points
-    ax_box.boxplot(scores, orientation="horizontal")
-    # Reference red line at zero to judge the centering
-    ax_box.axvline(0, color="r", ls="--")
-    ax_box.set_title("Boxplot (full range)")
+    fig_box, ax_box = plt.subplots(figsize=(6, 4))
+    ax_box.boxplot(
+        scores, orientation="horizontal",
+        boxprops=dict(color=PLOT_MAIN_COLOR),
+        whiskerprops=dict(color=PLOT_MAIN_COLOR),
+        capprops=dict(color=PLOT_MAIN_COLOR),
+        medianprops=dict(color=PLOT_MAIN_COLOR),
+        flierprops=dict(markeredgecolor=PLOT_SECOND_COLOR),
+    )
+    # Reference dotted black line at zero to judge the centering
+    ax_box.axvline(0, color="black", ls="--")
+    ax_box.set_title("Boxplot sull'intero campione")
+    ax_box.set_xlabel("Punteggio di engagement")
+    fig_box.tight_layout()
+    fig_box.savefig(boxplot_plot, bbox_inches="tight")
+    plt.close(fig_box)
 
-    # Prevent titles/labels from overlapping
-    plt.tight_layout()
-    # Create the output directories if they don't exist
-    plot.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(plot, dpi=120)
-    # Free the figure from memory
-    plt.close()
-    print("Plot saved successfully.")
+    print("Plots saved successfully.")
 
 
 # =============================================================================

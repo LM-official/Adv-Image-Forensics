@@ -1,7 +1,7 @@
 import argparse
 from   config            import (FILTERED_DATASET_FILE, FILTERED_IMGS_DIR, IMAGE_FEATURES_FILE, IMAGE_FEATURES_PLOT_FILE,
                                  FEATURE_PLOT_X_TARGET, FEATURE_PLOT_Y_TARGET, FEATURE_PLOT_X_LABEL, FEATURE_PLOT_Y_LABEL,
-                                 FEATURE_CORR_METHOD, FEATURE_RESIZE_LONG_SIDE,
+                                 FEATURE_CORR_METHODS, FEATURE_RESIZE_LONG_SIDE,
                                  FEATURE_CANNY_LOW, FEATURE_CANNY_HIGH, FEATURE_THIRDS_RADIUS)
 import cv2
 import matplotlib
@@ -18,20 +18,27 @@ from   utils             import load_csv, save_report, update_csv
 
 # Canonical order of the classical features produced by extract_features()
 # Used by the plot to pick the feature columns out of the dataset CSV
-FEATURE_NAMES = (
-    # Format
-    "aspect_ratio",
-    # Tone / exposure
-    "brightness", "contrast", "dynamic_range",
-    # Focus / sharpness
-    "sharpness", "clearness", "blur", "depth_of_field",
-    # Color
-    "colorfulness", "saturation", "warmth", "hue_mean",
-    # Intensity distribution
-    "kurtosis", "skewness", "shannon_entropy",
-    # Composition / structure
-    "symmetry", "diagonal_dominance", "rule_of_thirds", "visual_complexity",
-)
+FEATURE_NAMES = {
+    "brightness":         "Luminosità",
+    "contrast":           "Contrasto",
+    "dynamic_range":      "Gamma dinamica robusta",
+    "sharpness":          "Nitidezza",
+    "clearness":          "Limpidezza",
+    "blur":               "Sfocatura",
+    "depth_of_field":     "Profondità di campo",
+    "colorfulness":       "Vivacità",
+    "saturation":         "Saturazione",
+    "warmth":             "Calore cromatico",
+    "hue_mean":           "Tonalità media",
+    "kurtosis":           "Curtosi",
+    "skewness":           "Asimmetria",
+    "shannon_entropy":    "Entropia di Shannon",
+    "aspect_ratio":       "Rapporto d'aspetto",
+    "symmetry":           "Simmetria",
+    "diagonal_dominance": "Dominanza diagonale",
+    "rule_of_thirds":     "Regola dei terzi",
+    "visual_complexity":  "Complessità visiva",
+}
 
 
 # =============================================================================
@@ -321,9 +328,6 @@ def extract_features(image_path: Path) -> dict | None:
     p1, p99 = np.percentile(lum, [1, 99])
 
     features = {
-        # Format
-        "aspect_ratio":       aspect_ratio,
-
         # Tone / exposure
         "brightness":         float(lum.mean() / 255.0),
         "contrast":           float(lum.std() / 255.0),                      # RMS contrast
@@ -347,6 +351,7 @@ def extract_features(image_path: Path) -> dict | None:
         "shannon_entropy":    float(shannon_entropy(gray)),
 
         # Composition / structure
+        "aspect_ratio":       aspect_ratio,
         "symmetry":           _symmetry(gray),
         "diagonal_dominance": _diagonal_dominance(gray),
         "rule_of_thirds":     _rule_of_thirds(gray, FEATURE_THIRDS_RADIUS),
@@ -425,14 +430,14 @@ def _feature_correlations(df: pd.DataFrame, target: str, feature_cols: list[str]
 
 def correlations(dataset: Path = FILTERED_DATASET_FILE, report: Path = IMAGE_FEATURES_FILE,
                  x_target: str = FEATURE_PLOT_X_TARGET, y_target: str = FEATURE_PLOT_Y_TARGET,
-                 method: str = FEATURE_CORR_METHOD) -> tuple[pd.Series, pd.Series] | None:
+                 method: str = FEATURE_CORR_METHODS[0]) -> tuple[pd.Series, pd.Series] | None:
     """
     Correlates every visual feature with the two outcome columns (x_target, y_target)
     and writes the text report listing each feature's (x_corr, y_corr), sorted by |Y|.
 
     Args:
         dataset:  Dataset CSV (must contain the feature columns and both target columns).
-        report:   Output path for the text correlation report.
+        report:   Base output path for the text report; the method suffix is appended to its stem.
         x_target: Column used for the X axis correlation (default crowdtangle_score).
         y_target: Column used for the Y axis correlation (default trufor_score).
         method:   Correlation method, "pearson" or "spearman".
@@ -470,7 +475,7 @@ def correlations(dataset: Path = FILTERED_DATASET_FILE, report: Path = IMAGE_FEA
         f"Samples: {len(df)}\n\n"
         "Features (sorted by |Y|):\n" + "\n".join(lines)
     )
-    save_report(text, report)
+    save_report(text, report.with_stem(f"{report.stem}_{method}"))
 
     print("Correlations computed successfully.")
     return corr_x, corr_y
@@ -480,21 +485,24 @@ def correlations(dataset: Path = FILTERED_DATASET_FILE, report: Path = IMAGE_FEA
 # (3) PLOT
 # =============================================================================
 
-def plot(corr_x: pd.Series, corr_y: pd.Series, plot: Path = IMAGE_FEATURES_PLOT_FILE):
+def plot(corr_x: pd.Series, corr_y: pd.Series, plot: Path = IMAGE_FEATURES_PLOT_FILE,
+         method: str = FEATURE_CORR_METHODS[0]):
     """
-    Create a plot in whitch every visual feature is a single point whose coordinates are its correlation with the two outcome columns.
-    A dashed regression line is fit through the points and a dotted identity line (y = x) is draw. for reference.
+    Create a plot in which every visual feature is a single point whose coordinates are its correlation with the two outcome columns.
+    A dashed regression line is fit through the points and a dotted identity line (y = x) is drawn for reference.
+    The title and output filename identify the correlation method.
 
     Args:
         corr_x: Correlation of every feature with the X target, from correlations().
         corr_y: Correlation of every feature with the Y target, indexed like corr_x.
-        plot:   Output path for the PNG figure.
+        plot:   Base output path for the PDF figure; the method suffix is appended to its stem.
+        method: Correlation method used to calculate corr_x and corr_y.
 
     Returns:
         None.
     """
 
-    print("Plotting features...")
+    print(f"Plotting {method} feature correlations...")
     # A constant feature (zero variance) has an undefined (NaN) correlation:
     # matplotlib cannot place such a point and np.polyfit would crash on it,
     # so keep only the features with finite correlations
@@ -510,7 +518,7 @@ def plot(corr_x: pd.Series, corr_y: pd.Series, plot: Path = IMAGE_FEATURES_PLOT_
     for i, name in enumerate(plot_cols):
         ax.scatter(corr_x[name], corr_y[name],
                    marker=markers[i % len(markers)], color=colors[i],
-                   s=90, edgecolors="black", linewidths=0.5, label=name, zorder=3)
+                   s=90, edgecolors="black", linewidths=0.5, label=FEATURE_NAMES[name], zorder=3)
 
     xs = corr_x[plot_cols].to_numpy()
     ys = corr_y[plot_cols].to_numpy()
@@ -518,7 +526,7 @@ def plot(corr_x: pd.Series, corr_y: pd.Series, plot: Path = IMAGE_FEATURES_PLOT_
 
     # Dotted identity line y = x (reference)
     ax.plot([-lim, lim], [-lim, lim], ls=":", color="black", lw=1.2, zorder=1)
-    # Dashed regression line through the feature points
+    # Dashed regression line through the feature points (least squares, y regressed on x)
     if len(xs) >= 2:
         slope, intercept = np.polyfit(xs, ys, 1)
         ax.plot([-lim, lim], [slope * -lim + intercept, slope * lim + intercept],
@@ -533,11 +541,15 @@ def plot(corr_x: pd.Series, corr_y: pd.Series, plot: Path = IMAGE_FEATURES_PLOT_
     ax.set_aspect("equal")
     ax.set_xlabel(FEATURE_PLOT_X_LABEL)
     ax.set_ylabel(FEATURE_PLOT_Y_LABEL)
-    ax.legend(title="Visual features", loc="center left", bbox_to_anchor=(1.02, 0.5),
+
+    # Title above the plot
+    ax.set_title(f"Correlazione di {method.capitalize()} delle caratteristiche visive\ncon i punteggi di engagement e TruFor",
+                 fontsize=12, pad=12)
+    ax.legend(title="Caratteristiche visive", loc="center left", bbox_to_anchor=(1.02, 0.5),
               fontsize=8, ncol=1, frameon=False)
 
     plot.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(plot, dpi=120, bbox_inches="tight")
+    fig.savefig(plot.with_stem(f"{plot.stem}_{method}"), bbox_inches="tight")
     plt.close(fig)
     print("Plot saved successfully.")
 
@@ -549,8 +561,8 @@ def plot(corr_x: pd.Series, corr_y: pd.Series, plot: Path = IMAGE_FEATURES_PLOT_
 def main():
     """
     (1) Extracts visual features for every filtered image and merges them into the dataset CSV,
-    (2) correlates each feature with the engagement and the AI-generated score (and reports it),
-    (3) plots those correlations against each other.
+    (2) computes Pearson correlations with engagement and the TruFor score, saving a TXT report and a PDF plot,
+    (3) repeats the correlation and plotting step with Spearman, saving separate TXT and PDF files.
 
     Args:
         None (arguments are read from the command line via argparse).
@@ -560,20 +572,23 @@ def main():
     """
 
     # Initialize the argument parser
-    parser = argparse.ArgumentParser(description="Extract image features and plot it.")
+    parser = argparse.ArgumentParser(description="Extract image features once, then save Pearson and Spearman reports and PDF plots.")
 
     # Flags, many arguments come from config.py (the project backbone)
-    parser.add_argument("--method", choices=("pearson", "spearman"), default=FEATURE_CORR_METHOD, help=f"Correlation method. Default: {FEATURE_CORR_METHOD}")
+    parser.add_argument("--method", choices=FEATURE_CORR_METHODS,
+                        help="Run only this correlation method. By default, run Pearson followed by Spearman.")
     args = parser.parse_args()
 
-    # Extract featurs
+    # Extract features once for both correlation methods
     features()
 
-    # Correlate the features with both targets, then plot the two correlations against each other
-    corr = correlations(method=args.method)
-    if corr is None:
-        return
-    plot(*corr)
+    # Save each method's report and PDF before moving to the next method
+    methods = (args.method,) if args.method else FEATURE_CORR_METHODS
+    for method in methods:
+        corr = correlations(method=method)
+        if corr is None:
+            return
+        plot(*corr, method=method)
 
 if __name__ == "__main__":
     main()

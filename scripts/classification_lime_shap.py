@@ -2,7 +2,8 @@ import argparse
 from   classification_home  import prepare_dataset
 from   config               import (FILTERED_DATASET_FILE, EXPLANATION_FILE, MAX_NUMBER_OF_WORDS, ENGAGEMENT_DEAD_ZONE,
                                     TFIDF_MIN_DF, TFIDF_MAX_DF, EXPLAIN_TOP_N, EXPLAIN_N_REPEATS, EXPLAIN_N_SAMPLES,
-                                    EXPLANATION_PLOT_FILE, EXPLAIN_PLOT_TOP_N, EXPLAIN_PLOT_UP_COLOR, EXPLAIN_PLOT_DOWN_COLOR)
+                                    EXPLANATION_PLOT_FILE, EXPLAIN_PLOT_TOP_N, EXPLAIN_PLOT_UP_COLOR, EXPLAIN_PLOT_DOWN_COLOR,
+                                    EXPLANATION_BAR_PLOT_FILE, EXPLAIN_BAR_TOP_N)
 from   lime.lime_tabular    import LimeTabularExplainer
 import matplotlib
 matplotlib.use("Agg") # Non-interactive backend: render straight to file, no display needed
@@ -90,7 +91,7 @@ def shap_(model: LogisticRegression, X: pd.DataFrame, top_n: int) -> tuple[str, 
 
     Returns:
         A (text, importances) tuple: the report section (an ERROR line on failure)
-        and the mean(|SHAP|) per feature, reused as the bubble area in plot (None on failure).
+        and the mean(|SHAP|) per feature, reused for the bubble and bar charts (None on failure).
     """
 
     print("Computing SHAP values...")
@@ -184,7 +185,7 @@ def lime(model: LogisticRegression, X: pd.DataFrame, y: pd.Series, df: pd.DataFr
 
 
 # =============================================================================
-# (2) PLOT
+# (2) PLOTS
 # =============================================================================
 
 def plot(plot: Path, model: LogisticRegression, X: pd.DataFrame, tfidf: pd.DataFrame, influence: pd.Series, top_n: int):
@@ -198,7 +199,7 @@ def plot(plot: Path, model: LogisticRegression, X: pd.DataFrame, tfidf: pd.DataF
     `trufor_score` is dropped: it is not a word and it is present in every post, so "how frequently it occurs" has no meaning for it.
 
     Args:
-        plot:      Output image path.
+        plot:      Output figure path (PDF by default).
         model:     Fitted logistic model exposing coef_.
         X:         Design matrix the model was fitted on (gives the coefficient order).
         tfidf:     TF-IDF matrix alone (the word columns), used for the document frequencies.
@@ -206,7 +207,7 @@ def plot(plot: Path, model: LogisticRegression, X: pd.DataFrame, tfidf: pd.DataF
         top_n:     Words labelled per side (up/down).
 
     Returns:
-        None (writes the PNG; prints an ERROR line and returns on failure).
+        None (writes the figure; prints an ERROR line and returns on failure).
     """
 
     print("Plotting the word effects...")
@@ -246,7 +247,7 @@ def plot(plot: Path, model: LogisticRegression, X: pd.DataFrame, tfidf: pd.DataF
         up    = data["coef"] >= 0
 
         fig, ax = plt.subplots(figsize=(FIG_WIDTH, 7))
-        for mask, color, name in ((up, EXPLAIN_PLOT_UP_COLOR, "raises engagement"), (~up, EXPLAIN_PLOT_DOWN_COLOR, "lowers engagement")):
+        for mask, color, name in ((up, EXPLAIN_PLOT_UP_COLOR, "Positivo"), (~up, EXPLAIN_PLOT_DOWN_COLOR, "Negativo")):
             ax.scatter(data.loc[mask, "coef"], data.loc[mask, "freq"], s=area[mask], color=color,
                        alpha=0.75, edgecolors="white", linewidths=0.8, label=name, zorder=3)
 
@@ -285,35 +286,92 @@ def plot(plot: Path, model: LogisticRegression, X: pd.DataFrame, tfidf: pd.DataF
             ax.annotate(row["label"], (row["coef"], row["freq"]), textcoords="offset points",
                         xytext=(0, offset if above else -offset - FONT_SIZE), ha="center", fontsize=FONT_SIZE, zorder=4)
 
-        ax.set_xlabel("Logistic coefficient (log-odds) - 0 = no effect on engagement")
-        ax.set_ylabel("Posts containing the word")
-        ax.set_title("Which words move engagement, how strongly, and how often they occur")
+        ax.set_xlabel("Coefficiente logistico (log-odds)")
+        ax.set_ylabel("Descrizioni che contengono la parola")
+        ax.set_title("Coefficienti delle parole e frequenza nelle descrizioni")
 
         # Both legends outside the axes: the corners of the plot carry data
-        colors_legend = ax.legend(title="Direction", loc="upper left", bbox_to_anchor=(1.02, 1.0), frameon=False, fontsize=8)
+        colors_legend = ax.legend(title="Segno del\ncoefficiente", loc="upper left", bbox_to_anchor=(1.02, 1.0), frameon=False, fontsize=8)
         ax.add_artist(colors_legend)
         sizes  = [data["influence"].max(), data["influence"].median(), data["influence"].min()]
         handles = [ax.scatter([], [], s=20 + (value - data["influence"].min()) / span * 380 if span > 0 else 120,
                               color="0.6", edgecolors="white", linewidths=0.8, label=f"{value:.4f}")
                    for value in sizes]
-        ax.legend(handles=handles, title="Aggregate influence\nmean(|SHAP|)", loc="upper left",
+        ax.legend(handles=handles, title="Media |SHAP|\n(log-odds)", loc="upper left",
                   bbox_to_anchor=(1.02, 0.72), frameon=False, fontsize=8, labelspacing=1.8, borderpad=1.0)
 
-        fig.text(0.0, -0.02,
-                 "In-sample logistic fit, for interpretation only: there are no word-level p-values (the raw TF-IDF GLM does not converge),\n"
-                 "so distance from zero ranks the words, it does not test them. For a linear model mean(|SHAP|) is |coefficient| x the word's spread,\n"
-                 "so the bubble area tracks both axes by construction: it reads which words actually move the model, not a fourth measurement.\n"
-                 "trufor_score is excluded - it is not a word and occurs in every post.",
-                 fontsize=7.5, color="0.35", va="top")
-
         plot.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(plot, dpi=120, bbox_inches="tight")
+        fig.savefig(plot, dpi=120, bbox_inches="tight",
+                    bbox_extra_artists=(*fig.get_default_bbox_extra_artists(), colors_legend))
         plt.close(fig)
         print("Plot saved successfully.")
 
     except Exception as e:
         print(f"ERROR: during the word plot: {e}")
         return
+
+
+def plot_bars(plot_file: Path, model: LogisticRegression, X: pd.DataFrame, tfidf: pd.DataFrame,
+              influence: pd.Series | None, top_n: int = EXPLAIN_BAR_TOP_N):
+    """
+    Save the top SHAP word importances in two panels, grouped by coefficient sign.
+
+    Bar length is mean(|SHAP|), not the coefficient or a probability change.
+    Only TF-IDF columns are ranked; both panels use the same horizontal scale.
+    Missing SHAP importances or invalid rankings skip the figure.
+    """
+    
+    print("Plotting the SHAP word ranking...")
+    if influence is None or top_n < 1:
+        print("ERROR: no SHAP importances or invalid top_n; skipping the bar chart.")
+        return
+
+    fig = None
+    try:
+        coefs = pd.Series(model.coef_[0], index=X.columns)
+        data = pd.DataFrame({"coef": coefs.reindex(tfidf.columns),
+                             "influence": influence.reindex(tfidf.columns)})
+        data = data[np.isfinite(data["coef"]) & np.isfinite(data["influence"])
+                    & (data["influence"] >= 0) & (data["coef"] != 0)]
+        sides = [data[data["coef"] > 0].nlargest(top_n, "influence"),
+                 data[data["coef"] < 0].nlargest(top_n, "influence")]
+        if data.empty:
+            print("ERROR: no plottable words; skipping the bar chart.")
+            return
+
+        height = max(4, 1.6 + 0.36 * max(len(side) for side in sides))
+        fig, axes = plt.subplots(1, 2, figsize=(11, height), sharex=True)
+        limit = max(float(data["influence"].max()) * 1.25, 0.001)
+        for ax, side, color, title in zip(
+            axes, sides, (EXPLAIN_PLOT_UP_COLOR, EXPLAIN_PLOT_DOWN_COLOR),
+            ("Coefficiente positivo", "Coefficiente negativo"),
+        ):
+            positions = np.arange(len(side))
+            bars = ax.barh(positions, side["influence"], color=color, alpha=0.75, height=0.7)
+            ax.set_yticks(positions, [name.removeprefix("tfidf_") for name in side.index])
+            ax.bar_label(bars, labels=[f"{value:.4f}".replace(".", ",") for value in side["influence"]],
+                         padding=4, fontsize=8)
+            ax.set_ylim(max(len(side), 1) - 0.5, -0.5)
+            ax.set_xlim(0, limit)
+            ax.set_title(title, fontsize=12)
+            ax.set_xlabel("Media |SHAP| (log-odds)")
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:.3f}".replace(".", ",")))
+            ax.set_axisbelow(True)
+            ax.grid(axis="x", color="0.92")
+            ax.tick_params(axis="y", length=0)
+            ax.spines[["top", "right", "left"]].set_visible(False)
+            if side.empty:
+                ax.text(0.5, 0.5, "Nessuna parola", transform=ax.transAxes, ha="center", color="0.4")
+
+        fig.tight_layout(rect=(0, 0.12, 1, 1), w_pad=3)
+        plot_file.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(plot_file, bbox_inches="tight")
+        print("SHAP bar chart saved successfully.")
+    except Exception as e:
+        print(f"ERROR: during the SHAP bar chart: {e}")
+    finally:
+        if fig is not None:
+            plt.close(fig)
 
 
 # =============================================================================
@@ -324,7 +382,8 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
             max_words: int = MAX_NUMBER_OF_WORDS, dead_zone: float = ENGAGEMENT_DEAD_ZONE,
             min_df: int = TFIDF_MIN_DF, max_df: float = TFIDF_MAX_DF,
             top_n: int = EXPLAIN_TOP_N, n_repeats: int = EXPLAIN_N_REPEATS, n_samples: int = EXPLAIN_N_SAMPLES,
-            plot_top_n: int = EXPLAIN_PLOT_TOP_N):
+            plot_top_n: int = EXPLAIN_PLOT_TOP_N, bar_plot_file: Path = EXPLANATION_BAR_PLOT_FILE,
+            bar_top_n: int = EXPLAIN_BAR_TOP_N):
     """
     Model-agnostic word-level interpretation of the logistic regression on the raw TF-IDF.
 
@@ -337,7 +396,7 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
     Args:
         dataset:    Path to the dataset CSV (trufor_score, anomaly_txt, crowdtangle_score, filename).
         report:     Output file for the combined interpretation report.
-        plot_file:  Output image for the word bubble chart (not named `plot`: that is the plotting function).
+        plot_file:  Output figure for the word bubble chart, PDF by default (not named `plot`: that is the plotting function).
         max_words:  Maximum size of the TF-IDF vocabulary.
         dead_zone:  Drop posts with |crowdtangle_score| <= this before binarising. 0 disables the cut.
         min_df:     Keep only words appearing in at least this many documents.
@@ -346,6 +405,8 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
         n_repeats:  Permutation-importance shuffles per feature.
         n_samples:  Posts explained locally by LIME.
         plot_top_n: Words labelled per side in the bubble chart.
+        bar_plot_file: Output PDF for the two-panel SHAP word ranking.
+        bar_top_n:  Words shown per coefficient sign in the bar chart.
 
     Returns:
         None.
@@ -357,7 +418,7 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
     if dead_zone < 0:
         dead_zone = 0
 
-    if top_n < 1 or n_repeats < 1 or n_samples < 1 or plot_top_n < 1:
+    if top_n < 1 or n_repeats < 1 or n_samples < 1 or plot_top_n < 1 or bar_top_n < 1:
         print("ERROR: invalid arguments.")
         return
 
@@ -408,6 +469,7 @@ def explain(dataset: Path = FILTERED_DATASET_FILE, report: Path = EXPLANATION_FI
 
     # The same words as a figure: direction and strength against how often they actually occur
     plot(plot_file, model, X, tfidf, influence, plot_top_n)
+    plot_bars(bar_plot_file, model, X, tfidf, influence, bar_top_n)
     print("Word-level interpretation completed successfully.")
 
 

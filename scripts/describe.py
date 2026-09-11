@@ -93,7 +93,7 @@ def load_blip(model_name: str = DESCRIPTION_MODEL) -> tuple[BlipProcessor, BlipF
     print("Loading Hugging Face model (BLIP)...")
     try:
         # Check for hardware acceleration (MPS for Apple Silicon, CUDA for Nvidia GPUs) and set the device accordingly
-        device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
         # Use float32 for better accuracy
         torch_dtype = torch.float32
         print(f"Using device: {device} in {torch_dtype} precision.")
