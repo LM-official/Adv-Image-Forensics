@@ -1,5 +1,5 @@
 % !TeX encoding = UTF-8
-% !TeX program = pdflatex
+% Compilare con la ricetta latexmk per aggiornare anche bibliografia e riferimenti.
 % !TeX spellcheck = it_IT
 
 % Cerca la classe e il logo direttamente nel pacchetto originale.
@@ -13,14 +13,16 @@
 \input{packages}
 
 % Frontespizio: sostituire i segnaposto e verificare i dati del corso.
-\title{Titolo della tesi}
+\title{Localizzazione, interpretazione ed analisi computazionale del fotoritocco nella comunicazione politica sui social media}
 % \subtitle{Eventuale sottotitolo}
 \author{Lorenzo Mercuri}
 \IDnumber{2145783}
 \course{Laurea Triennale in Informatica}
 \courseorganizer{Facoltà di Ingegneria dell'informazione, informatica e statistica}
 \AcademicYear{2025/2026}
-\advisor{Prof.~Mattia Samory}
+\advisor{Prof.~Matteo Cinelli}
+\customcoadvisorlabel{Relatore esterno}
+\coadvisor{Prof.~Mattia Samory}
 \authoremail{mercuri.2145783@studenti.uniroma1.it}
 \copyyear{2026}
 \thesistype{Tesi di laurea}
@@ -43,6 +45,7 @@
 
 % Aggiungere un file per ogni capitolo, nell'ordine definitivo di lettura.
 % La numerazione dei capitoli viene assegnata automaticamente.
+\include{capitoli/03_data_materials_definitions}
 
 % Attivare quando saranno disponibili le appendici.
 % \appendix
@@ -50,12 +53,11 @@
 
 \backmatter
 
-% Attivare dopo aver aggiunto le fonti a references.bib e le citazioni al testo.
-% \cleardoublepage
-% \phantomsection
-% \addcontentsline{toc}{chapter}{\bibname}
-% \bibliographystyle{ieeetr}
-% \bibliography{references}
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{\bibname}
+\bibliographystyle{ieeetr}
+\bibliography{references}
 
 % Attivare quando i ringraziamenti saranno pronti.
 % \chapter*{Ringraziamenti}

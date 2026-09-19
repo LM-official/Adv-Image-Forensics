@@ -1,0 +1,189 @@
+% !TeX root = ../tesi.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = it_IT
+
+\chapter{Dati, strumenti e definizioni}
+\label{chap:dataset}
+
+In questo capitolo presento i dati che utilizzo per studiare la relazione tra il contenuto delle immagini politiche, le loro regioni potenzialmente alterate e l'\emph{engagement}: l'insieme delle interazioni degli utenti con un post. Il dataset associa i contenuti visivi ad un valore che confronta le interazioni osservate con quelle attese per l'account autore. Questa associazione permette di valutare quali informazioni ricavate dalle immagini sono utili per distinguere le pubblicazioni con prestazioni superiori o inferiori alle aspettative.
+
+Descrivo la provenienza e la struttura dei dati, definisco il punteggio di engagement e illustro i criteri di selezione. Presento poi le statistiche descrittive, l'integrazione di TruFor e le annotazioni per la verifica preliminare. Distinguo il dataset originale dal \emph{campione filtrato}, composto dalle immagini selezionate e dai rispettivi post di riferimento.
+
+\section{Origine dei dati e contesto della raccolta}
+\label{sec:dataset-origine}
+
+Utilizzo una raccolta di contenuti pubblici di comunicazione politica pubblicati su Facebook e Instagram tra il 15 maggio e il 14 agosto 2024. L'intervallo comprende il periodo delle elezioni europee del 2024 e le settimane successive. I dati provengono da CrowdTangle e comprendono i metadati dei post ed i materiali multimediali scaricati dai collegamenti agli allegati.
+
+La disponibilità congiunta di immagini e misure di engagement motiva l'adozione di questo dataset. Posso associare a ciascuna immagine le informazioni prodotte dalla \emph{pipeline}, cioè dalla sequenza di elaborazioni automatiche, e confrontarle con la risposta degli utenti alla pubblicazione. La raccolta può comprendere sia inserzioni sponsorizzate sia resoconti delle attività dei politici.
+
+\subsection{CrowdTangle ed i dati disponibili}
+\label{subsec:dataset-crowdtangle}
+
+Il \emph{Codebook}, la documentazione tecnica di \emph{CrowdTangle}~\cite{DVN/SCCQYD_2019}, descrive il servizio come una piattaforma di analisi dei contenuti pubblici. Sono disponibili metadati e contatori di interazione, rilevati dalla pubblicazione fino all'interrogazione. La copertura dipende dagli account monitorati; per Facebook, la documentazione esclude i contenuti con restrizioni di pubblico imposte tramite strumenti di targeting~\cite{DVN/SCCQYD_2019}.
+
+Distinguo questa descrizione del servizio dai criteri specifici di costruzione della raccolta. Nei materiali disponibili manca un protocollo completo con le interrogazioni e le liste di account utilizzate per l'estrazione. Posso quindi descrivere il contenuto dell'archivio, ma la sua rappresentatività rispetto all'intera comunicazione politica sulle due piattaforme resta da verificare.
+
+\section{Composizione e struttura del dataset}
+\label{sec:dataset-struttura}
+
+Il dataset originale contiene 1.357 post pubblicati da 66 account. La Tabella~\ref{tab:dataset-piattaforme} ne riporta la distribuzione per piattaforma e la confronta con quella delle immagini nel campione filtrato, definito nella Sezione~\ref{sec:dataset-selezione}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Composizione per piattaforma. Nel campione filtrato ogni immagine è associata ad un solo post di riferimento.}
+    \label{tab:dataset-piattaforme}
+    \begin{tabular}{lrr}
+        \toprule
+        Piattaforma & Post originali & Immagini nel campione filtrato \\
+        \midrule
+        Facebook  & 521   & 386   \\
+        Instagram & 836   & 826   \\
+        \midrule
+        Totale    & 1.357 & 1.212 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+L'archivio comprende i metadati, raccolti in \path{crowdtangle.jsonl}, ed una cartella di contenuti multimediali. Il formato adottato per i primi è \emph{JSON Lines}: ogni riga contiene un oggetto \emph{JSON}, ossia una struttura di campi e valori che descrive un post. La cartella \path{crowdtangle_media/} contiene 1.441 file: 1.192 con estensione \texttt{.jpg}, 82 \texttt{.heic}, 20 \texttt{.webp}, 98 \texttt{.mp4}, 7 \texttt{.mpd} e 42 senza estensione.
+
+Le liste degli allegati nei metadati citano complessivamente 1.466 elementi, di cui 1.348 fotografie e 118 video. Ho quindi tre quantità: i post raccolti, gli allegati citati ed i file presenti su disco. Un post può avere più allegati; nella Sezione~\ref{sec:dataset-selezione} specifico come seleziono quello da analizzare e verifico la disponibilità del file corrispondente.
+
+Per studiare la relazione tra contenuti visivi ed engagement, associo ciascuna immagine al punteggio della pubblicazione di riferimento. A questo scopo seleziono i metadati riportati nella Tabella~\ref{tab:dataset-campi} e mantengo inalterato il dataset originale.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Campi utilizzati per associare un post alla sua immagine ed al risultato di engagement. I campi \texttt{type}, \texttt{url} e \texttt{full} appartengono all'allegato selezionato nella lista \texttt{media}.}
+    \label{tab:dataset-campi}
+    \begin{tabular}{@{}lp{0.69\textwidth}@{}}
+        \toprule
+        Campo & Significato \\
+        \midrule
+        \texttt{id} & Identificatore del post di riferimento. \\
+        \texttt{score} & Punteggio di engagement. \\
+        \texttt{media} & Lista degli allegati. Prendo il primo elemento. \\
+        \texttt{type} & Tipo dell'allegato: seleziono il tipo \texttt{photo}. \\
+        \texttt{url}, \texttt{full} & Campi dell'allegato che contengono il collegamento al file. Uso \texttt{url} oppure, se assente, \texttt{full}. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Definizione del punteggio di engagement}
+\label{sec:dataset-engagement}
+
+Uso come misura dell'engagement il campo \texttt{score}, basato sulla metrica \emph{overperforming} di CrowdTangle. Il valore confronta le interazioni osservate con un \emph{benchmark} di riferimento, relativo a post dello stesso account, dello stesso tipo e con un tempo trascorso dalla pubblicazione comparabile~\cite{DVN/SCCQYD_2019}.
+
+Il benchmark considera gli ultimi 100 post comparabili. Per ciascun tipo di interazione, CrowdTangle ordina i valori, elimina i 25 maggiori ed i 25 minori e calcola la media dei 50 centrali. Il calcolo prevede inoltre soglie minime per limitare l'instabilità dovuta a conteggi piccoli~\cite{DVN/SCCQYD_2019}.
+
+Indico con $c_i$ il punteggio del post associato all'immagine $i$. Il segno indica se le interazioni superano le aspettative (positivo) o rimangono al di sotto (negativo). Questa misura esprime una prestazione relativa allo storico dell'account.
+
+Per le analisi di classificazione trasformo $c_i$ in una variabile binaria $y_i$. Nella configurazione utilizzata escludo i valori nell'intervallo $[-0{,}5;\,0{,}5]$, estremi inclusi. Per le osservazioni rimanenti definisco:
+\begin{equation}
+    y_i =
+    \begin{cases}
+        1 & \text{se } s_i > 0{,}5, \\
+        0 & \text{se } s_i < -0{,}5.
+    \end{cases}
+    \label{eq:dataset-target}
+\end{equation}
+Questa scelta circoscrive il confronto ai post che si discostano dalla soglia zero. I valori vicini allo zero indicano prestazioni prossime alle aspettative: escluderli permette di concentrare l'analisi sulla ricerca di caratteristiche visive associate a scostamenti più marcati. Applico questa esclusione solo alle analisi di classificazione. Le statistiche descrittive del campione filtrato comprendono invece tutti i valori, anche quelli vicini o uguali a zero. Le etichette $y_i$ indicano se la risposta degli utenti supera o meno le aspettative.
+
+\section{Selezione dei dati e costruzione del campione}
+\label{sec:dataset-selezione}
+
+Definisco l'unità di analisi come un'immagine associata allo score di un post di riferimento. Per ottenere questa corrispondenza applico due passaggi: seleziono le pubblicazioni con una prima fotografia disponibile su disco e risolvo le associazioni multiple tra uno stesso file e più post.
+
+\subsection{Selezione dei post ed associazione ai file}
+\label{subsec:dataset-filtraggio}
+
+Costruisco un indice dei media presenti su disco tramite lo script \path{scripts/filter.py}. Per ciascun file leggo il nome senza estensione, che corrisponde già all'\emph{hash} dell'URL da cui è stato scaricato. L'hash è un identificatore che si ottiene applicando la funzione SHA-256 all'URL; nella configurazione corrente sfrutto tutti i suoi 64 caratteri esadecimali.
+
+Considero i post con disponibile la misura di engagement ed il cui primo allegato è di tipo \texttt{photo}. Leggo il collegamento dal campo \texttt{url} oppure, se assente o vuoto, da \texttt{full}. Calcolo l'hash dell'URL e lo cerco nell'indice locale. Conservo l'osservazione soltanto se trovo un unico file corrispondente. Ignoro gli eventuali allegati successivi, inclusi i video.
+
+Se più post rimandano allo stesso media, conservo quello con il punteggio maggiore. A parità di valore conservo il primo incontrato nell'archivio. Ottengo così una sola osservazione per media. Questa procedura riconosce le ripetizioni attraverso il collegamento all'allegato: immagini visivamente identiche disponibili a indirizzi diversi possono mantenere identificatori distinti, e quindi apparire più volte tra le immagini selezionate.
+
+\subsection{Numerosità e struttura del campione filtrato}
+\label{subsec:dataset-campione-filtrato}
+
+La Tabella~\ref{tab:dataset-selezione} riporta il numero di osservazioni escluse e mantenute ad ogni passaggio del filtraggio. Tutti i post hanno un valore di \texttt{score}; 9 sono privi di allegati, 118 hanno un primo allegato diverso da una fotografia e 12 rimandano ad un'immagine assente. Non rilevo casi in cui allo stesso identificatore corrispondono più file locali. Tra i 1.218 post rimanenti, la risoluzione delle associazioni multiple elimina 6 righe e produce un insieme di 1.212 immagini.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Costruzione del campione filtrato. I criteri sono applicati in sequenza; ogni esclusione viene conteggiata una sola volta.}
+    \label{tab:dataset-selezione}
+    \begin{tabular}{@{}p{0.64\textwidth}rr@{}}
+        \toprule
+        Passaggio & Esclusioni & Rimanenti \\
+        \midrule
+        Archivio originale & -- & 1.357 \\
+        Presenza del punteggio & 0 & 1.357 \\
+        Presenza di almeno un allegato & 9 & 1.348 \\
+        Primo allegato di tipo \texttt{photo} & 118 & 1.230 \\
+        Presenza del file locale & 12 & 1.218 \\
+        Un solo file locale per identificatore & 0 & 1.218 \\
+        Un solo post per identificatore di file & 6 & 1.212 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Il filtro produce un documento \emph{CSV}, cioè una tabella di valori separati da virgole, con le colonne \texttt{id}, \texttt{crowdtangle\_score} e \texttt{filename}. Ogni riga identifica un post, il suo score ed il collegamento alla fotografia associata. La cartella \path{scripts/temp/images/} contiene i collegamenti ai file selezionati. La pipeline accede agli originali tramite questi collegamenti e conserva l'archivio di partenza inalterato.
+
+Distinguo il risultato del filtraggio dalla tabella arricchita disponibile in \path{dataset_filtered.csv}, che contiene anche i punteggi di manipolazione, le descrizioni e le caratteristiche visive prodotte dalle elaborazioni successive. Quest'ultima comprende 1.211 osservazioni: una delle 1.212 immagini selezionate dal filtro è un PNG di dimensioni $1 \times 1$ pixel, che viene scartato nelle analisi successive. I due archivi coincidono per identificatore del post e punteggio sulle osservazioni comuni. Le statistiche della Sezione~\ref{sec:dataset-statistiche} si riferiscono alle 1.212 immagini selezionate; la numerosità delle analisi successive dipende anche dalla disponibilità delle informazioni richieste da ciascun modello.
+
+\section{Statistiche descrittive del campione}
+\label{sec:dataset-statistiche}
+
+Il campione filtrato proviene in 386 casi da Facebook e in 826 da Instagram, rispettivamente il 31,8\% e il 68,2\% del totale. Rimangono rappresentati tutti i 66 account dell'archivio originale. Le statistiche di engagement si basano sulla misura associata a ciascuna pubblicazione di riferimento.
+
+La Tabella~\ref{tab:dataset-statistiche} mostra che la media del punteggio, pari a $-3{,}383$, è inferiore alla mediana, pari a $-0{,}736$. La differenza riflette la presenza di valori molto negativi: il minimo è $-304$, mentre il massimo è $81{,}75$. Il coefficiente di asimmetria, che descrive lo sbilanciamento della distribuzione, è pari a $-8{,}717$ e indica una coda più estesa verso i valori negativi.
+
+Per individuare i valori estremi uso le soglie di Tukey. Indico con $Q_1$ e $Q_3$ il primo ed il terzo \emph{quartile}, ossia i valori inferiori rispettivamente del 25\% e del 75\% delle osservazioni. Definisco l'intervallo interquartile come $\mathrm{IQR}=Q_3-Q_1$ e considero estremi i valori inferiori a $Q_1-1{,}5\,\mathrm{IQR}$ o superiori a $Q_3+1{,}5\,\mathrm{IQR}$. Le soglie risultano pari a circa $-7{,}895$ e $7{,}578$: 127 osservazioni, il 10,5\% del totale, si trovano al di fuori di questo intervallo. Mantengo queste osservazioni nell'analisi, perché il superamento delle soglie descrive la loro posizione nella distribuzione e non indica un errore nei dati.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Statistiche del punteggio di engagement sulle 1.212 immagini selezionate, prima dell'esclusione dei valori vicini allo zero.}
+    \label{tab:dataset-statistiche}
+    \begin{tabular}{lr}
+        \toprule
+        Statistica & Valore \\
+        \midrule
+        Media & $-3{,}383$ \\
+        Mediana & $-0{,}736$ \\
+        Deviazione standard & $23{,}506$ \\
+        Minimo & $-304{,}000$ \\
+        Primo quartile ($Q_1$) & $-2{,}092$ \\
+        Terzo quartile ($Q_3$) & $1{,}776$ \\
+        Massimo & $81{,}750$ \\
+        Coefficiente di asimmetria & $-8{,}717$ \\
+        Valori oltre le soglie di Tukey & 127 (10,5\%) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La Figura~\ref{fig:dataset-istogramma} mostra un istogramma dei punteggi associati alle 1.212 immagini del campione filtrato. Per rendere leggibile la parte centrale della distribuzione, applico il \emph{clipping} solo nella rappresentazione grafica: riporto i valori inferiori a $-7{,}895$ sulla soglia inferiore e quelli superiori a $7{,}578$ sulla soglia superiore. Ad esempio, rappresento il valore $-304$ nella barra che contiene la soglia $-7{,}895$. Le barre ai bordi includono quindi anche i 127 valori estremi. Nella parte centrale emergono due concentrazioni, ai lati dello zero, separate da una zona con poche osservazioni. La Figura~\ref{fig:dataset-boxplot} presenta un diagramma a scatola, o \emph{box plot}, della distribuzione originale, che mostra anche l'estensione della coda negativa.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{engagement_istogramma.pdf}
+    \caption{Istogramma del punteggio di engagement sulle 1.212 immagini selezionate. I 127 valori esterni alle soglie di Tukey sono riportati sulle rispettive soglie e contribuiscono alle barre ai bordi. La linea tratteggiata indica lo zero.}
+    \label{fig:dataset-istogramma}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{engagement_boxplot.pdf}
+    \caption{Box plot del punteggio di engagement sulle 1.212 immagini selezionate. La scatola rappresenta l'intervallo interquartile, la linea interna la mediana e i punti oltre i baffi i valori estremi. La linea tratteggiata indica lo zero.}
+    \label{fig:dataset-boxplot}
+\end{figure}
+
+Dopo il filtraggio conto 584 punteggi positivi, 618 negativi e 10 nulli. L'esclusione dell'intervallo $[-0{,}5;\,0{,}5]$ rimuove 16 osservazioni e lascia 1.196 esempi: 584 con prestazioni superiori alle aspettative e 612 con prestazioni inferiori. Applico la stessa regola alla tabella arricchita con le informazioni prodotte dalle elaborazioni successive, di 1.211 righe, e le osservazioni diventano 1.195, suddivise in 583 esempi nella classe positiva e 612 in quella negativa. Questa distinzione rende esplicita la differenza tra il campione descritto qui e quello riportato nelle analisi di classificazione archiviate.
+
+\section{Limiti del dataset}
+\label{sec:dataset-limiti}
+
+La raccolta riguarda due piattaforme, 66 account in un intervallo di tre mesi. Questi confini delimitano il caso di studio. La prevalenza di Instagram, 68,2\% del totale dei post filtrati, e l'assenza di un protocollo completo di estrazione impediscono di considerare i dati selezionati una rappresentazione esaustiva dell'intera comunicazione politica online. L'estensione dei risultati ad altre campagne, periodi o ambiti del marketing richiede una verifica su nuove raccolte.
+
+La scelta della prima immagine riduce ogni post ad una sola componente visiva. La misura di engagement riguarda però il contenuto nel suo complesso, che può includere testo ed altri allegati. Le associazioni osservate coinvolgono quindi un contesto comunicativo che la rappresentazione dell'immagine descrive solo in parte.
+
+Quando più post condividono il collegamento ad un media, la selezione di quello con punteggio maggiore privilegia per costruzione la prestazione più alta tra le occorrenze disponibili. Inoltre, il confronto degli identificatori dei file non elimina tutte le possibili ripetizioni visive. Queste due proprietà vanno considerate quando si interpreta la distribuzione dei punteggi e quando si valuta l'indipendenza delle osservazioni.
+
+Infine, l'engagement misura interazioni e non identifica direttamente consenso politico, persuasione o intenzione di voto. Il riferimento allo storico dell'account rende il punteggio relativo alle sue prestazioni abituali, ma non permette di stabilire se una scelta visiva determina un cambiamento nelle interazioni. Utilizzo quindi il dataset per studiare le associazioni tra caratteristiche visive ed engagement e valutare quanto queste caratteristiche aiutano a prevederlo.

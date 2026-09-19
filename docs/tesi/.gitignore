@@ -10,3 +10,6 @@
 *.out
 *.synctex.gz
 *.toc
+
+# Tesi incompleta
+tesi.pdf
