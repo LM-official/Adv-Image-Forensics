@@ -1,0 +1,133 @@
+% !TeX root = ../tesi.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = it_IT
+
+\chapter{Metodi}
+\label{chap:metodi}
+
+In questo capitolo descrivo come impiego TruFor nella pipeline. Eseguo prima una verifica sui 100 casi annotati, poi estendo l'elaborazione all'intero dataset selezionato. Salvo gli output e studio l'associazione tra il punteggio globale e l'engagement. Uso questa analisi come riferimento per i modelli che includono le caratteristiche visive e le descrizioni delle regioni sospette.
+
+\section{Benchmark preliminare di TruFor sul dataset}
+\label{sec:metodi-trufor-benchmark}
+
+Eseguo TruFor sul campione descritto nella Sezione~\ref{sec:materiali-trufor-annotazioni}. Confronto la previsione del modello con il mio giudizio sull'autenticità di ciascun contenuto.
+
+Per ricavare una decisione dal punteggio $t_i$, applico la soglia $\tau=0{,}25$, impostata tramite \texttt{TRUFOR\_THRESHOLD}. Indico con $\widehat{z}_i$ la classe prevista:
+\begin{equation}
+    \widehat{z}_i =
+    \begin{cases}
+        1 & \text{se } t_i > \tau, \\
+        0 & \text{se } t_i \leq \tau.
+    \end{cases}
+    \label{eq:metodi-trufor-soglia}
+\end{equation}
+Uso questa soglia soltanto per la verifica del rilevamento. L'elaborazione delle mappe usa parametri distinti.
+
+Calcolo la matrice di confusione tra $z_i$ e $\widehat{z}_i$, insieme ad accuratezza, precisione, richiamo e F1-score. Confronto l'accuratezza con quella ottenuta assegnando sempre la classe più frequente nel campione. Calcolo anche l’AUC (Area Under the Curve) direttamente dai punteggi, per valutare la capacità di distinguere i casi autentici da quelli alterati senza fissare un’unica soglia decisionale.
+
+Affianco alla configurazione scelta un confronto delle soglie da $0{,}20$ a $0{,}50$, con passo $0{,}05$. Per ciascuna ricalcolo le metriche sullo stesso campione. Uso queste prove per un benchmark preliminare della soglia decisionale ed interpreto le misure come risultati esplorativi sui casi annotati. Mantengo fissi i pesi del modello.
+
+Salvo il confronto in \path{trufor_confusion_matrix.txt}. Il documento contiene anche gli identificatori dei falsi positivi e dei falsi negativi, con i rispettivi punteggi, per consentire l'ispezione dei singoli casi.
+
+Riporto nella Tabella~\ref{tab:trufor-confusione} il confronto con le annotazioni manuali. Alla soglia $0{,}25$, TruFor riconosce 51 dei 62 casi alterati e 24 dei 38 casi autentici. Conto 14 falsi positivi e 11 falsi negativi.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Matrice di confusione sui 100 casi annotati, con soglia $0{,}25$. Le righe indicano le mie annotazioni; le colonne indicano le previsioni di TruFor.}
+    \label{tab:trufor-confusione}
+    \begin{tabular}{@{}lrrr@{}}
+        \toprule
+        Annotazione manuale & Previsto autentico & Previsto alterato & Totale \\
+        \midrule
+        Autentico & 24 & 14 & 38 \\
+        Alterato & 11 & 51 & 62 \\
+        \midrule
+        Totale & 35 & 65 & 100 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La Tabella~\ref{tab:trufor-confronto-soglie} mostra il confronto tra le soglie. Tra i valori esaminati, $0{,}25$ produce l'accuratezza e l'F1-score maggiori. La soglia $0{,}20$ favorisce il richiamo, mentre $0{,}50$ produce la precisione maggiore.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Confronto delle soglie sullo stesso campione di 100 casi. Il grassetto evidenzia la configurazione usata nel benchmark.}
+    \label{tab:trufor-confronto-soglie}
+    \begin{tabular}{@{}rrrrr@{}}
+        \toprule
+        Soglia & Accuratezza & Precisione & Richiamo & F1-score \\
+        \midrule
+        $0{,}20$ & $72{,}00\%$ & $72{,}97\%$ & $87{,}10\%$ & $0{,}7941$ \\
+        $\mathbf{0{,}25}$ & $\mathbf{75{,}00\%}$ & $\mathbf{78{,}46\%}$ & $\mathbf{82{,}26\%}$ & $\mathbf{0{,}8031}$ \\
+        $0{,}30$ & $73{,}00\%$ & $79{,}66\%$ & $75{,}81\%$ & $0{,}7769$ \\
+        $0{,}35$ & $70{,}00\%$ & $79{,}63\%$ & $69{,}35\%$ & $0{,}7414$ \\
+        $0{,}40$ & $67{,}00\%$ & $80{,}85\%$ & $61{,}29\%$ & $0{,}6972$ \\
+        $0{,}45$ & $62{,}00\%$ & $81{,}58\%$ & $50{,}00\%$ & $0{,}6200$ \\
+        $0{,}50$ & $61{,}00\%$ & $82{,}86\%$ & $46{,}77\%$ & $0{,}5979$ \\
+        \bottomrule
+    \end{tabular}
+
+    \medskip
+    \begin{minipage}{0.9\linewidth}
+        \small
+        L'accuratezza del riferimento che assegna sempre la classe maggioritaria, ``alterato'', è pari al $62{,}00\%$. L'AUC è pari a $0{,}7538$ ed è calcolata dai punteggi continui, indipendentemente dalla soglia scelta.
+    \end{minipage}
+\end{table}
+
+\section{Elaborazione del dataset e salvataggio degli output}
+\label{sec:metodi-trufor-esecuzione}
+
+Dopo la verifica preliminare applico TruFor all'intero dataset filtrato. Lo script \path{scripts/trufor.py} avvia il programma di inferenza in un processo separato, usando l'interprete Python dell'ambiente corrente. Fornisco come argomenti le cartelle degli input e degli output ed il limite di risoluzione.
+
+Imposto \texttt{TRUFOR\_MAX\_PIXELS} a 6.000.000. Se un input supera il limite il caricatore lo ridimensiona mantenendo le proporzioni. Il modello esegue l'inferenza sul contenuto; il programma riporta poi le mappe alle dimensioni originali tramite interpolazione bilineare. Il punteggio globale deriva dall'input effettivamente elaborato.
+
+Organizzo l'esecuzione in gruppi di 50 file ed inserisco una pausa di 180 secondi tra gruppi consecutivi. Per ogni gruppo lo script prepara una cartella temporanea con i collegamenti agli originali da elaborare ed avvia un nuovo processo. Il programma carica il modello una volta per gruppo ed elabora un file alla volta. Questa organizzazione regola il carico della macchina durante l'esecuzione.
+
+Gli output vengono salvati in \path{scripts/temp/npz/}, un file \texttt{.npz} dopo ogni elaborazione completata. Se un gruppo si interrompe per un crash, restano disponibili i risultati dei gruppi precedenti e quelli già salvati del gruppo interrotto.
+
+Per esecuzioni successive il programma salta gli input associati ad output già presenti; posso quindi riprendere il lavoro dagli elementi mancanti. Il riuso degli output presuppone la stessa configurazione di elaborazione; un cambio di configurazione richiede di rigenerarli o salvarli in una cartella distinta.
+
+Estraggo dagli archivi il campo \texttt{score}, descritto nella Tabella~\ref{tab:materiali-trufor-output}, e lo rinomino \texttt{trufor\_score}. Aggiorno la tabella \path{dataset_filtered.csv} tramite \texttt{filename}, ottenuto dal nome dell'output senza le estensioni. L'unione conserva solo le osservazioni con una corrispondenza. Mantengo le mappe negli archivi per i passaggi successivi della pipeline.
+
+\section{Analisi del punteggio globale e dell'engagement}
+\label{sec:metodi-trufor-engagement}
+
+Studio quanto il solo punteggio globale $t_i$ sia associato all'engagement del post. Uso il punteggio continuo $c_i$, definito nella Sezione~\ref{sec:dataset-engagement}, per correlazione e regressione lineare. Per la classificazione uso invece $y_i$, definito nell'Equazione~\ref{eq:dataset-target}, ed un GLM (Generalized Linear Model). Riassumo le analisi nella Tabella~\ref{tab:metodi-trufor-analisi} e ne presento i risultati nella Sezione~\ref{sec:risultati-trufor-engagement}.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Analisi dell'associazione tra il punteggio di TruFor e l'engagement.}
+    \label{tab:metodi-trufor-analisi}
+    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.23\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.46\linewidth}@{}}
+        \toprule
+        Analisi & Variabili & Aspetto esaminato \\
+        \midrule
+        Correlazione di Pearson & $t_i$ e $c_i$ & Associazione lineare tra i due punteggi. \\
+        \addlinespace
+        Correlazione di Spearman & Ranghi di $t_i$ e $c_i$ & Associazione monotona tra i due punteggi. \\
+        \addlinespace
+        Regressione lineare & $c_i$ in funzione di $t_i$ & Variazione media dello score di engagement al variare del punteggio globale. \\
+        \addlinespace
+        GLM binomiale & $y_i$ in funzione di $t_i$ & Probabilità di engagement superiore alle aspettative. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{samepage}
+Calcolo i coefficienti di Pearson e Spearman ed i rispettivi valori di $p$. Il primo misura l'associazione lineare; il secondo confronta i \emph{ranghi}, cioè le posizioni nell'ordinamento dei valori. Stimo poi una regressione lineare con intercetta attraverso il metodo OLS (Ordinary Least Squares), minimi quadrati ordinari. Indico con $\beta_0$ l'intercetta, con $\beta_1$ la pendenza e con $\varepsilon_i$ il termine di errore:
+\begin{equation}
+    s_i = \beta_0 + \beta_1 t_i + \varepsilon_i.
+    \label{eq:metodi-trufor-ols}
+\end{equation}
+\end{samepage}
+Esamino il coefficiente stimato ed il coefficiente di determinazione $R^2$, che misura la quota di variabilità di $c_i$ spiegata dal modello sul campione. Stimo il GLM con distribuzione binomiale e funzione di collegamento logit. Escludo le osservazioni con $c_i$ nell'intervallo $[-0{,}5;\,0{,}5]$ ed uso $t_i$ come unico predittore, insieme all'intercetta. Indico con $p_i$ la probabilità stimata della classe $y_i=1$, relativa ai post con engagement superiore alle aspettative:
+\begin{equation}
+    \log\!\left(\frac{p_i}{1-p_i}\right) = \gamma_0 + \gamma_1 t_i.
+    \label{eq:metodi-trufor-glm}
+\end{equation}
+I parametri $\gamma_0$ e $\gamma_1$ rappresentano l'intercetta ed il coefficiente del punteggio globale. Verifico la convergenza della stima e calcolo lo \emph{pseudo-$R^2$ di McFadden}, che confronta la verosimiglianza del modello con quella di un modello con la sola intercetta. Queste misure descrivono l'adattamento ai dati usati per la stima.
+
+Salvo i report nella cartella \path{scripts/temp/}. I nomi dei file condividono il prefisso \path{trufor_crowdtangle_}, seguito da \path{correlation.txt}, \path{regression.txt} o \path{glm.txt}, secondo l'analisi. Per confrontare modelli con predittori diversi considero lo stesso insieme di osservazioni, la stessa variabile obiettivo e metriche compatibili.

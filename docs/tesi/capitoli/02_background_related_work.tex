@@ -1,0 +1,169 @@
+% !TeX root = ../tesi.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = it_IT
+% Fonte per TruFor: https://arxiv.org/abs/2212.10957v3
+
+\chapter{Background e lavori correlati}
+\label{chap:background}
+
+In questo capitolo presento TruFor, il sistema che utilizzo per studiare le manipolazioni. TruFor è un framework per l'analisi \emph{forense} delle immagini, cioè l'esame delle tracce lasciate dall'acquisizione e dalle elaborazioni successive per individuare possibili manipolazioni. Introduco i compiti dell'analisi forense e descrivo il funzionamento di TruFor. Esamino poi i risultati ed i limiti che gli autori riportano nel loro lavoro. Uso questi elementi per motivare la scelta del sistema nello studio della comunicazione politica sui social media.
+
+\section{Rilevamento e localizzazione delle manipolazioni}
+\label{sec:background-rilevamento-localizzazione}
+
+Isolo due compiti dell'analisi. Il \emph{rilevamento} classifica un'immagine come autentica o manipolata. La \emph{localizzazione} indica le regioni che il sistema segnala come manipolate. Descrivo questo compito con una \emph{segmentazione binaria}: il sistema assegna ciascun pixel alla classe ``autentico'' o ``manipolato''.
+
+Osservo manipolazioni come il copia-incolla e l'inserimento di contenuti sintetici.
+
+Valuto positiva la classe ``manipolato'' e negativa la classe ``autentico''. Questa convenzione vale sia per le immagini nel rilevamento sia per i pixel nella localizzazione. TruFor può segnalare come manipolate anche regioni autentiche, producendo falsi positivi a livello di pixel~\cite{Guillaro_2023_CVPR}. Nel rilevamento, i falsi positivi possono costituire una parte consistente delle segnalazioni quando le manipolazioni sono poco frequenti. Quando interpreto i risultati, distinguo quindi gli errori di localizzazione dagli errori di rilevamento.
+
+\section{Indizi visivi ed impronta Noiseprint++}
+\label{sec:background-noiseprint}
+
+L'immagine RGB descrive il contenuto visibile; l'\emph{estrattore Noiseprint++} genera un'impronta, \emph{Noiseprint++}, che evidenzia le incoerenze tra le tracce presenti nelle diverse regioni. Trufor combina la fotografia con la sua impronta.~\cite{Guillaro_2023_CVPR}.
+
+Noiseprint++ estende \emph{Noiseprint}, un'impronta che rappresenta le tracce dei processi interni alla fotocamera. Noiseprint++ include anche le tracce delle elaborazioni successive all'acquisizione. L'addestramento dell'estrattore di impronta avviene con immagini autentiche. L'addestramento è auto-supervisionato: gli autori ricavano il segnale di apprendimento dalle relazioni tra gli esempi.
+
+Gli autori utilizzano 24.700 immagini acquisite con 1.475 modelli di fotocamera. Ne estraggono porzioni di $64 \times 64$ pixel. L'addestramento segue un criterio \emph{contrastivo}: produce impronte simili nelle aree che condividono le stesse proprietà e diverse nelle aree che differiscono. Le proprietà richieste sono il modello di fotocamera, la posizione nello spazio e la storia delle elaborazioni. Gli sviluppatori simulano quest'ultima con 512 combinazioni di ridimensionamento, compressione e variazioni di illuminazione~\cite{Guillaro_2023_CVPR}.
+
+\section{Architettura ed apprendimento}
+\label{sec:background-trufor-architettura}
+
+Il sistema elabora l'RGB e Noiseprint++ attraverso due rami. Ogni ramo estrae delle \emph{caratteristiche}, rappresentazioni numeriche delle informazioni della figura. La fusione delle caratteristiche usa una rete di tipo \emph{Transformer}, che apprende relazioni tra gli elementi delle rappresentazioni~\cite{Guillaro_2023_CVPR}.
+
+L'\emph{encoder} estrae le caratteristiche che alimentano due \emph{decoder}. Ciascun decoder produce una mappa con la stessa risoluzione della fotografia.
+
+Il decoder delle anomalie produce la \emph{mappa delle anomalie}, che assegna a ciascun pixel un valore che esprime quanto il sistema lo considera sospetto. I valori alti indicano le regioni segnalate come manipolate. Pixel autentici possono ricevere valori alti e generare falsi positivi.
+
+Il decoder della confidenza produce la \emph{mappa di confidenza}, che stima l'affidabilità della previsione della mappa delle anomalie per ciascun pixel. Una confidenza alta indica che il sistema considera affidabile la previsione. La confidenza riguarda entrambe le classi: ``autentico'' e ``manipolato''~\cite{Guillaro_2023_CVPR}.
+
+Riassumo nella Figura~\ref{fig:trufor-mappe} il percorso dall'immagine alle due mappe.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        blocco/.style={draw=black!65, rounded corners=2pt, align=center,
+            font=\small, text width=2.5cm, minimum height=0.85cm, inner sep=5pt},
+        dato/.style={blocco, fill=black!4},
+        modulo/.style={blocco, fill=sapred!20},
+        flusso/.style={-{Stealth[length=2mm]}, semithick, draw=black!70}
+    ]
+        \node[dato] (rgb) at (-3.5,0) {Immagine RGB};
+        \node[modulo] (estrattore) at (0,0) {Estrattore\\Noiseprint++};
+        \node[dato] (impronta) at (3.5,0) {Impronta\\Noiseprint++};
+        \node[modulo, text width=4.4cm] (encoder) at (0,-1.6)
+            {Encoder a due rami\\e fusione delle caratteristiche};
+        \node[modulo] (anomalie) at (-2,-3.1) {Decoder\\delle anomalie};
+        \node[modulo] (confidenza) at (2,-3.1) {Decoder\\della confidenza};
+        \node[dato] (mappaa) at (-2,-4.4) {Mappa\\delle anomalie};
+        \node[dato] (mappac) at (2,-4.4) {Mappa\\di confidenza};
+        \draw[flusso] (rgb) -- (estrattore);
+        \draw[flusso] (estrattore) -- (impronta);
+        \draw[flusso] (rgb.south) |- (encoder.west);
+        \draw[flusso] (impronta.south) |- (encoder.east);
+        \draw[flusso] (encoder.south) -- ++(0,-0.15) -| (anomalie.north);
+        \draw[flusso] (encoder.south) -- ++(0,-0.15) -| (confidenza.north);
+        \draw[flusso] (anomalie) -- (mappaa);
+        \draw[flusso] (confidenza) -- (mappac);
+    \end{tikzpicture}
+    \caption{Dall'immagine alle mappe di TruFor. I riquadri colorati rappresentano i componenti appresi; quelli grigi rappresentano i dati. Schema semplificato dalla Figura~2~\cite{Guillaro_2023_CVPR}.}
+    \label{fig:trufor-mappe}
+\end{figure}
+
+Gli autori addestrano TruFor in tre fasi, che riassumo nella Tabella~\ref{tab:trufor-addestramento}. La prima usa il criterio contrastivo descritto nella Sezione~\ref{sec:background-noiseprint}. Nella seconda usano un apprendimento \emph{supervisionato}: gli autori accompagnano gli esempi con le risposte di riferimento. Per ogni istantanea una \emph{maschera di riferimento}, o \emph{ground truth}, indica la classe ``autentico'' o ``manipolato'' di ciascun pixel.
+
+Nella terza fase il decoder della confidenza apprende come stimare la \emph{True Class Probability}, la probabilità che il modello assegna alla classe corretta di ciascun pixel. Questa quantità assume valori alti quando la previsione favorisce la classe corretta. Il decoder della confidenza apprende così come stimare l'affidabilità della mappa delle anomalie~\cite{Guillaro_2023_CVPR}.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Le tre fasi di addestramento di TruFor~\cite{Guillaro_2023_CVPR}.}
+    \label{tab:trufor-addestramento}
+    \begin{tabular}{@{}p{0.07\linewidth}p{0.35\linewidth}p{0.49\linewidth}@{}}
+        \toprule
+        Fase & Componenti addestrati & Obiettivo \\
+        \midrule
+        1 & Estrattore Noiseprint++ & Produrre impronte simili per porzioni con lo stesso modello di fotocamera, posizione e storia delle elaborazioni. \\
+        \addlinespace
+        2 & Encoder e decoder delle anomalie & Assegnare a ciascun pixel la classe indicata dalla maschera di riferimento. \\
+        \addlinespace
+        3 & Decoder della confidenza e classificatore & Stimare l'affidabilità delle previsioni per pixel e riconoscere le immagini manipolate. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Output e loro interpretazione}
+\label{sec:background-trufor-output}
+
+TruFor restituisce la mappa delle anomalie e la mappa di confidenza, definite nella Sezione~\ref{sec:background-trufor-architettura}, insieme ad un punteggio globale~\cite{Guillaro_2023_CVPR}.
+
+La visualizzazione della mappa delle anomalie come mappa di calore evidenzia le regioni da esaminare. Interpreto queste regioni insieme alla mappa di confidenza, per distinguere le segnalazioni che il sistema considera affidabili da quelle che richiedono cautela.
+
+Nel confronto con la letteratura, gli scienziati osservano che numerosi metodi ricavano la valutazione dell'intera fotografia dalle previsioni sui singoli pixel. Gli errori nelle previsioni locali possono così portare a segnalare come manipolata un'immagine autentica. TruFor usa la mappa di confidenza per ridurre il peso delle previsioni meno affidabili~\cite{Guillaro_2023_CVPR}.
+
+Il \emph{punteggio globale}, o \emph{integrity score}, esprime la valutazione sul media nel suo complesso. TruFor calcola le statistiche, come media e massimo, delle mappe attraverso il \emph{pooling}, un'operazione di aggregazione. Il classificatore usa queste informazioni per calcolare il punteggio globale~\cite{Guillaro_2023_CVPR}.
+
+Nell'interpretazione seguo la priorità proposta dagli autori: considero prima il punteggio globale e poi esamino le mappe dei casi segnalati.
+
+\section{Risultati riportati e confronto con la letteratura}
+\label{sec:background-trufor-risultati}
+
+Esamino i risultati per valutare due proprietà: la \emph{generalizzazione}, la capacità di riconoscere manipolazioni diverse da quelle di addestramento, e la \emph{robustezza}, la capacità di mantenere le prestazioni dopo trasformazioni dell'immagine. Gli esperimenti comprendono fotoritocchi e manipolazioni locali prodotte con modelli generativi~\cite{Guillaro_2023_CVPR}.
+
+Confronto TruFor con \emph{CAT-Net v2}, una rete neurale che combina il contenuto RGB e le tracce della compressione JPEG per localizzare le manipolazioni. Negli esperimenti CAT-Net v2 occupa il secondo posto per F1-score medio a livello di pixel~\cite{Guillaro_2023_CVPR}. Riporto il confronto nella Tabella~\ref{tab:trufor-medie}.
+
+Per la localizzazione, l'F1-score combina precisione e richiamo a livello di pixel. Per il rilevamento, l'AUC (Area Under the Curve) misura l'area sotto la curva ROC (Receiver Operating Characteristic), che mette in relazione i tassi di veri e falsi positivi al variare della soglia. L'accuratezza bilanciata misura invece la media delle percentuali di riconoscimento delle due classi. Valori maggiori indicano prestazioni migliori per tutte e tre le metriche.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Prestazioni medie riportate: localizzazione su otto dataset e rilevamento su sette. Fonte: Tabelle~1 e~2~\cite{Guillaro_2023_CVPR}.}
+    \label{tab:trufor-medie}
+    \begin{tabular}{@{}llrr@{}}
+        \toprule
+        Compito e metrica & Soglia & TruFor & CAT-Net v2 \\
+        \midrule
+        Localizzazione: F1-score & Ottimale per immagine & $0{,}785$ & $0{,}709$ \\
+        Localizzazione: F1-score & Fissa a $0{,}5$ & $0{,}696$ & $0{,}601$ \\
+        Rilevamento: AUC & Variabile & $0{,}857$ & $0{,}797$ \\
+        Rilevamento: acc. bilanciata & Fissa a $0{,}5$ & $0{,}781$ & $0{,}649$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+TruFor supera CAT-Net v2 nelle quattro medie. Separo i risultati con soglia fissa da quelli con soglia ottimale: gli autori scelgono quest'ultima massimizzando l'F1-score per ogni figura, usando la maschera di riferimento. La soglia fissa permette invece di valutare le previsioni puntuali senza questa scelta specifica.
+
+Distinguo due dataset: \emph{OpenForensics} contiene manipolazioni locali di volti basate su reti generative avversarie GAN (Generative Adversarial Networks); \emph{CocoGlide} include manipolazioni locali prodotte con \emph{GLIDE}, un modello a diffusione. La Tabella~\ref{tab:trufor-generative} mostra i risultati per questi dataset~\cite{Guillaro_2023_CVPR}.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{F1-score di localizzazione per dataset e metodo. Il grassetto indica il valore maggiore fra i due metodi per ciascun dataset e soglia. Fonte: Tabella~1~\cite{Guillaro_2023_CVPR}.}
+    \label{tab:trufor-generative}
+    \begin{tabular}{@{}llrr@{}}
+        \toprule
+        Dataset e generazione & Metodo & \shortstack{Soglia ottimale\\per immagine} & \shortstack{Soglia fissa\\a $0{,}5$} \\
+        \midrule
+        OpenForensics (GAN) & TruFor & $0{,}901$ & $0{,}827$ \\
+                            & CAT-Net v2 & $\mathbf{0{,}947}$ & $\mathbf{0{,}899}$ \\
+        \addlinespace
+        CocoGlide (diffusione) & TruFor & $\mathbf{0{,}720}$ & $\mathbf{0{,}523}$ \\
+                              & CAT-Net v2 & $0{,}603$ & $0{,}434$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+CAT-Net v2 supera TruFor su OpenForensics; TruFor supera CAT-Net v2 su CocoGlide. Il vantaggio medio di TruFor comprende quindi risultati diversi sui singoli dataset. Questi esperimenti valutano l'individuazione delle regioni manipolate su due raccolte diverse: il confronto diretto tra GAN e diffusione richiede di controllare anche i contenuti di partenza e le manipolazioni.
+
+Gli autori valutano anche immagini transitate su Facebook e WhatsApp. Il confronto include CAT-Net v2, IF-OSN e MVSS-Net. \emph{IF-OSN} è un metodo progettato per individuare manipolazioni sui social. Il suo addestramento simula le degradazioni introdotte dalle piattaforme. \emph{MVSS-Net} è una rete neurale che combina indizi del rumore e dei bordi delle regioni manipolate per il rilevamento e l'individuazione delle aree interessate.
+
+Nei tre dataset della Tabella~4, TruFor supera questi metodi nell'F1-score con soglia fissa~\cite{Guillaro_2023_CVPR}. Questi risultati motivano la scelta di TruFor per le immagini politiche sui social media. Le prestazioni riportate riguardano i dataset dei creatori di TruFor; la valutazione sul dataset della tesi resta un passaggio distinto.
+
+\section{Ambito di applicazione e limiti dichiarati dai creatori}
+\label{sec:background-trufor-limiti}
+
+Gli autori circoscrivono le capacità di TruFor alle manipolazioni locali. Il rilevamento delle immagini interamente generate resta fuori dalle capacità del sistema~\cite{Guillaro_2023_CVPR}. La ricerca di incoerenze locali richiede regioni autentiche come riferimento. Differenzio quindi l'inserimento di contenuti sintetici in una fotografia dalla generazione totale.
+
+L'addestramento richiede maschere di riferimento per i pixel e procede in fasi separate. Gli autori propongono come direzione di ricerca un addestramento congiunto per i componenti dell'intero sistema. La proposta include l'uso di etichette che indicano la classe dell'intera immagine~\cite{Guillaro_2023_CVPR}.
+
+Il confronto con la letteratura fornisce due motivi per scegliere TruFor. Rispetto ai metodi che ricavano la decisione dalla sola mappa delle anomalie, TruFor considera anche l'affidabilità delle previsioni. Rispetto a CAT-Net v2, ottiene valori medi superiori nelle metriche di localizzazione e rilevamento~\cite{Guillaro_2023_CVPR}. Queste evidenze riguardano i dataset del confronto e motivano la scelta di TruFor per la mia analisi. Uso i suoi output per esaminare le regioni sospette delle immagini politiche. Studio poi la relazione tra le caratteristiche visive e l'\emph{engagement}, cioè le interazioni degli utenti con il post.

@@ -187,3 +187,52 @@ La scelta della prima immagine riduce ogni post ad una sola componente visiva. L
 Quando più post condividono il collegamento ad un media, la selezione di quello con punteggio maggiore privilegia per costruzione la prestazione più alta tra le occorrenze disponibili. Inoltre, il confronto degli identificatori dei file non elimina tutte le possibili ripetizioni visive. Queste due proprietà vanno considerate quando si interpreta la distribuzione dei punteggi e quando si valuta l'indipendenza delle osservazioni.
 
 Infine, l'engagement misura interazioni e non identifica direttamente consenso politico, persuasione o intenzione di voto. Il riferimento allo storico dell'account rende il punteggio relativo alle sue prestazioni abituali, ma non permette di stabilire se una scelta visiva determina un cambiamento nelle interazioni. Utilizzo quindi il dataset per studiare le associazioni tra caratteristiche visive ed engagement e valutare quanto queste caratteristiche aiutano a prevederlo.
+
+\section{TruFor come componente esterno}
+\label{sec:materiali-trufor}
+
+Utilizzo TruFor, descritto nel Capitolo~\ref{chap:background} e nel paper~\cite{Guillaro_2023_CVPR}. Clono il \href{https://github.com/grip-unina/TruFor}{repository ufficiale} nella cartella \path{TruFor/} del progetto. Mantengo separati il codice di TruFor e gli script delle elaborazioni successive. Uso il framework come componente a scatola nera: fornisco gli input ed acquisisco gli output del modello. Mantengo i pesi preaddestrati durante tutte le elaborazioni.
+
+Lo script \path{scripts/trufor.py} richiama \path{TruFor/TruFor_train_test/test.py}. La configurazione selezionata è \texttt{trufor\_ph3}; il file dei pesi è \path{TruFor/TruFor_train_test/weights/trufor_ph3/best.pth.tar}. Centralizzo i percorsi ed i parametri di esecuzione in \path{scripts/config.py}.
+
+La copia locale include modifiche per adattare l’esecuzione alle risorse del dispositivo: un limite massimo di pixel in ingresso ed ottimizzazioni per il supporto all’uso della GPU. Descrivo il ridimensionamento dell'input nella Sezione~\ref{sec:metodi-trufor-esecuzione}. Questi interventi riguardano l'esecuzione del modello preaddestrato. 
+
+Per aggiornare TruFor basta sostituire la cartella \path{TruFor/} con la nuova versione, riapplicare gli adattamenti per il dispositivo ed adeguare gli script della pipeline alle eventuali variazioni dell’interfaccia e degli output.
+
+\subsection{Organizzazione degli input e degli output}
+\label{subsec:materiali-trufor-output}
+
+Uso \path{scripts/temp/} come cartella di lavoro. Al suo interno, \path{images/} contiene i collegamenti ai file selezionati come input, Sezione~\ref{subsec:dataset-campione-filtrato}, e gli \path{npz/} prodotti in output. Conservo i punteggi associati ai post in \path{dataset_filtered.csv}.
+
+Per ogni file elaborato acquisisco un archivio NumPy, con estensione \texttt{.npz}. Il nome conserva quello dell'input e aggiunge l'estensione, per esempio \path{picture.jpg.npz}. Riporto nella Tabella~\ref{tab:materiali-trufor-output} i campi utilizzati dal progetto. Per il significato delle due mappe richiamo la Sezione~\ref{sec:background-trufor-architettura}.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Campi degli output di TruFor utilizzati nella pipeline.}
+    \label{tab:materiali-trufor-output}
+    \begin{tabular}{@{}lp{0.75\linewidth}@{}}
+        \toprule
+        Campo & Contenuto ed utilizzo \\
+        \midrule
+        \texttt{map} & Mappa delle anomalie, usata per individuare le regioni sospette. \\
+        \addlinespace
+        \texttt{conf} & Mappa di confidenza, usata nell'elaborazione delle previsioni per pixel. \\
+        \addlinespace
+        \texttt{score} & Punteggio globale, riportato nella tabella del dataset come \texttt{trufor\_score}. \\
+        \addlinespace
+        \texttt{imgsize} & Altezza e larghezza originali, in pixel. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Indico con $t_i$ il punteggio globale prodotto per l'osservazione $i$. Il valore appartiene all'intervallo $[0,1]$; valori maggiori indicano una maggiore evidenza di manipolazione secondo il modello.
+
+\section{Campione annotato per la verifica preliminare}
+\label{sec:materiali-trufor-annotazioni}
+
+Prima dell'elaborazione completa considero un sotto-insieme eterogeneo di 100 contenuti del dataset. Assegno manualmente a ciascuno un'etichetta globale, che indico con $z_i$: 0 per i media che giudico autentici e 1 per quelli che credo alterati. Il campione comprende 38 casi nella prima classe e 62 nella seconda. Uso queste annotazioni come ground truth del confronto. Seguendo la convenzione definita nella Sezione~\ref{sec:background-rilevamento-localizzazione}, considero positiva la classe ``alterato``, indipendentemente dal tipo di alterazione.
+
+Registro le etichette in \path{scripts/temp/trufor_truth.csv}, con i campi \texttt{filename} e \texttt{label}. Il primo identifica il file senza estensione; il secondo contiene $z_i$.
+
+Attribuisco alla verifica un carattere esplorativo. Le annotazioni riflettono il mio giudizio come unico annotatore e servono ad esaminare il comportamento di TruFor sulla raccolta. Le etichette globali permettono di valutare il rilevamento; la valutazione della localizzazione richiede invece un riferimento per ciascun pixel.

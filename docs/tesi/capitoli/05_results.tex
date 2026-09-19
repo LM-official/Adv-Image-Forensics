@@ -1,0 +1,88 @@
+% !TeX root = ../tesi.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = it_IT
+
+\chapter{Risultati}
+\label{chap:risultati}
+
+\section{Punteggio globale di TruFor ed engagement}
+\label{sec:risultati-trufor-engagement}
+
+Presento i risultati delle analisi descritte nella Sezione~\ref{sec:metodi-trufor-engagement}. Considero prima il solo valore globale di TruFor, come riferimento per valutare il contributo delle informazioni aggiunte dai passaggi successivi della pipeline. Le correlazioni e la regressione lineare comprendono 1.211 osservazioni. Per il GLM, l'esclusione dei punteggi di engagement nell'intervallo $[-0{,}5;\,0{,}5]$ lascia 1.195 casi: 583 con prestazioni superiori alle aspettative e 612 con prestazioni inferiori.
+
+\subsection{Correlazioni tra i punteggi}
+\label{subsec:risultati-trufor-correlazioni}
+
+Riporto nella Tabella~\ref{tab:risultati-trufor-correlazioni} i coefficienti di Pearson e Spearman. Entrambi assumono valori positivi vicini allo zero: osservo quindi un'associazione lineare e monotona debole tra il punteggio complessivo e lo score di engagement.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Correlazioni tra il punteggio globale di TruFor e lo score di engagement sulle 1.211 osservazioni. Valori riportati nel report di correlazione \texttt{scripts/temp/trufor\_crowdtangle\_correlation.txt}.}
+    \label{tab:risultati-trufor-correlazioni}
+    \begin{tabular}{@{}lrr@{}}
+        \toprule
+        Correlazione & Coefficiente & Valore di $p$ \\
+        \midrule
+        Pearson & $0{,}055$ & $0{,}05760$ \\
+        Spearman & $0{,}043$ & $0{,}1368$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Regressione lineare}
+\label{subsec:risultati-trufor-lineare}
+
+Nella Tabella~\ref{tab:risultati-trufor-lineare} riporto i risultati della regressione lineare dello score di engagement sul dato d'insieme di TruFor. Considero il parametro stimato, il suo intervallo di confidenza al $95\%$, il valore di $p$ ed il coefficiente di determinazione $R^2$.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Regressione lineare con il punteggio globale di TruFor e l'intercetta. Il valore di $R^2$ riguarda i dati usati per la stima. Fonte: report di regressione \texttt{scripts/temp/trufor\_crowdtangle\_regression.txt}.}
+    \label{tab:risultati-trufor-lineare}
+    \begin{tabular}{@{}lr@{}}
+        \toprule
+        Quantità & Valore \\
+        \midrule
+        Numero di osservazioni & 1.211 \\
+        Coefficiente del punteggio globale & $4{,}8879$ \\
+        Intervallo di confidenza al $95\%$ del coefficiente & $[-0{,}158;\,9{,}934]$ \\
+        Valore di $p$ del coefficiente & $0{,}058$ \\
+        $R^2$ & $0{,}003$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Ottengo $R^2=0{,}003$: il modello spiega circa lo $0{,}3\%$ della variabilità dello score di engagement nel campione. Il parametro stimato è positivo, ma il suo intervallo di confidenza comprende lo zero.
+
+\subsection{GLM binomiale}
+\label{subsec:risultati-trufor-glm}
+
+Nella Tabella~\ref{tab:risultati-trufor-glm} riporto i risultati del GLM binomiale per la probabilità di engagement superiore alle aspettative. Considero il coefficiente del punteggio generale, il suo intervallo di confidenza al $95\%$, la misura di $p$ e lo pseudo-$R^2$ di McFadden.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{GLM binomiale con il punteggio globale di TruFor e l'intercetta. Lo pseudo-$R^2$ riguarda i dati usati per la stima. Fonte: report del GLM \texttt{scripts/temp/trufor\_crowdtangle\_glm.txt}.}
+    \label{tab:risultati-trufor-glm}
+    \begin{tabular}{@{}lr@{}}
+        \toprule
+        Quantità & Valore \\
+        \midrule
+        Numero di osservazioni & 1.195 \\
+        Coefficiente del punteggio globale & $0{,}2731$ \\
+        Intervallo di confidenza al $95\%$ del coefficiente & $[-0{,}160;\,0{,}706]$ \\
+        Valore di $p$ del coefficiente & $0{,}217$ \\
+        Pseudo-$R^2$ di McFadden & $0{,}0009$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Ottengo uno pseudo-$R^2$ di McFadden pari a $0{,}0009$: il miglioramento dell'adattamento rispetto al modello con la sola intercetta è quindi limitato. Il coefficiente è positivo ed il suo intervallo di confidenza comprende lo zero. Il punteggio globale offre un contributo limitato alla distinzione tra le due classi di engagement nei dati usati per la stima.
+
+\subsection{Interpretazione e riferimento per le analisi successive}
+\label{subsec:risultati-trufor-riferimento}
+
+Nel campione osservo un'associazione debole tra il punteggio globale di TruFor e l'engagement.
+
+Uso questo risultato come riferimento per valutare se l'aggiunta delle caratteristiche visive e delle descrizioni delle regioni sospette migliora la previsione dell'engagement.
