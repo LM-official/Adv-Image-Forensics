@@ -21,7 +21,7 @@ La disponibilità congiunta di immagini e misure di engagement motiva l'adozione
 
 Il \emph{Codebook}, la documentazione tecnica di \emph{CrowdTangle}~\cite{DVN/SCCQYD_2019}, descrive il servizio come una piattaforma di analisi dei contenuti pubblici. Sono disponibili metadati e contatori di interazione, rilevati dalla pubblicazione fino all'interrogazione. La copertura dipende dagli account monitorati; per Facebook, la documentazione esclude i contenuti con restrizioni di pubblico imposte tramite strumenti di targeting~\cite{DVN/SCCQYD_2019}.
 
-Distinguo questa descrizione del servizio dai criteri specifici di costruzione della raccolta. Nei materiali disponibili manca un protocollo completo con le interrogazioni e le liste di account utilizzate per l'estrazione. Posso quindi descrivere il contenuto dell'archivio, ma la sua rappresentatività rispetto all'intera comunicazione politica sulle due piattaforme resta da verificare.
+La raccolta è stata effettuata tramite l'API di CrowdTangle, con salvataggio dei metadati dei post e download dei relativi allegati. CrowdTangle permetteva di organizzare gli account in liste interne alla piattaforma. La lista dei candidati italiani era stata curata da sociologi della Sapienza. Considero i 66 account presenti nel dataset, 28 Facebook e 38 Instagram, come un sottoinsieme di una lista più ampia e descrivo il campione sulla base dei metadati disponibili.
 
 \section{Composizione e struttura del dataset}
 \label{sec:dataset-struttura}
@@ -70,22 +70,40 @@ Per studiare la relazione tra contenuti visivi ed engagement, associo ciascuna i
 \section{Definizione del punteggio di engagement}
 \label{sec:dataset-engagement}
 
-Uso come misura dell'engagement il campo \texttt{score}, basato sulla metrica \emph{overperforming} di CrowdTangle. Il valore confronta le interazioni osservate con un \emph{benchmark} di riferimento, relativo a post dello stesso account, dello stesso tipo e con un tempo trascorso dalla pubblicazione comparabile~\cite{DVN/SCCQYD_2019}.
+Uso come misura dell'engagement il campo \texttt{score}, basato sulla metrica \emph{overperforming} di CrowdTangle. Il punteggio confronta le interazioni osservate con un benchmark di riferimento, relativo a post dello stesso account, dello stesso tipo e con un tempo trascorso dalla pubblicazione comparabile~\cite{DVN/SCCQYD_2019}.
 
 Il benchmark considera gli ultimi 100 post comparabili. Per ciascun tipo di interazione, CrowdTangle ordina i valori, elimina i 25 maggiori ed i 25 minori e calcola la media dei 50 centrali. Il calcolo prevede inoltre soglie minime per limitare l'instabilità dovuta a conteggi piccoli~\cite{DVN/SCCQYD_2019}.
 
-Indico con $c_i$ il punteggio del post associato all'immagine $i$. Il segno indica se le interazioni superano le aspettative (positivo) o rimangono al di sotto (negativo). Questa misura esprime una prestazione relativa allo storico dell'account.
+Indico con $c_i$ il punteggio del post associato all'immagine $i$, con $I_i$ le interazioni osservate, sommate nella configurazione predefinita, con $B_i$ il benchmark corrispondente e con $\tau$ la soglia minima di interazioni. Per $B_i>0$ e $I_i>0$, il calcolo distingue quattro casi~\cite{DVN/SCCQYD_2019}:
+\begin{equation}
+    c_i =
+    \begin{cases}
+        \dfrac{I_i}{B_i} & \text{se } I_i \geq B_i \text{ e } I_i \geq \tau, \\[6pt]
+        \dfrac{I_i}{\tau} & \text{se } I_i \geq B_i \text{ e } I_i < \tau, \\[6pt]
+        -\dfrac{B_i}{I_i} & \text{se } I_i < B_i \text{ e } I_i \geq \tau, \\[6pt]
+        -\dfrac{B_i-I_i}{B_i} & \text{se } I_i < B_i \text{ e } I_i < \tau.
+    \end{cases}
+    \label{eq:dataset-overperforming}
+\end{equation}
+Il Codebook indica inoltre $c_i=-2B_i$ in assenza di interazioni. La soglia $\tau$ dipende dalla piattaforma e dal tipo di interazione: ad esempio, è pari a 5 per i like ed a 2 per i commenti su Facebook e Instagram~\cite{DVN/SCCQYD_2019}.
+
+I primi due casi riguardano prestazioni pari o superiori al benchmark; gli ultimi due esprimono una prestazione inferiore tramite un valore negativo. Quando $I_i\geq\tau$, ad esempio, il doppio delle interazioni attese produce un punteggio pari a 2, mentre la metà produce $-2$. Con pochi eventi intervengono invece le correzioni indicate nella formula: uno score vicino allo zero non implica necessariamente che le interazioni siano vicine al benchmark.
+
+\section{Binarizzazione del punteggio di engagement}
+\label{sec:dataset-binarizzazione}
 
 Per le analisi di classificazione trasformo $c_i$ in una variabile binaria $y_i$. Nella configurazione utilizzata escludo i valori nell'intervallo $[-0{,}5;\,0{,}5]$, estremi inclusi. Per le osservazioni rimanenti definisco:
 \begin{equation}
     y_i =
     \begin{cases}
-        1 & \text{se } s_i > 0{,}5, \\
-        0 & \text{se } s_i < -0{,}5.
+        1 & \text{se } c_i > 0{,}5, \\
+        0 & \text{se } c_i < -0{,}5.
     \end{cases}
     \label{eq:dataset-target}
 \end{equation}
-Questa scelta circoscrive il confronto ai post che si discostano dalla soglia zero. I valori vicini allo zero indicano prestazioni prossime alle aspettative: escluderli permette di concentrare l'analisi sulla ricerca di caratteristiche visive associate a scostamenti più marcati. Applico questa esclusione solo alle analisi di classificazione. Le statistiche descrittive del campione filtrato comprendono invece tutti i valori, anche quelli vicini o uguali a zero. Le etichette $y_i$ indicano se la risposta degli utenti supera o meno le aspettative.
+Come si osserva nella Figura~\ref{fig:dataset-istogramma}, l'intervallo centrale presenta poche osservazioni rispetto alle concentrazioni ai lati dello zero. L'esclusione dei valori rimuove 16 post su 1.212, l'1,32\%.
+
+Questa scelta circoscrive il confronto ai post con punteggi più distanti dallo zero, usato come soglia di separazione tra le due classi. Applico questa esclusione solo alle analisi di classificazione. Le statistiche descrittive del campione filtrato comprendono invece tutti i valori, anche quelli vicini o uguali a zero. Le etichette $y_i$ indicano se la risposta degli utenti supera o meno le aspettative.
 
 \section{Selezione dei dati e costruzione del campione}
 \label{sec:dataset-selezione}
@@ -104,7 +122,7 @@ Se più post rimandano allo stesso media, conservo quello con il punteggio maggi
 \subsection{Numerosità e struttura del campione filtrato}
 \label{subsec:dataset-campione-filtrato}
 
-La Tabella~\ref{tab:dataset-selezione} riporta il numero di osservazioni escluse e mantenute ad ogni passaggio del filtraggio. Tutti i post hanno un valore di \texttt{score}; 9 sono privi di allegati, 118 hanno un primo allegato diverso da una fotografia e 12 rimandano ad un'immagine assente. Non rilevo casi in cui allo stesso identificatore corrispondono più file locali. Tra i 1.218 post rimanenti, la risoluzione delle associazioni multiple elimina 6 righe e produce un insieme di 1.212 immagini.
+La Tabella~\ref{tab:dataset-selezione} riporta il numero di osservazioni escluse e mantenute ad ogni passaggio del filtraggio. Tutti i post hanno uno score; 9 sono privi di allegati, 118 hanno un primo allegato diverso da una fotografia e 12 rimandano ad un'immagine assente. Non rilevo casi in cui allo stesso identificatore corrispondono più file locali. Tra i 1.218 post rimanenti, la risoluzione delle associazioni multiple elimina 6 righe e produce un insieme di 1.212 immagini.
 
 \begin{table}[htbp]
     \centering
@@ -132,7 +150,7 @@ Distinguo il risultato del filtraggio dalla tabella arricchita disponibile in \p
 \section{Statistiche descrittive del campione}
 \label{sec:dataset-statistiche}
 
-Il campione filtrato proviene in 386 casi da Facebook e in 826 da Instagram, rispettivamente il 31,8\% e il 68,2\% del totale. Rimangono rappresentati tutti i 66 account dell'archivio originale. Le statistiche di engagement si basano sulla misura associata a ciascuna pubblicazione di riferimento.
+Nel campione filtrato, 386 casi provengono da Facebook e 826 da Instagram, rispettivamente il 31,8\% e il 68,2\% del totale. Rimangono rappresentati tutti i 66 account dell'archivio originale. Le statistiche di engagement si basano sulla misura associata a ciascuna pubblicazione di riferimento.
 
 La Tabella~\ref{tab:dataset-statistiche} mostra che la media del punteggio, pari a $-3{,}383$, è inferiore alla mediana, pari a $-0{,}736$. La differenza riflette la presenza di valori molto negativi: il minimo è $-304$, mentre il massimo è $81{,}75$. Il coefficiente di asimmetria, che descrive lo sbilanciamento della distribuzione, è pari a $-8{,}717$ e indica una coda più estesa verso i valori negativi.
 
@@ -175,14 +193,14 @@ La Figura~\ref{fig:dataset-istogramma} mostra un istogramma dei punteggi associa
     \label{fig:dataset-boxplot}
 \end{figure}
 
-Dopo il filtraggio conto 584 punteggi positivi, 618 negativi e 10 nulli. L'esclusione dell'intervallo $[-0{,}5;\,0{,}5]$ rimuove 16 osservazioni e lascia 1.196 esempi: 584 con prestazioni superiori alle aspettative e 612 con prestazioni inferiori. Applico la stessa regola alla tabella arricchita con le informazioni prodotte dalle elaborazioni successive, di 1.211 righe, e le osservazioni diventano 1.195, suddivise in 583 esempi nella classe positiva e 612 in quella negativa. Questa distinzione rende esplicita la differenza tra il campione descritto qui e quello riportato nelle analisi di classificazione archiviate.
+Dopo il filtraggio conto 584 punteggi positivi, 618 negativi e 10 nulli. L'esclusione dell'intervallo $[-0{,}5;\,0{,}5]$ rimuove 16 osservazioni e lascia 1.196 esempi: 584 con prestazioni superiori alle aspettative e 612 con prestazioni inferiori. Applico la stessa regola alla tabella arricchita con le informazioni prodotte dalle elaborazioni successive, di 1.211 righe, e le osservazioni diventano 1.195, suddivise in 583 esempi con engagement superiore alle aspettative e 612 con engagement inferiore alle aspettative. Questa distinzione rende esplicita la differenza tra il campione descritto qui e quello riportato nelle analisi di classificazione archiviate.
 
 \section{Limiti del dataset}
 \label{sec:dataset-limiti}
 
 La raccolta riguarda due piattaforme, 66 account in un intervallo di tre mesi. Questi confini delimitano il caso di studio. La prevalenza di Instagram, 68,2\% del totale dei post filtrati, e l'assenza di un protocollo completo di estrazione impediscono di considerare i dati selezionati una rappresentazione esaustiva dell'intera comunicazione politica online. L'estensione dei risultati ad altre campagne, periodi o ambiti del marketing richiede una verifica su nuove raccolte.
 
-La scelta della prima immagine riduce ogni post ad una sola componente visiva. La misura di engagement riguarda però il contenuto nel suo complesso, che può includere testo ed altri allegati. Le associazioni osservate coinvolgono quindi un contesto comunicativo che la rappresentazione dell'immagine descrive solo in parte.
+La scelta della prima immagine riduce ogni post ad una sola componente visiva. La misura di engagement riguarda però il post nel suo complesso, che può includere testo ed altri allegati. Le associazioni osservate coinvolgono quindi un contesto comunicativo che la rappresentazione dell'immagine descrive solo in parte.
 
 Quando più post condividono il collegamento ad un media, la selezione di quello con punteggio maggiore privilegia per costruzione la prestazione più alta tra le occorrenze disponibili. Inoltre, il confronto degli identificatori dei file non elimina tutte le possibili ripetizioni visive. Queste due proprietà vanno considerate quando si interpreta la distribuzione dei punteggi e quando si valuta l'indipendenza delle osservazioni.
 
