@@ -5,18 +5,18 @@
 \chapter{Dati, strumenti e definizioni}
 \label{chap:dataset}
 
-In questo capitolo presento i dati che utilizzo per studiare la relazione tra il contenuto delle immagini politiche, le loro regioni potenzialmente alterate e l'\emph{engagement}: l'insieme delle interazioni degli utenti con un post. Il dataset associa i contenuti visivi ad un valore che confronta le interazioni osservate con quelle attese per l'account autore. Questa associazione permette di valutare quali informazioni ricavate dalle immagini sono utili per distinguere le pubblicazioni con prestazioni superiori o inferiori alle aspettative.
+In questo capitolo presento i dati che utilizzo per studiare la relazione tra il contenuto delle immagini politiche, le loro regioni potenzialmente alterate e l'\emph{engagement}: l'insieme delle interazioni degli utenti con un post. Il dataset associa i contenuti visivi a un valore che confronta le interazioni osservate con quelle attese per l'account autore. Questa associazione permette di valutare quali informazioni ricavate dalle immagini sono utili per distinguere le pubblicazioni con prestazioni superiori o inferiori alle aspettative.
 
-Descrivo la provenienza e la struttura dei dati, definisco il punteggio di engagement e illustro i criteri di selezione. Presento poi le statistiche descrittive, l'integrazione di TruFor e le annotazioni per la verifica preliminare. Distinguo il dataset originale dal \emph{campione filtrato}, composto dalle immagini selezionate e dai rispettivi post di riferimento.
+Descrivo la provenienza e la struttura dei dati, definisco il punteggio di engagement e illustro i criteri di selezione.Distinguo il dataset originale dal \emph{campione filtrato}, composto dalle immagini selezionate e dai rispettivi post di riferimento. Presento poi le statistiche descrittive, l'integrazione di TruFor e le annotazioni per la verifica preliminare. Successivamente Definisco le caratteristiche visive.
 
 \section{Origine dei dati e contesto della raccolta}
 \label{sec:dataset-origine}
 
-Utilizzo una raccolta di contenuti pubblici di comunicazione politica pubblicati su Facebook e Instagram tra il 15 maggio e il 14 agosto 2024. L'intervallo comprende il periodo delle elezioni europee del 2024 e le settimane successive. I dati provengono da CrowdTangle e comprendono i metadati dei post ed i materiali multimediali scaricati dai collegamenti agli allegati.
+Utilizzo una raccolta di contenuti pubblici di comunicazione politica pubblicati su Facebook e Instagram tra il 15 maggio e il 14 agosto 2024. L'intervallo comprende il periodo delle elezioni europee del 2024 e le settimane successive. I dati provengono da CrowdTangle e comprendono i metadati dei post e i materiali multimediali scaricati dai collegamenti agli allegati.
 
 La disponibilità congiunta di immagini e misure di engagement motiva l'adozione di questo dataset. Posso associare a ciascuna immagine le informazioni prodotte dalla \emph{pipeline}, cioè dalla sequenza di elaborazioni automatiche, e confrontarle con la risposta degli utenti alla pubblicazione. La raccolta può comprendere sia inserzioni sponsorizzate sia resoconti delle attività dei politici.
 
-\subsection{CrowdTangle ed i dati disponibili}
+\subsection{CrowdTangle e i dati disponibili}
 \label{subsec:dataset-crowdtangle}
 
 Il \emph{Codebook}, la documentazione tecnica di \emph{CrowdTangle}~\cite{DVN/SCCQYD_2019}, descrive il servizio come una piattaforma di analisi dei contenuti pubblici. Sono disponibili metadati e contatori di interazione, rilevati dalla pubblicazione fino all'interrogazione. La copertura dipende dagli account monitorati; per Facebook, la documentazione esclude i contenuti con restrizioni di pubblico imposte tramite strumenti di targeting~\cite{DVN/SCCQYD_2019}.
@@ -30,7 +30,7 @@ Il dataset originale contiene 1.357 post pubblicati da 66 account. La Tabella~\r
 
 \begin{table}[htbp]
     \centering
-    \caption{Composizione per piattaforma. Nel campione filtrato ogni immagine è associata ad un solo post di riferimento.}
+    \caption{Composizione per piattaforma. Nel campione filtrato ogni immagine è associata a un solo post di riferimento.}
     \label{tab:dataset-piattaforme}
     \begin{tabular}{lrr}
         \toprule
@@ -44,15 +44,15 @@ Il dataset originale contiene 1.357 post pubblicati da 66 account. La Tabella~\r
     \end{tabular}
 \end{table}
 
-L'archivio comprende i metadati, raccolti in \path{crowdtangle.jsonl}, ed una cartella di contenuti multimediali. Il formato adottato per i primi è \emph{JSON Lines}: ogni riga contiene un oggetto \emph{JSON}, ossia una struttura di campi e valori che descrive un post. La cartella \path{crowdtangle_media/} contiene 1.441 file: 1.192 con estensione \texttt{.jpg}, 82 \texttt{.heic}, 20 \texttt{.webp}, 98 \texttt{.mp4}, 7 \texttt{.mpd} e 42 senza estensione.
+L'archivio comprende i metadati, raccolti in \path{crowdtangle.jsonl}, e una cartella di contenuti multimediali. Il formato adottato per i primi è \emph{JSON Lines}: ogni riga contiene un oggetto \emph{JSON}, ossia una struttura di campi e valori che descrive un post. La cartella \path{crowdtangle_media/} contiene 1.441 file: 1.192 con estensione \texttt{.jpg}, 82 \texttt{.heic}, 20 \texttt{.webp}, 98 \texttt{.mp4}, 7 \texttt{.mpd} e 42 senza estensione.
 
-Le liste degli allegati nei metadati citano complessivamente 1.466 elementi, di cui 1.348 fotografie e 118 video. Ho quindi tre quantità: i post raccolti, gli allegati citati ed i file presenti su disco. Un post può avere più allegati; nella Sezione~\ref{sec:dataset-selezione} specifico come seleziono quello da analizzare e verifico la disponibilità del file corrispondente.
+Le liste degli allegati nei metadati citano complessivamente 1.466 elementi, di cui 1.348 fotografie e 118 video. Ho quindi tre quantità: i post raccolti, gli allegati citati e i file presenti su disco. Un post può avere più allegati; nella Sezione~\ref{sec:dataset-selezione} specifico come seleziono quello da analizzare e verifico la disponibilità del file corrispondente.
 
 Per studiare la relazione tra contenuti visivi ed engagement, associo ciascuna immagine al punteggio della pubblicazione di riferimento. A questo scopo seleziono i metadati riportati nella Tabella~\ref{tab:dataset-campi} e mantengo inalterato il dataset originale.
 
 \begin{table}[htbp]
     \centering
-    \caption{Campi utilizzati per associare un post alla sua immagine ed al risultato di engagement. I campi \texttt{type}, \texttt{url} e \texttt{full} appartengono all'allegato selezionato nella lista \texttt{media}.}
+    \caption{Campi utilizzati per associare un post alla sua immagine e al risultato di engagement. I campi \texttt{type}, \texttt{url} e \texttt{full} appartengono all'allegato selezionato nella lista \texttt{media}.}
     \label{tab:dataset-campi}
     \begin{tabular}{@{}lp{0.69\textwidth}@{}}
         \toprule
@@ -70,9 +70,9 @@ Per studiare la relazione tra contenuti visivi ed engagement, associo ciascuna i
 \section{Definizione del punteggio di engagement}
 \label{sec:dataset-engagement}
 
-Uso come misura dell'engagement il campo \texttt{score}, basato sulla metrica \emph{overperforming} di CrowdTangle. Il punteggio confronta le interazioni osservate con un benchmark di riferimento, relativo a post dello stesso account, dello stesso tipo e con un tempo trascorso dalla pubblicazione comparabile~\cite{DVN/SCCQYD_2019}.
+Sfrutto come misura dell'engagement il campo \texttt{score}, basato sulla metrica \emph{overperforming} di CrowdTangle. Il punteggio confronta le interazioni osservate con un benchmark di riferimento, relativo a post dello stesso account, dello stesso tipo e con un tempo trascorso dalla pubblicazione comparabile~\cite{DVN/SCCQYD_2019}.
 
-Il benchmark considera gli ultimi 100 post comparabili. Per ciascun tipo di interazione, CrowdTangle ordina i valori, elimina i 25 maggiori ed i 25 minori e calcola la media dei 50 centrali. Il calcolo prevede inoltre soglie minime per limitare l'instabilità dovuta a conteggi piccoli~\cite{DVN/SCCQYD_2019}.
+Il benchmark considera gli ultimi 100 post comparabili. Per ciascun tipo di interazione, CrowdTangle ordina i valori, elimina i 25 maggiori e i 25 minori e calcola la media dei 50 centrali. Il calcolo prevede inoltre soglie minime per limitare l'instabilità dovuta a conteggi piccoli~\cite{DVN/SCCQYD_2019}.
 
 Indico con $c_i$ il punteggio del post associato all'immagine $i$, con $I_i$ le interazioni osservate, sommate nella configurazione predefinita, con $B_i$ il benchmark corrispondente e con $\tau$ la soglia minima di interazioni. Per $B_i>0$ e $I_i>0$, il calcolo distingue quattro casi~\cite{DVN/SCCQYD_2019}:
 \begin{equation}
@@ -85,7 +85,7 @@ Indico con $c_i$ il punteggio del post associato all'immagine $i$, con $I_i$ le 
     \end{cases}
     \label{eq:dataset-overperforming}
 \end{equation}
-Il Codebook indica inoltre $c_i=-2B_i$ in assenza di interazioni. La soglia $\tau$ dipende dalla piattaforma e dal tipo di interazione: ad esempio, è pari a 5 per i like ed a 2 per i commenti su Facebook e Instagram~\cite{DVN/SCCQYD_2019}.
+Il Codebook indica inoltre $c_i=-2B_i$ in assenza di interazioni. La soglia $\tau$ dipende dalla piattaforma e dal tipo di interazione: ad esempio, è pari a 5 per i like e a 2 per i commenti su Facebook e Instagram~\cite{DVN/SCCQYD_2019}.
 
 I primi due casi riguardano prestazioni pari o superiori al benchmark; gli ultimi due esprimono una prestazione inferiore tramite un valore negativo. Quando $I_i\geq\tau$, ad esempio, il doppio delle interazioni attese produce un punteggio pari a 2, mentre la metà produce $-2$. Con pochi eventi intervengono invece le correzioni indicate nella formula: uno score vicino allo zero non implica necessariamente che le interazioni siano vicine al benchmark.
 
@@ -110,19 +110,19 @@ Questa scelta circoscrive il confronto ai post con punteggi più distanti dallo 
 
 Definisco l'unità di analisi come un'immagine associata allo score di un post di riferimento. Per ottenere questa corrispondenza applico due passaggi: seleziono le pubblicazioni con una prima fotografia disponibile su disco e risolvo le associazioni multiple tra uno stesso file e più post.
 
-\subsection{Selezione dei post ed associazione ai file}
+\subsection{Selezione dei post e associazione ai file}
 \label{subsec:dataset-filtraggio}
 
 Costruisco un indice dei media presenti su disco tramite lo script \path{scripts/filter.py}. Per ciascun file leggo il nome senza estensione, che corrisponde già all'\emph{hash} dell'URL da cui è stato scaricato. L'hash è un identificatore che si ottiene applicando la funzione SHA-256 all'URL; nella configurazione corrente sfrutto tutti i suoi 64 caratteri esadecimali.
 
-Considero i post con disponibile la misura di engagement ed il cui primo allegato è di tipo \texttt{photo}. Leggo il collegamento dal campo \texttt{url} oppure, se assente o vuoto, da \texttt{full}. Calcolo l'hash dell'URL e lo cerco nell'indice locale. Conservo l'osservazione soltanto se trovo un unico file corrispondente. Ignoro gli eventuali allegati successivi, inclusi i video.
+Considero i post con disponibile la misura di engagement e il cui primo allegato è di tipo \texttt{photo}. Leggo il collegamento dal campo \texttt{url} oppure, se assente o vuoto, da \texttt{full}. Calcolo l'hash dell'URL e lo cerco nell'indice locale. Conservo l'osservazione soltanto se trovo un unico file corrispondente. Ignoro gli eventuali allegati successivi, inclusi i video.
 
 Se più post rimandano allo stesso media, conservo quello con il punteggio maggiore. A parità di valore conservo il primo incontrato nell'archivio. Ottengo così una sola osservazione per media. Questa procedura riconosce le ripetizioni attraverso il collegamento all'allegato: immagini visivamente identiche disponibili a indirizzi diversi possono mantenere identificatori distinti, e quindi apparire più volte tra le immagini selezionate.
 
 \subsection{Numerosità e struttura del campione filtrato}
 \label{subsec:dataset-campione-filtrato}
 
-La Tabella~\ref{tab:dataset-selezione} riporta il numero di osservazioni escluse e mantenute ad ogni passaggio del filtraggio. Tutti i post hanno uno score; 9 sono privi di allegati, 118 hanno un primo allegato diverso da una fotografia e 12 rimandano ad un'immagine assente. Non rilevo casi in cui allo stesso identificatore corrispondono più file locali. Tra i 1.218 post rimanenti, la risoluzione delle associazioni multiple elimina 6 righe e produce un insieme di 1.212 immagini.
+La Tabella~\ref{tab:dataset-selezione} riporta il numero di osservazioni escluse e mantenute ad ogni passaggio del filtraggio. Tutti i post hanno uno score; 9 sono privi di allegati, 118 hanno un primo allegato diverso da una fotografia e 12 rimandano a un'immagine assente. Non rilevo casi in cui allo stesso identificatore corrispondono più file locali. Tra i 1.218 post rimanenti, la risoluzione delle associazioni multiple elimina 6 righe e produce un insieme di 1.212 immagini.
 
 \begin{table}[htbp]
     \centering
@@ -143,7 +143,7 @@ La Tabella~\ref{tab:dataset-selezione} riporta il numero di osservazioni escluse
     \end{tabular}
 \end{table}
 
-Il filtro produce un documento \emph{CSV}, cioè una tabella di valori separati da virgole, con le colonne \texttt{id}, \texttt{crowdtangle\_score} e \texttt{filename}. Ogni riga identifica un post, il suo score ed il collegamento alla fotografia associata. La cartella \path{scripts/temp/images/} contiene i collegamenti ai file selezionati. La pipeline accede agli originali tramite questi collegamenti e conserva l'archivio di partenza inalterato.
+Il filtro produce un documento \emph{CSV}, cioè una tabella di valori separati da virgole, con le colonne \texttt{id}, \texttt{crowdtangle\_score} e \texttt{filename}. Ogni riga identifica un post, il suo score e il collegamento alla fotografia associata. La cartella \path{scripts/temp/images/} contiene i collegamenti ai file selezionati. La pipeline accede agli originali tramite questi collegamenti e conserva l'archivio di partenza inalterato.
 
 Distinguo il risultato del filtraggio dalla tabella arricchita disponibile in \path{dataset_filtered.csv}, che contiene anche i punteggi di manipolazione, le descrizioni e le caratteristiche visive prodotte dalle elaborazioni successive. Quest'ultima comprende 1.211 osservazioni: una delle 1.212 immagini selezionate dal filtro è un PNG di dimensioni $1 \times 1$ pixel, che viene scartato nelle analisi successive. I due archivi coincidono per identificatore del post e punteggio sulle osservazioni comuni. Le statistiche della Sezione~\ref{sec:dataset-statistiche} si riferiscono alle 1.212 immagini selezionate; la numerosità delle analisi successive dipende anche dalla disponibilità delle informazioni richieste da ciascun modello.
 
@@ -154,7 +154,7 @@ Nel campione filtrato, 386 casi provengono da Facebook e 826 da Instagram, rispe
 
 La Tabella~\ref{tab:dataset-statistiche} mostra che la media del punteggio, pari a $-3{,}383$, è inferiore alla mediana, pari a $-0{,}736$. La differenza riflette la presenza di valori molto negativi: il minimo è $-304$, mentre il massimo è $81{,}75$. Il coefficiente di asimmetria, che descrive lo sbilanciamento della distribuzione, è pari a $-8{,}717$ e indica una coda più estesa verso i valori negativi.
 
-Per individuare i valori estremi uso le soglie di Tukey. Indico con $Q_1$ e $Q_3$ il primo ed il terzo \emph{quartile}, ossia i valori inferiori rispettivamente del 25\% e del 75\% delle osservazioni. Definisco l'intervallo interquartile come $\mathrm{IQR}=Q_3-Q_1$ e considero estremi i valori inferiori a $Q_1-1{,}5\,\mathrm{IQR}$ o superiori a $Q_3+1{,}5\,\mathrm{IQR}$. Le soglie risultano pari a circa $-7{,}895$ e $7{,}578$: 127 osservazioni, il 10,5\% del totale, si trovano al di fuori di questo intervallo. Mantengo queste osservazioni nell'analisi, perché il superamento delle soglie descrive la loro posizione nella distribuzione e non indica un errore nei dati.
+Per individuare i valori estremi ricorro le soglie di Tukey. Indico con $Q_1$ e $Q_3$ il primo e il terzo \emph{quartile}, ossia i valori inferiori rispettivamente del 25\% e del 75\% delle osservazioni. Definisco l'intervallo interquartile come $\mathrm{IQR}=Q_3-Q_1$ e considero estremi i valori inferiori a $Q_1-1{,}5\,\mathrm{IQR}$ o superiori a $Q_3+1{,}5\,\mathrm{IQR}$. Le soglie risultano pari a circa $-7{,}895$ e $7{,}578$: 127 osservazioni, il 10,5\% del totale, si trovano al di fuori di questo intervallo. Mantengo queste osservazioni nell'analisi, perché il superamento delle soglie descrive la loro posizione nella distribuzione e non indica un errore nei dati.
 
 \begin{table}[htbp]
     \centering
@@ -200,22 +200,22 @@ Dopo il filtraggio conto 584 punteggi positivi, 618 negativi e 10 nulli. L'esclu
 
 La raccolta riguarda due piattaforme, 66 account in un intervallo di tre mesi. Questi confini delimitano il caso di studio. La prevalenza di Instagram, 68,2\% del totale dei post filtrati, e l'assenza di un protocollo completo di estrazione impediscono di considerare i dati selezionati una rappresentazione esaustiva dell'intera comunicazione politica online. L'estensione dei risultati ad altre campagne, periodi o ambiti del marketing richiede una verifica su nuove raccolte.
 
-La scelta della prima immagine riduce ogni post ad una sola componente visiva. La misura di engagement riguarda però il post nel suo complesso, che può includere testo ed altri allegati. Le associazioni osservate coinvolgono quindi un contesto comunicativo che la rappresentazione dell'immagine descrive solo in parte.
+La scelta della prima immagine riduce ogni post a una sola componente visiva. La misura di engagement riguarda però il post nel suo complesso, che può includere testo e altri allegati. Le associazioni osservate coinvolgono quindi un contesto comunicativo che la rappresentazione dell'immagine descrive solo in parte.
 
-Quando più post condividono il collegamento ad un media, la selezione di quello con punteggio maggiore privilegia per costruzione la prestazione più alta tra le occorrenze disponibili. Inoltre, il confronto degli identificatori dei file non elimina tutte le possibili ripetizioni visive. Queste due proprietà vanno considerate quando si interpreta la distribuzione dei punteggi e quando si valuta l'indipendenza delle osservazioni.
+Quando più post condividono il collegamento a un media, la selezione di quello con punteggio maggiore privilegia per costruzione la prestazione più alta tra le occorrenze disponibili. Inoltre, il confronto degli identificatori dei file non elimina tutte le possibili ripetizioni visive. Queste due proprietà vanno considerate quando si interpreta la distribuzione dei punteggi e quando si valuta l'indipendenza delle osservazioni.
 
 Infine, l'engagement misura interazioni e non identifica direttamente consenso politico, persuasione o intenzione di voto. Il riferimento allo storico dell'account rende il punteggio relativo alle sue prestazioni abituali, ma non permette di stabilire se una scelta visiva determina un cambiamento nelle interazioni. Utilizzo quindi il dataset per studiare le associazioni tra caratteristiche visive ed engagement e valutare quanto queste caratteristiche aiutano a prevederlo.
 
 \section{TruFor come componente esterno}
 \label{sec:materiali-trufor}
 
-Utilizzo TruFor, descritto nel Capitolo~\ref{chap:background} e nel paper~\cite{Guillaro_2023_CVPR}. Clono il \href{https://github.com/grip-unina/TruFor}{repository ufficiale} nella cartella \path{TruFor/} del progetto. Mantengo separati il codice di TruFor e gli script delle elaborazioni successive. Uso il framework come componente a scatola nera: fornisco gli input ed acquisisco gli output del modello. Mantengo i pesi preaddestrati durante tutte le elaborazioni.
+Utilizzo TruFor, descritto nel Capitolo~\ref{chap:background} e nel paper~\cite{Guillaro_2023_CVPR}. Clono il \href{https://github.com/grip-unina/TruFor}{repository ufficiale} nella cartella \path{TruFor/} del progetto. Mantengo separati il codice di TruFor e gli script delle elaborazioni successive. Uso il framework come componente a scatola nera: fornisco gli input e acquisisco gli output del modello. Mantengo i pesi preaddestrati durante tutte le elaborazioni.
 
-Lo script \path{scripts/trufor.py} richiama \path{TruFor/TruFor_train_test/test.py}. La configurazione selezionata è \texttt{trufor\_ph3}; il file dei pesi è \path{TruFor/TruFor_train_test/weights/trufor_ph3/best.pth.tar}. Centralizzo i percorsi ed i parametri di esecuzione in \path{scripts/config.py}.
+Lo script \path{scripts/trufor.py} richiama \path{TruFor/TruFor_train_test/test.py}. La configurazione selezionata è \texttt{trufor\_ph3}; il file dei pesi è \path{TruFor/TruFor_train_test/weights/trufor_ph3/best.pth.tar}. Centralizzo i percorsi e i parametri di esecuzione in \path{scripts/config.py}.
 
-La copia locale include modifiche per adattare l’esecuzione alle risorse del dispositivo: un limite massimo di pixel in ingresso ed ottimizzazioni per il supporto all’uso della GPU. Descrivo il ridimensionamento dell'input nella Sezione~\ref{sec:metodi-trufor-esecuzione}. Questi interventi riguardano l'esecuzione del modello preaddestrato. 
+La copia locale include modifiche per adattare l’esecuzione alle risorse del dispositivo: un limite massimo di pixel in ingresso e ottimizzazioni per il supporto della GPU. Descrivo il ridimensionamento dell'input nella Sezione~\ref{sec:metodi-trufor-esecuzione}. Questi interventi riguardano l'esecuzione del modello preaddestrato. 
 
-Per aggiornare TruFor basta sostituire la cartella \path{TruFor/} con la nuova versione, riapplicare gli adattamenti per il dispositivo ed adeguare gli script della pipeline alle eventuali variazioni dell’interfaccia e degli output.
+Per aggiornare TruFor basta sostituire la cartella \path{TruFor/} con la nuova versione, riapplicare gli adattamenti per il dispositivo e adeguare gli script della pipeline alle eventuali variazioni dell’interfaccia e degli output.
 
 \subsection{Organizzazione degli input e degli output}
 \label{subsec:materiali-trufor-output}
@@ -231,7 +231,7 @@ Per ogni file elaborato acquisisco un archivio NumPy, con estensione \texttt{.np
     \label{tab:materiali-trufor-output}
     \begin{tabular}{@{}lp{0.75\linewidth}@{}}
         \toprule
-        Campo & Contenuto ed utilizzo \\
+        Campo & Contenuto e utilizzo \\
         \midrule
         \texttt{map} & Mappa delle anomalie, usata per individuare le regioni sospette. \\
         \addlinespace
@@ -253,4 +253,203 @@ Prima dell'elaborazione completa considero un sotto-insieme eterogeneo di 100 co
 
 Registro le etichette in \path{scripts/temp/trufor_truth.csv}, con i campi \texttt{filename} e \texttt{label}. Il primo identifica il file senza estensione; il secondo contiene $z_i$.
 
-Attribuisco alla verifica un carattere esplorativo. Le annotazioni riflettono il mio giudizio come unico annotatore e servono ad esaminare il comportamento di TruFor sulla raccolta. Le etichette globali permettono di valutare il rilevamento; la valutazione della localizzazione richiede invece un riferimento per ciascun pixel.
+Attribuisco alla verifica un carattere esplorativo. Le annotazioni riflettono il mio giudizio come unico annotatore e servono a esaminare il comportamento di TruFor sulla raccolta. Le etichette globali permettono di valutare il rilevamento; la valutazione della localizzazione richiede invece un riferimento per ciascun pixel.
+
+\section{Misure di associazione e modelli statistici}
+\label{sec:materiali-misure-statistiche}
+
+Definisco le misure e i modelli usati per studiare le associazioni tra le variabili. Indico con $(x_i,u_i)$ le coppie di valori osservati, con $n$ il loro numero e con $\bar{x}$ e $\bar{u}$ le rispettive medie. Nel Capitolo~\ref{chap:metodi} specifico le variabili e le osservazioni impiegate in ciascuna analisi.
+
+Per il calcolo delle correlazioni uso la libreria SciPy~\cite{2020SciPy-NMeth}; per la stima della regressione OLS e del GLM binomiale uso statsmodels~\cite{josef_perktold_2024_10984387}.
+
+\subsection{Correlazioni di Pearson e Spearman}
+\label{subsec:materiali-correlazioni}
+
+Il \emph{coefficiente di Pearson} misura la forza e la direzione dell'associazione lineare tra due variabili:
+\begin{equation}
+    r(x,u)=\frac{\sum_{i=1}^{n}(x_i-\bar{x})(u_i-\bar{u})}
+    {\sqrt{\sum_{i=1}^{n}(x_i-\bar{x})^2\sum_{i=1}^{n}(u_i-\bar{u})^2}}.
+    \label{eq:materiali-pearson}
+\end{equation}
+Il valore appartiene all'intervallo $[-1,1]$: il segno indica la direzione dell'associazione e il valore assoluto ne esprime la forza. Gli estremi corrispondono a una relazione lineare perfetta; zero indica assenza di associazione lineare. I valori estremi delle osservazioni possono influenzare il coefficiente~\cite{10.1098/rspl.1895.0041}.
+
+Il \emph{coefficiente di Spearman} misura l'associazione monotona: valuta se, all'aumentare di una variabile, l'altra tende a aumentare o diminuire, anche senza una relazione lineare. Lo ottengo applicando Pearson ai ranghi, cioè alle posizioni dei valori nell'ordinamento:
+\begin{equation}
+    \rho_s(x,u)=r\!\left(\operatorname{rank}(x),\operatorname{rank}(u)\right).
+    \label{eq:materiali-spearman}
+\end{equation}
+Ai valori uguali assegno la media delle posizioni occupate. Anche Spearman vari nell'intervallo $[-1,1]$. Entrambi i coefficienti sono indefiniti se una delle due variabili è costante. Una correlazione, da sola, non stabilisce un rapporto causale~\cite{ca468a70-0be4-389a-b0b9-5dd1ff52b33f}.
+
+\subsection{Valore di \texorpdfstring{$p$}{p}}
+\label{subsec:materiali-p-value}
+
+Il valore di \emph{$p$}, è la probabilità, assumendo vera l'ipotesi nulla e rispettate le assunzioni del test, di ottenere un risultato almeno altrettanto estremo di quello osservato. Nei test sulle correlazioni l'ipotesi nulla è che il coefficiente nella popolazione sia zero; nei test sui singoli coefficienti di regressione è che il parametro esaminato sia nullo.
+
+Un valore piccolo indica scarsa compatibilità dei dati con l'ipotesi nulla, date le assunzioni del test. Non rappresenta la probabilità che l'ipotesi sia vera e non misura l'intensità dell'associazione. Il superamento di una soglia convenzionale, come $0{,}05$, non basta a dimostrare un effetto reale o causale~\cite{Wasserstein02042016}.
+
+\subsection{Regressione lineare e coefficiente di determinazione}
+\label{subsec:materiali-ols}
+
+La \emph{regressione lineare} descrive una variabile risposta $u_i$ in funzione di uno o più predittori. Nel caso di un solo predittore scrivo:
+\begin{equation}
+    u_i=\beta_0+\beta_1x_i+\varepsilon_i,
+    \label{eq:materiali-ols}
+\end{equation}
+dove $\beta_0$ è l'intercetta, $\beta_1$ è la pendenza e $\varepsilon_i$ è il termine di errore. La pendenza esprime la variazione della risposta media associata a un incremento unitario del predittore.
+
+Il \emph{metodo dei minimi quadrati ordinari, OLS (Ordinary Least Squares)}, stima i coefficienti minimizzando la somma dei quadrati delle differenze tra valori osservati e previsti:
+\begin{equation}
+    (\widehat{\beta}_0,\widehat{\beta}_1)
+    =\operatorname*{arg\,min}_{\beta_0,\beta_1}
+    \sum_{i=1}^{n}\left[u_i-(\beta_0+\beta_1x_i)\right]^2.
+    \label{eq:materiali-minimi-quadrati}
+\end{equation}
+
+Indico con $\widehat{u}_i=\widehat{\beta}_0+\widehat{\beta}_1x_i$ il valore previsto. Il coefficiente di determinazione $R^2$ confronta gli errori del modello con gli scarti dalla media:
+\begin{equation}
+    R^2=1-\frac{\sum_{i=1}^{n}(u_i-\widehat{u}_i)^2}
+    {\sum_{i=1}^{n}(u_i-\bar{u})^2}.
+    \label{eq:materiali-r-quadro}
+\end{equation}
+Per una regressione OLS con intercetta, valutata sui dati di stima e con risposta non costante, $R^2$ varia tra 0 e 1 e rappresenta la quota di variabilità spiegata dal modello. Questa misura descrive l'adattamento al campione; la capacità di prevedere nuove osservazioni richiede una valutazione su dati esclusi dalla stima~\cite{James2013}.
+
+\subsection{GLM binomiale e pseudo-\texorpdfstring{$R^2$}{R2} di McFadden}
+\label{subsec:materiali-glm}
+
+Un \emph{GLM (Generalized Linear Model)}, combina una distribuzione per la risposta, un predittore lineare e una funzione di collegamento. Per la risposta binaria $y_i$ utilizzo la distribuzione binomiale con una prova e il collegamento logit. Indico con $p_i=\Pr(y_i=1\mid x_i)$ la probabilità della classe 1. Con un solo predittore il modello è:
+\begin{equation}
+    \log\!\left(\frac{p_i}{1-p_i}\right)=\gamma_0+\gamma_1x_i,
+    \qquad
+    p_i=\frac{1}{1+\exp[-(\gamma_0+\gamma_1x_i)]}.
+    \label{eq:materiali-glm}
+\end{equation}
+I parametri $\gamma_0$ e $\gamma_1$ sono l'intercetta e il coefficiente del predittore. Questa formulazione corrisponde alla regressione logistica e mantiene le probabilità tra 0 e 1. Stimo i parametri per massima verosimiglianza, scegliendo i valori che rendono più probabili le risposte osservate~\cite{68aee965-a8a0-3e72-9f89-8d89ae91a62b}.
+
+Lo pseudo-$R^2$ di McFadden confronta il modello con un modello nullo che contiene la sola intercetta e assegna a tutte le osservazioni la frequenza della classe 1:
+\begin{equation}
+    R^2_{\mathrm{McF}}=1-\frac{\ell_{\mathrm{modello}}}{\ell_{\mathrm{nullo}}},
+    \label{eq:materiali-mcfadden}
+\end{equation}
+dove $\ell$ indica il logaritmo della verosimiglianza sui medesimi dati. Un valore pari a zero indica la stessa verosimiglianza del modello nullo; valori maggiori indicano un miglioramento. Lo pseudo-$R^2$ non rappresenta una quota di varianza spiegata e non è direttamente confrontabile con l'$R^2$ della regressione lineare~\cite{mcfadden1972conditional}.
+
+\section{Definizione delle caratteristiche visive}
+\label{sec:materiali-feature-visive}
+
+Rappresento ogni immagine $i$ con un vettore $\mathbf{f}_i=(f_{i1},\ldots,f_{i19})$ di 19 caratteristiche. Calcolo queste misure sull'immagine intera: comprendono quindi fotografia, testo e componenti grafiche. Le raggruppo nelle famiglie della Tabella~\ref{tab:feature-famiglie}.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Le cinque famiglie di caratteristiche estratte da ciascuna immagine.}
+    \label{tab:feature-famiglie}
+    \begin{tabular}{@{}p{0.28\linewidth}rp{0.57\linewidth}@{}}
+        \toprule
+        Famiglia & Numerosità & Proprietà \\
+        \midrule
+        Tono ed esposizione & 3 & Luminosità, contrasto e gamma dinamica. \\
+        Fuoco e nitidezza & 4 & Nitidezza, limpidezza, sfocatura e profondità di campo. \\
+        Colore & 4 & Vivacità, saturazione, calore e tonalità. \\
+        Distribuzione delle intensità & 3 & Curtosi, asimmetria ed entropia. \\
+        Composizione e struttura & 5 & Rapporto tra larghezza e altezza, simmetria, dominanza diagonale, regola dei terzi e densità dei bordi. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Per le definizioni considero una singola immagine di larghezza $W$ e altezza $H$. Indico con $R$, $G$ e $B$ i canali rosso, verde e blu, con valori tra 0 e 255. Uso $\mu(A)$ e $\sigma(A)$ per la media e la deviazione standard dei valori di una matrice $A$, calcolate sui suoi pixel.
+
+Per elaborare le immagini ricorro a \emph{OpenCV} (Open Source Computer Vision Library), una libreria con funzioni per leggere, trasformare e analizzare immagini~\cite{opencv_library}.
+
+Per descrivere la luminosità e le variazioni di intensità ricavo dai tre canali di colore un solo valore per pixel. Uso due matrici: $L$ contiene una media pesata dei canali RGB; $Q$ contiene l'immagine in scala di grigi prodotta da OpenCV, con intensità intere da 0 a 255.
+
+Assegno pesi diversi ai tre canali per approssimare il loro diverso contributo alla luminosità percepita: il verde contribuisce maggiormente, seguito dal rosso e dal blu. Calcolo quindi $L$:
+\begin{equation}
+    L=0{,}299R+0{,}587G+0{,}114B.
+    \label{eq:feature-intensita}
+\end{equation}
+Uso $L$ per luminosità, contrasto e gamma dinamica; uso $Q$ per le misure di dettaglio, distribuzione delle intensità e struttura. Interpreto $L$ come un'approssimazione della luminosità.~\cite{itu_bt601}
+
+Nelle sezioni seguenti impiego queste notazioni per definire le singole caratteristiche visive. Riporto tra parentesi i nomi delle colonne con cui salvo le caratteristiche nel \path{dataset_filtered.csv}.
+
+\subsection{Tono ed esposizione}
+\label{subsec:feature-tono}
+
+La luminosità (\texttt{brightness}) è $\mu(L)/255$ e il contrasto (\texttt{contrast}) è $\sigma(L)/255$.
+
+Indico con $P_q(L)$ il percentile di ordine $q$ delle intensità di $L$, cioè il valore sotto cui si trova il $q\%$ dei pixel. Calcolo la gamma dinamica robusta (\texttt{dynamic\_range}) come segue~\cite{1640788}:
+\begin{equation}
+    \texttt{dynamic\_range}=\frac{P_{99}(L)-P_1(L)}{255}.
+    \label{eq:feature-gamma-dinamica}
+\end{equation}
+Escludendo le code dell'istogramma riduco il peso dei valori estremi isolati. Questa misura indica quanto variano i livelli di luminosità nell’immagine, non quanta differenza tra luci e ombre riesce a registrare la fotocamera.
+
+\subsection{Fuoco e nitidezza}
+\label{subsec:feature-fuoco}
+
+Uso il \emph{Laplaciano}, un operatore basato sulle derivate seconde dell'intensità, per evidenziare le variazioni locali. Indico con $\Delta Q$ la sua risposta discreta.
+
+La nitidezza (\texttt{sharpness}) è la varianza $\sigma^2(\Delta Q)$. Valori elevati indicano una maggiore variabilità della risposta, che può dipendere da dettagli, contorni o rumore~\cite{903548}.
+
+Per misurare la limpidezza (\texttt{clearness}) un principio simile della nitidezza, confronto l'immagine in scala di grigi $Q$ con una sua versione sfocata. Ottengo quest'ultima applicando un filtro gaussiano, che attenua le variazioni tra pixel vicini. Indico con $G_2(Q)$ l'immagine filtrata con deviazione standard di 2 pixel e calcolo:
+\begin{equation}
+    \texttt{clearness}=\frac{\sqrt{\mu\bigl((Q-G_2(Q))^2\bigr)}}{255}.
+\end{equation}
+Il valore cresce quanto più l'immagine differisce dalla sua versione sfocata: indica quindi quanto sono marcate le variazioni di intensità rimosse dal filtro~\cite{PERTUZ20131415}.
+
+Per misurare la sfocatura (\texttt{blur}) sfrutto il principio che un'immagine già sfocata perde poco dettaglio quando la sfoco ulteriormente. Sfoco $Q$ separatamente in orizzontale e in verticale, usando filtri che calcolano la media su 9 pixel. Per ciascuna direzione misuro quanto si riducono le differenze di intensità tra pixel vicini rispetto a quelle iniziali. Una riduzione piccola produce un indice di sfocatura alto. Conservo il maggiore dei due indici, ottenendo un valore tra 0 e 1, dove valori più alti indicano maggiore sfocatura~\cite{creteroffet:hal-00232709}.
+
+La profondità di campo (\texttt{depth\_of\_field}) è un indicatore del rapporto di dettaglio tra centro e periferia di una foto. Definisco il centro $C$ come il rettangolo che occupa il terzo centrale di ciascuna dimensione e la periferia $P$ come tutti i pixel restanti. Calcolo
+\begin{equation}
+    \texttt{depth\_of\_field}=
+    \frac{\sigma^2((\Delta Q)_C)}{\sigma^2((\Delta Q)_P)+10^{-6}}.
+\end{equation}
+Il termine $10^{-6}$ rende il rapporto definito anche con una periferia uniforme. Un valore alto indica più dettaglio al centro; l'interpretazione come soggetto a fuoco su sfondo sfocato richiede che il soggetto occupi quella regione~\cite{10.1007/11744078_23}.
+
+\subsection{Colore}
+\label{subsec:feature-colore}
+
+Per la vivacità (\texttt{colorfulness}) uso la misura di Hasler e Süsstrunk. Definisco i canali di opposizione $U=R-G$ e $V=(R+G)/2-B$ e calcolo:
+\begin{equation}
+    \texttt{colorfulness}=
+    \sqrt{\sigma^2(U)+\sigma^2(V)}+
+    0{,}3\sqrt{\mu(U)^2+\mu(V)^2}.
+\end{equation}
+La misura vale zero quando i tre canali coincidono, mantengo la scala originale, tra 0 e 255~\cite{10.1117/12.477378}.
+
+Converto l'immagine nel formato HSV (Hue, Saturation, Value). Nella rappresentazione OpenCV a 8 bit la tonalità assume valori da 0 a 179 e la saturazione e il valore da 0 a 255.
+
+La saturazione (\texttt{saturation}) è la media del relativo canale divisa per 255.
+
+La tonalità media (\texttt{hue\_mean}) è la media aritmetica del canale di tonalità divisa per 179.
+
+Il calore (\texttt{warmth}) è $\mu\bigl((R-B)/(R+B+10^{-6})\bigr)$. Un valore positivo indica una prevalenza del rosso sul blu, un valore negativo la prevalenza opposta. Questa definizione produce un indice cromatico compreso tra $-1$ e $1$~\cite{Jonauskaite2024}.
+
+\subsection{Distribuzione delle intensità}
+\label{subsec:feature-distribuzione}
+
+Descrivo la forma dell'istogramma di $Q$ attraverso i momenti centrali $m_k=\mu\bigl((Q-\mu(Q))^k\bigr)$. L'asimmetria (\texttt{skewness}) è $m_3/m_2^{3/2}$. La curtosi (\texttt{kurtosis}) è $m_4/m_2^2-3$: uso quindi l'eccesso di curtosi, che per una distribuzione normale vale zero. Calcolo entrambi i rapporti con le impostazioni predefinite di SciPy, senza correzione del bias~\cite{2020SciPy-NMeth}.
+
+L'\emph{entropia di Shannon} (\texttt{shannon\_entropy}) riassume la dispersione delle frequenze dei livelli di grigio. Se $p_v$ è la frazione di pixel con intensità $v$, definisco
+\begin{equation}
+    \texttt{shannon\_entropy}=-\sum_{v:p_v>0}p_v\log_2 p_v.
+\end{equation}
+Il valore è espresso in bit, tra 0 e 8 per 256 livelli. Vale zero per un'immagine uniforme e cresce quando le frequenze si distribuiscono su più livelli. L'istogramma ignora la posizione dei pixel: immagini con disposizioni spaziali diverse possono avere la stessa entropia~\cite{6773024}.
+
+\subsection{Composizione e struttura}
+\label{subsec:feature-composizione}
+
+L'\texttt{aspect\_ratio} è $W/H$: valori superiori a 1 indicano un formato orizzontale, inferiori a 1 un formato verticale.
+
+La simmetria (\texttt{symmetry}) confronta la metà sinistra $Q_S$ con la metà destra riflessa orizzontalmente $Q_D^{\leftrightarrow}$. Calcolo $1-\mu(|Q_S-Q_D^{\leftrightarrow}|)/255$, escludendo la colonna centrale quando la larghezza è dispari. Il valore appartiene a $[0,1]$ ed è massimo quando le due metà coincidono nelle intensità.
+
+Per le due misure successive calcolo gli operatori di Sobel di dimensione $3\times3$ per misurare le variazioni di intensità in orizzontale ($g_x$) e in verticale ($g_y$). Le combino nel modulo del gradiente $M=\sqrt{g_x^2+g_y^2}$, che indica quanto è forte la variazione in ciascun pixel~\cite{996}.
+
+La dominanza diagonale (\texttt{diagonal\_dominance}) misura quanto prevalgono le variazioni orientate lungo le diagonali. Considero le direzioni vicine a $45^\circ$ e $135^\circ$, con una tolleranza di $22{,}5^\circ$. Sommo i valori di $M$ nei pixel con queste direzioni e divido per la somma di $M$ su tutta l'immagine. Ottengo un valore tra 0 e 1: valori più alti indicano una maggiore presenza di variazioni diagonali, pesate per la loro forza.
+
+La regola dei terzi (\texttt{rule\_of\_thirds}) misura la concentrazione del gradiente vicino alle quattro intersezioni di una griglia $3\times3$. Costruisco attorno ad ogni intersezione un disco di raggio pari al $10\%$ della diagonale dell'immagine. Indico con $D$ l'unione dei quattro dischi e con $M_D$ i valori del gradiente nei pixel di $D$ e calcolo:
+\begin{equation}
+    \texttt{rule\_of\_thirds}=\frac{\mu(M_D)}{\mu(M)}.
+    \label{eq:feature-regola-terzi}
+\end{equation}
+Un valore superiore a 1 indica una maggiore concentrazione di variazioni in quelle zone. Se il gradiente è nullo su tutta l'immagine, assegno alla caratteristica il valore 0.
+
+La complessità visiva (\texttt{visual\_complexity}) è la frazione di pixel rilevati come bordi dall'algoritmo di Canny, applicato a $Q$ con soglie 100 e 200. La densità dei bordi è compresa tra 0 e 1~\cite{4767851}.

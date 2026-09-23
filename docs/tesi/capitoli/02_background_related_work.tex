@@ -6,7 +6,9 @@
 \chapter{Background e lavori correlati}
 \label{chap:background}
 
-In questo capitolo presento TruFor, il sistema che utilizzo per studiare le manipolazioni. TruFor è un framework per l'analisi \emph{forense} delle immagini, cioè l'esame delle tracce lasciate dall'acquisizione e dalle elaborazioni successive per individuare possibili manipolazioni. Introduco i compiti dell'analisi forense e descrivo il funzionamento di TruFor. Esamino poi i risultati ed i limiti che gli autori riportano nel loro lavoro. Uso questi elementi per motivare la scelta del sistema nello studio della comunicazione politica sui social media.
+In questo capitolo presento TruFor, il sistema che utilizzo per studiare le manipolazioni. TruFor è un framework per l'analisi \emph{forense} delle immagini, cioè l'esame delle tracce lasciate dall'acquisizione e dalle elaborazioni successive, per individuare possibili manipolazioni. Introduco i compiti dell'analisi forense e descrivo il funzionamento di TruFor. Esamino poi i risultati e i limiti che gli autori riportano nel loro lavoro. Uso questi elementi per motivare la scelta del sistema nello studio della comunicazione politica sui social media.
+
+Procedo poi con i descrittori visivi che adopero per rappresentare le caratteristiche dell'immagine.
 
 \section{Rilevamento e localizzazione delle manipolazioni}
 \label{sec:background-rilevamento-localizzazione}
@@ -17,7 +19,7 @@ Osservo manipolazioni come il copia-incolla e l'inserimento di contenuti sinteti
 
 Valuto positiva la classe ``manipolato'' e negativa la classe ``autentico''. Questa convenzione vale sia per le immagini nel rilevamento sia per i pixel nella localizzazione. TruFor può segnalare come manipolate anche regioni autentiche, producendo falsi positivi a livello di pixel~\cite{Guillaro_2023_CVPR}. Nel rilevamento, i falsi positivi possono costituire una parte consistente delle segnalazioni quando le manipolazioni sono poco frequenti. Quando interpreto i risultati, distinguo quindi gli errori di localizzazione dagli errori di rilevamento.
 
-\section{Indizi visivi ed impronta Noiseprint++}
+\section{Indizi visivi e impronta Noiseprint++}
 \label{sec:background-noiseprint}
 
 L'immagine RGB descrive il contenuto visibile; l'\emph{estrattore Noiseprint++} genera un'impronta, \emph{Noiseprint++}, che evidenzia le incoerenze tra le tracce presenti nelle diverse regioni. Trufor combina la fotografia con la sua impronta.~\cite{Guillaro_2023_CVPR}.
@@ -26,7 +28,7 @@ Noiseprint++ estende \emph{Noiseprint}, un'impronta che rappresenta le tracce de
 
 Gli autori utilizzano 24.700 immagini acquisite con 1.475 modelli di fotocamera. Ne estraggono porzioni di $64 \times 64$ pixel. L'addestramento segue un criterio \emph{contrastivo}: produce impronte simili nelle aree che condividono le stesse proprietà e diverse nelle aree che differiscono. Le proprietà richieste sono il modello di fotocamera, la posizione nello spazio e la storia delle elaborazioni. Gli sviluppatori simulano quest'ultima con 512 combinazioni di ridimensionamento, compressione e variazioni di illuminazione~\cite{Guillaro_2023_CVPR}.
 
-\section{Architettura ed apprendimento}
+\section{Architettura e apprendimento}
 \label{sec:background-trufor-architettura}
 
 Il sistema elabora l'RGB e Noiseprint++ attraverso due rami. Ogni ramo estrae delle \emph{caratteristiche}, rappresentazioni numeriche delle informazioni della figura. La fusione delle caratteristiche usa una rete di tipo \emph{Transformer}, che apprende relazioni tra gli elementi delle rappresentazioni~\cite{Guillaro_2023_CVPR}.
@@ -95,7 +97,7 @@ Nella terza fase il decoder della confidenza apprende come stimare la \emph{True
 \section{Output e loro interpretazione}
 \label{sec:background-trufor-output}
 
-TruFor restituisce la mappa delle anomalie e la mappa di confidenza, definite nella Sezione~\ref{sec:background-trufor-architettura}, insieme ad un punteggio globale~\cite{Guillaro_2023_CVPR}.
+TruFor restituisce la mappa delle anomalie e la mappa di confidenza, definite nella Sezione~\ref{sec:background-trufor-architettura}, insieme a un punteggio globale~\cite{Guillaro_2023_CVPR}.
 
 La visualizzazione della mappa delle anomalie come mappa di calore evidenzia le regioni da esaminare. Interpreto queste regioni insieme alla mappa di confidenza, per distinguere le segnalazioni che il sistema considera affidabili da quelle che richiedono cautela.
 
@@ -167,3 +169,35 @@ Gli autori circoscrivono le capacità di TruFor alle manipolazioni locali. Il ri
 L'addestramento richiede maschere di riferimento per i pixel e procede in fasi separate. Gli autori propongono come direzione di ricerca un addestramento congiunto per i componenti dell'intero sistema. La proposta include l'uso di etichette che indicano la classe dell'intera immagine~\cite{Guillaro_2023_CVPR}.
 
 Il confronto con la letteratura fornisce due motivi per scegliere TruFor. Rispetto ai metodi che ricavano la decisione dalla sola mappa delle anomalie, TruFor considera anche l'affidabilità delle previsioni. Rispetto a CAT-Net v2, ottiene valori medi superiori nelle metriche di localizzazione e rilevamento~\cite{Guillaro_2023_CVPR}. Queste evidenze riguardano i dataset del confronto e motivano la scelta di TruFor per la mia analisi. Uso i suoi output per esaminare le regioni sospette delle immagini politiche. Studio poi la relazione tra le caratteristiche visive e l'\emph{engagement}, cioè le interazioni degli utenti con il post.
+
+\section{Strumenti statistici per l'analisi delle associazioni}
+\label{sec:background-misure-statistiche}
+
+Per studiare le relazioni tra il punteggio di TruFor, le caratteristiche visive e l'engagement impiego correlazioni e modelli statistici.
+
+Considero il coefficiente di Pearson per le associazioni lineari~\cite{10.1098/rspl.1895.0041} e quello di Spearman per le associazioni monotone, basate sull'ordinamento dei valori~\cite{ca468a70-0be4-389a-b0b9-5dd1ff52b33f}. Per interpretare i test statistici considero anche il valore di $p$, seguendo le indicazioni dell'American Statistical Association: la significatività statistica va distinta dall'intensità dell'associazione e dalla sua rilevanza~\cite{Wasserstein02042016}.
+
+Per descrivere l'engagement continuo uso la regressione lineare, stimata con il metodo dei minimi quadrati ordinari, OLS (Ordinary Least Squares). Ne valuto l'adattamento ai dati attraverso il coefficiente di determinazione $R^2$~\cite{James2013}.
+
+Per l'engagement rappresentato da due classi sfrutto invece un GLM (Generalized Linear Model) binomiale con collegamento logit~\cite{68aee965-a8a0-3e72-9f89-8d89ae91a62b}. Lo pseudo-$R^2$ di McFadden permette di confrontarlo con un modello che contiene la sola intercetta~\cite{mcfadden1972conditional}.
+
+Calcolo le correlazioni con SciPy~\cite{2020SciPy-NMeth} e stimo i modelli con statsmodels~\cite{josef_perktold_2024_10984387}. Nella Sezione~\ref{sec:materiali-misure-statistiche} presento le definizioni e le formule delle misure e dei modelli adottati.
+
+\section{Descrittori visivi dell'immagine}
+\label{sec:background-feature-visive}
+
+Per studiare la relazione tra l'aspetto delle immagini e l'engagement uso delle caratteristiche visive. Considero tono, esposizione, fuoco, nitidezza, colore, distribuzione delle intensità, composizione e struttura.
+
+I lavori di Ke e colleghi e di Datta e colleghi mostrano come descrittori di questo tipo possano rappresentare proprietà rilevanti per la qualità e l'estetica fotografica~\cite{1640788,10.1007/11744078_23}. Nel mio studio li uso per descrivere le immagini e confrontarle con i punteggi di engagement e di TruFor.
+
+Per rappresentare l'intensità riprendo i pesi dei canali di colore della raccomandazione ITU-R BT.601~\cite{itu_bt601}.
+
+Le misure di dettaglio si collegano agli studi sulla messa a fuoco di Pech-Pacheco e colleghi e alla rassegna degli operatori di misura di Pertuz e colleghi~\cite{903548,PERTUZ20131415}. Per la sfocatura seguo il principio di Crété-Roffet e colleghi: confronto le variazioni tra pixel vicini prima e dopo un ulteriore filtraggio~\cite{creteroffet:hal-00232709}.
+
+Per il colore uso la misura di vivacità di Hasler e Süsstrunk~\cite{10.1117/12.477378}. Il lavoro di Jonauskaite e Thorstenson offre un contesto sul rapporto tra colore ed emozioni~\cite{Jonauskaite2024}; definisco invece il calore della pipeline attraverso il bilanciamento dei canali rosso e blu. Per la distribuzione delle intensità uso anche l'entropia di Shannon~\cite{6773024}.
+
+Gli operatori di Sobel e il rilevamento dei bordi di Canny forniscono gli strumenti per descrivere le variazioni locali e la struttura dell'immagine~\cite{996,4767851}.
+
+Eseguo le elaborazioni delle immagini con OpenCV~\cite{opencv_library} e i calcoli di asimmetria e curtosi con SciPy~\cite{2020SciPy-NMeth}. 
+
+Nella Sezione~\ref{sec:materiali-feature-visive} definisco le 19 caratteristiche e le scelte di calcolo adottate nel progetto, distinguendole dai principi generali dei lavori citati.

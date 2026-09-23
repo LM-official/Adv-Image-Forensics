@@ -5,7 +5,9 @@
 \chapter{Metodi}
 \label{chap:metodi}
 
-In questo capitolo descrivo come impiego TruFor nella pipeline. Eseguo prima una verifica sui 100 casi annotati, poi estendo l'elaborazione all'intero dataset selezionato. Salvo gli output e studio l'associazione tra il punteggio globale e l'engagement. Uso questa analisi come riferimento per i modelli che includono le caratteristiche visive e le descrizioni delle regioni sospette.
+In questo capitolo descrivo la pipeline. Svolgo prima un benchmark di TruFor su 100 casi annotati, poi estendo l'elaborazione all'intero dataset selezionato. Salvo gli output e studio l'associazione tra il punteggio globale e l'engagement. Uso questa analisi come riferimento per i modelli che includono le caratteristiche visive e le descrizioni delle regioni sospette.
+
+Descrivo poi l'estrazione delle 19 caratteristiche visive e il confronto delle loro associazioni con l'engagement e con il punteggio globale di TruFor.
 
 \section{Benchmark preliminare di TruFor sul dataset}
 \label{sec:metodi-trufor-benchmark}
@@ -25,7 +27,7 @@ Uso questa soglia soltanto per la verifica del rilevamento. L'elaborazione delle
 
 Calcolo la matrice di confusione tra $z_i$ e $\widehat{z}_i$, insieme ad accuratezza, precisione, richiamo e F1-score. Confronto l'accuratezza con quella ottenuta assegnando sempre la classe più frequente nel campione. Calcolo anche l’AUC (Area Under the Curve) direttamente dai punteggi, per valutare la capacità di distinguere i casi autentici da quelli alterati senza fissare un’unica soglia decisionale.
 
-Affianco alla configurazione scelta un confronto delle soglie da $0{,}20$ a $0{,}50$, con passo $0{,}05$. Per ciascuna ricalcolo le metriche sullo stesso campione. Uso queste prove per un benchmark preliminare della soglia decisionale ed interpreto le misure come risultati esplorativi sui casi annotati. Mantengo fissi i pesi del modello.
+Affianco alla configurazione scelta un confronto delle soglie da $0{,}20$ a $0{,}50$, con passo $0{,}05$. Per ciascuna ricalcolo le metriche sullo stesso campione. Uso queste prove per un benchmark preliminare della soglia decisionale e interpreto le misure come risultati esplorativi sui casi annotati. Mantengo fissi i pesi del modello.
 
 Salvo il confronto in \path{trufor_confusion_matrix.txt}. Il documento contiene anche gli identificatori dei falsi positivi e dei falsi negativi, con i rispettivi punteggi, per consentire l'ispezione dei singoli casi.
 
@@ -79,22 +81,22 @@ La Tabella~\ref{tab:trufor-confronto-soglie} mostra il confronto tra le soglie. 
 \section{Elaborazione del dataset e salvataggio degli output}
 \label{sec:metodi-trufor-esecuzione}
 
-Dopo la verifica preliminare applico TruFor all'intero dataset filtrato. Lo script \path{scripts/trufor.py} avvia il programma di inferenza in un processo separato, usando l'interprete Python dell'ambiente corrente. Fornisco come argomenti le cartelle degli input e degli output ed il limite di risoluzione.
+Dopo la verifica preliminare applico TruFor all'intero dataset filtrato. Lo script \path{scripts/trufor.py} avvia il programma di inferenza in un processo separato, usando l'interprete Python dell'ambiente corrente. Fornisco come argomenti le cartelle degli input e degli output e il limite di risoluzione.
 
 Imposto \texttt{TRUFOR\_MAX\_PIXELS} a 6.000.000. Se un input supera il limite il caricatore lo ridimensiona mantenendo le proporzioni. Il modello esegue l'inferenza sul contenuto; il programma riporta poi le mappe alle dimensioni originali tramite interpolazione bilineare. Il punteggio globale deriva dall'input effettivamente elaborato.
 
-Organizzo l'esecuzione in gruppi di 50 file ed inserisco una pausa di 180 secondi tra gruppi consecutivi. Per ogni gruppo lo script prepara una cartella temporanea con i collegamenti agli originali da elaborare ed avvia un nuovo processo. Il programma carica il modello una volta per gruppo ed elabora un file alla volta. Questa organizzazione regola il carico della macchina durante l'esecuzione.
+Organizzo l'esecuzione in gruppi di 50 file e inserisco una pausa di 180 secondi tra gruppi consecutivi. Per ogni gruppo lo script prepara una cartella temporanea con i collegamenti agli originali da elaborare e avvia un nuovo processo. Il programma carica il modello una volta per gruppo ed elabora un file alla volta. Questa organizzazione regola il carico della macchina durante l'esecuzione.
 
 Gli output vengono salvati in \path{scripts/temp/npz/}, un file \texttt{.npz} dopo ogni elaborazione completata. Se un gruppo si interrompe per un crash, restano disponibili i risultati dei gruppi precedenti e quelli già salvati del gruppo interrotto.
 
-Per esecuzioni successive il programma salta gli input associati ad output già presenti; posso quindi riprendere il lavoro dagli elementi mancanti. Il riuso degli output presuppone la stessa configurazione di elaborazione; un cambio di configurazione richiede di rigenerarli o salvarli in una cartella distinta.
+Per esecuzioni successive il programma salta gli input associati a output già presenti; posso quindi riprendere il lavoro dagli elementi mancanti. Il riuso degli output presuppone la stessa configurazione di elaborazione; un cambio di configurazione richiede di rigenerarli o salvarli in una cartella distinta.
 
 Estraggo dagli archivi il campo \texttt{score}, descritto nella Tabella~\ref{tab:materiali-trufor-output}, e lo rinomino \texttt{trufor\_score}. Aggiorno la tabella \path{dataset_filtered.csv} tramite \texttt{filename}, ottenuto dal nome dell'output senza le estensioni. L'unione conserva solo le osservazioni con una corrispondenza. Mantengo le mappe negli archivi per i passaggi successivi della pipeline.
 
 \section{Analisi del punteggio globale e dell'engagement}
 \label{sec:metodi-trufor-engagement}
 
-Studio quanto il solo punteggio globale $t_i$ sia associato all'engagement del post. Uso il punteggio continuo $c_i$, definito nella Sezione~\ref{sec:dataset-engagement}, per correlazione e regressione lineare. Per la classificazione uso invece $y_i$, definito nell'Equazione~\ref{eq:dataset-target}, ed un GLM (Generalized Linear Model). Riassumo le analisi nella Tabella~\ref{tab:metodi-trufor-analisi} e ne presento i risultati nella Sezione~\ref{sec:risultati-trufor-engagement}.
+Studio quanto il solo punteggio globale $t_i$ sia associato all'engagement del post. Applico le misure e i modelli definiti nella Sezione~\ref{sec:materiali-misure-statistiche}. Uso il punteggio continuo $c_i$, definito nella Sezione~\ref{sec:dataset-engagement}, per correlazione e regressione lineare. Per il GLM binomiale adopero invece $y_i$, definito nell'Equazione~\ref{eq:dataset-target}. Riassumo le analisi nella Tabella~\ref{tab:metodi-trufor-analisi} e ne presento i risultati nella Sezione~\ref{sec:risultati-trufor-engagement}.
 
 \begin{table}[htbp]
     \centering
@@ -116,18 +118,52 @@ Studio quanto il solo punteggio globale $t_i$ sia associato all'engagement del p
     \end{tabular}
 \end{table}
 
-\begin{samepage}
-Calcolo i coefficienti di Pearson e Spearman ed i rispettivi valori di $p$. Il primo misura l'associazione lineare; il secondo confronta i \emph{ranghi}, cioè le posizioni nell'ordinamento dei valori. Stimo poi una regressione lineare con intercetta attraverso il metodo OLS (Ordinary Least Squares), minimi quadrati ordinari. Indico con $\beta_0$ l'intercetta, con $\beta_1$ la pendenza e con $\varepsilon_i$ il termine di errore:
-\begin{equation}
-    s_i = \beta_0 + \beta_1 t_i + \varepsilon_i.
-    \label{eq:metodi-trufor-ols}
-\end{equation}
-\end{samepage}
-Esamino il coefficiente stimato ed il coefficiente di determinazione $R^2$, che misura la quota di variabilità di $c_i$ spiegata dal modello sul campione. Stimo il GLM con distribuzione binomiale e funzione di collegamento logit. Escludo le osservazioni con $c_i$ nell'intervallo $[-0{,}5;\,0{,}5]$ ed uso $t_i$ come unico predittore, insieme all'intercetta. Indico con $p_i$ la probabilità stimata della classe $y_i=1$, relativa ai post con engagement superiore alle aspettative:
-\begin{equation}
-    \log\!\left(\frac{p_i}{1-p_i}\right) = \gamma_0 + \gamma_1 t_i.
-    \label{eq:metodi-trufor-glm}
-\end{equation}
-I parametri $\gamma_0$ e $\gamma_1$ rappresentano l'intercetta ed il coefficiente del punteggio globale. Verifico la convergenza della stima e calcolo lo \emph{pseudo-$R^2$ di McFadden}, che confronta la verosimiglianza del modello con quella di un modello con la sola intercetta. Queste misure descrivono l'adattamento ai dati usati per la stima.
+Calcolo con SciPy i coefficienti di Pearson e Spearman tra $t_i$ e $c_i$ e i rispettivi valori di $p$ per test bilaterali. Stimo poi con statsmodels una regressione OLS con intercetta, usando $t_i$ come unico predittore e $c_i$ come risposta. Esamino la pendenza stimata e l'$R^2$ sul campione.
+
+Per il GLM binomiale con collegamento logit escludo le osservazioni con $c_i$ nell'intervallo $[-0{,}5;\,0{,}5]$. Impiego $t_i$ come unico predittore, insieme all'intercetta, e $y_i$ come risposta. Stimo il modello con statsmodels, verifico la convergenza e calcolo lo pseudo-$R^2$ di McFadden sui dati usati per la stima.
 
 Salvo i report nella cartella \path{scripts/temp/}. I nomi dei file condividono il prefisso \path{trufor_crowdtangle_}, seguito da \path{correlation.txt}, \path{regression.txt} o \path{glm.txt}, secondo l'analisi. Per confrontare modelli con predittori diversi considero lo stesso insieme di osservazioni, la stessa variabile obiettivo e metriche compatibili.
+
+\section{Estrazione e analisi delle caratteristiche visive}
+\label{sec:metodi-feature-visive}
+
+Dopo l'inferenza di TruFor eseguo \path{scripts/features.py}. Questo passaggio associa a ciascuna osservazione il vettore definito nella Sezione~\ref{sec:materiali-feature-visive}. Lo utilizzo per esaminare se le proprietà visive associate all'engagement sono anche associate al punteggio globale di manipolazione.
+
+\subsection{Estrazione e aggiornamento della tabella}
+\label{subsec:metodi-feature-estrazione}
+
+Leggo le immagini selezionate dalla cartella \path{scripts/temp/images/} attraverso OpenCV e calcolo le caratteristiche visive sull'intera immagine con OpenCV, NumPy, SciPy e scikit-image. Applico le normalizzazioni previste dalle singole definizioni. 
+
+Nella configurazione corrente imposto \texttt{FEATURE\_RESIZE\_LONG\_SIDE} a 0, mantengo quindi la risoluzione originale dei file letti. Lo script consente di fissare un limite al lato maggiore: in quel caso riduce le immagini che lo superano mantenendo le proporzioni, con interpolazione per area. Il rapporto d'aspetto viene calcolato prima dell'eventuale ridimensionamento. Questa impostazione è indipendente dal limite di risoluzione adottato per TruFor.
+
+Salvo le altre caratteristiche nelle rispettive scale originali. Associo il vettore al campo \texttt{filename}, ottenuto dal nome del file senza estensione, e aggiorno \path{dataset_filtered.csv}. Se le colonne sono già presenti, sostituisco i valori precedenti. Elimino le righe con valori mancanti.
+
+Gestisco separatamente i casi degeneri. Salto i file che non riesco a leggere. Sostituisco con zero i valori non finiti, come asimmetria e curtosi di un'immagine uniforme. Per una direzione priva di variazioni assegno zero al relativo indice di sfocatura; assegno zero anche alla dominanza diagonale e alla regola dei terzi quando il gradiente è nullo. Questi zeri sono convenzioni numeriche: in particolare, l'assenza di variazioni rende la sfocatura non valutabile attraverso il confronto adottato.
+
+\subsection{Confronto delle correlazioni}
+\label{subsec:metodi-feature-correlazioni}
+
+Ripeto il confronto con Pearson e Spearman, definiti nella Sezione~\ref{subsec:materiali-correlazioni}. Con ciascun metodo, per ogni caratteristica $j$ calcolo due correlazioni sulle osservazioni disponibili:
+\begin{equation}
+    a_j=\operatorname{corr}(f_{ij},c_i),
+    \qquad
+    b_j=\operatorname{corr}(f_{ij},t_i),
+    \qquad j=1,\ldots,19.
+    \label{eq:feature-correlazioni}
+\end{equation}
+Qui $c_i$ è il punteggio continuo di engagement e $t_i$ è il punteggio globale di TruFor. In questo passaggio conservo anche i punteggi di engagement nell'intervallo $[-0{,}5;\,0{,}5]$. Eseguo lo script una volta con Pearson e un'altra con Spearman. Il calcolo esclude i valori mancanti separatamente per ogni coppia di variabili.
+
+Nelle Figure~\ref{fig:risultati-feature-pearson} e~\ref{fig:risultati-feature-spearman} rappresento ciascuna caratteristica con il punto $(a_j,b_j)$ ottenuto rispettivamente con Pearson e Spearman. Ogni grafico contiene quindi 19 descrittori, ciascuno riassuntivo delle associazioni calcolate su tutte le immagini. Aggiungo la retta $b=a$, riferimento di uguaglianza dei coefficienti con segno, e una retta adattata ai punti con i minimi quadrati, usando $a_j$ come predittore e $b_j$ come risposta.
+
+Le caratteristiche possono essere correlate tra loro e le due coordinate derivano dallo stesso campione: la retta riassume il confronto tra descrittori e non costituisce un modello di previsione dell'engagement delle immagini. Escludo dal grafico le caratteristiche con correlazioni non definite, come avviene per una colonna costante.
+
+Conservo i due report nella cartella \path{scripts/temp/}, con i nomi \path{images_features_pearson.txt} e \path{images_features_spearman.txt}. Ogni report ordina le caratteristiche per $|b_j|$ decrescente. Lo script produce coefficienti descrittivi senza valori di $p$ o intervalli di confidenza.
+
+\subsection{Limiti della rappresentazione}
+\label{subsec:metodi-feature-limiti}
+
+L'interpretazione dipende dal contenuto e dalla scala dei file. Le finestre di filtraggio sono espresse in pixel: risoluzione, compressione e rumore possono modificare nitidezza, sfocatura e bordi. Testo al centro o sfondi uniformi possono aumentare il rapporto centro-periferia indipendentemente dalla messa a fuoco.
+
+La tonalità ha natura circolare: valori vicini ai due estremi possono rappresentare colori simili. La media aritmetica trascura questa proprietà e include pixel poco saturi. Entropia e densità dei bordi descrivono frequenze e transizioni di intensità, da distinguere dalla complessità semantica della scena.
+
+Le misure aggregano regioni autentiche ed eventualmente alterate. Le associazioni con $t_i$ descrivono il comportamento del detector. Per verificare se queste caratteristiche siano associate anche a manipolazioni effettive servono annotazioni indipendenti. Le correlazioni con $c_i$ mostrano associazioni con l’engagement, che possono dipendere anche dall’account, dall’argomento e dalle condizioni di pubblicazione.

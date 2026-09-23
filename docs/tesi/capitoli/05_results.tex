@@ -33,7 +33,7 @@ Riporto nella Tabella~\ref{tab:risultati-trufor-correlazioni} i coefficienti di 
 \subsection{Regressione lineare}
 \label{subsec:risultati-trufor-lineare}
 
-Nella Tabella~\ref{tab:risultati-trufor-lineare} riporto i risultati della regressione lineare dello score di engagement sul dato d'insieme di TruFor. Considero il parametro stimato, il suo intervallo di confidenza al $95\%$, il valore di $p$ ed il coefficiente di determinazione $R^2$.
+Nella Tabella~\ref{tab:risultati-trufor-lineare} riporto i risultati della regressione lineare dello score di engagement sul dato d'insieme di TruFor. Considero il parametro stimato, il suo intervallo di confidenza al $95\%$, il valore di $p$ e il coefficiente di determinazione $R^2$.
 
 \begin{table}[htbp]
     \centering
@@ -78,7 +78,7 @@ Nella Tabella~\ref{tab:risultati-trufor-glm} riporto i risultati del GLM binomia
     \end{tabular}
 \end{table}
 
-Ottengo uno pseudo-$R^2$ di McFadden pari a $0{,}0009$: il miglioramento dell'adattamento rispetto al modello con la sola intercetta è quindi limitato. Il coefficiente è positivo ed il suo intervallo di confidenza comprende lo zero. Il punteggio globale offre un contributo limitato alla distinzione tra le due classi di engagement nei dati usati per la stima.
+Ottengo uno pseudo-$R^2$ di McFadden pari a $0{,}0009$: il miglioramento dell'adattamento rispetto al modello con la sola intercetta è quindi limitato. Il coefficiente è positivo e il suo intervallo di confidenza comprende lo zero. Il punteggio globale offre un contributo limitato alla distinzione tra le due classi di engagement nei dati usati per la stima.
 
 \subsection{Interpretazione e riferimento per le analisi successive}
 \label{subsec:risultati-trufor-riferimento}
@@ -86,3 +86,70 @@ Ottengo uno pseudo-$R^2$ di McFadden pari a $0{,}0009$: il miglioramento dell'ad
 Nel campione osservo un'associazione debole tra il punteggio globale di TruFor e l'engagement.
 
 Uso questo risultato come riferimento per valutare se l'aggiunta delle caratteristiche visive e delle descrizioni delle regioni sospette migliora la previsione dell'engagement.
+
+\section{Caratteristiche visive, engagement e punteggio di TruFor}
+\label{sec:risultati-feature-visive}
+
+Applico il confronto descritto nella Sezione~\ref{subsec:metodi-feature-correlazioni} alle 1.211 osservazioni della tabella elaborata. Per tutte le osservazioni dispongo delle 19 caratteristiche, del punteggio di engagement e di quello di TruFor. Riporto i risultati delle correlazioni di Pearson e Spearman.
+
+\subsection{Associazioni delle singole caratteristiche}
+
+La Tabella~\ref{tab:risultati-feature-correlazioni} mostra associazioni contenute con entrambi i metodi. Per l’engagement, Spearman evidenzia diverse associazioni più marcate rispetto a Pearson. Le correlazioni con TruFor mantengono invece più spesso segno e valori simili tra i due metodi. Il confronto indica quindi che la scelta del metodo incide soprattutto sulle associazioni con l’engagement.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Correlazioni di Pearson e Spearman sulle stesse 1.211 osservazioni. Fonti: \texttt{images\_features\_pearson.txt} e \texttt{images\_features\_spearman.txt}.}
+    \label{tab:risultati-feature-correlazioni}
+    \begin{tabular}{@{}lrrrr@{}}
+        \toprule
+        & \multicolumn{2}{c}{Pearson ($r$)} & \multicolumn{2}{c}{Spearman ($\rho_s$)} \\
+        \cmidrule(lr){2-3}\cmidrule(l){4-5}
+        Caratteristica & Engagement & TruFor & Engagement & TruFor \\
+        \midrule
+        Luminosità & $+0{,}0194$ & $+0{,}0521$ & $-0{,}0118$ & $+0{,}0553$ \\
+        Contrasto & $+0{,}0729$ & $+0{,}1394$ & $+0{,}1108$ & $+0{,}1559$ \\
+        Gamma dinamica robusta & $+0{,}0347$ & $+0{,}1406$ & $+0{,}1300$ & $+0{,}1851$ \\
+        Nitidezza & $-0{,}0097$ & $-0{,}0009$ & $-0{,}0468$ & $+0{,}0453$ \\
+        Limpidezza & $+0{,}0008$ & $+0{,}0802$ & $-0{,}0305$ & $+0{,}0794$ \\
+        Sfocatura & $+0{,}0474$ & $-0{,}0154$ & $+0{,}1069$ & $+0{,}0004$ \\
+        Profondità di campo & $+0{,}0098$ & $-0{,}1331$ & $+0{,}0295$ & $-0{,}1388$ \\
+        Vivacità & $-0{,}0164$ & $+0{,}0610$ & $-0{,}1110$ & $+0{,}0796$ \\
+        Saturazione & $-0{,}0408$ & $+0{,}0516$ & $-0{,}1481$ & $+0{,}0486$ \\
+        Calore & $+0{,}0334$ & $-0{,}0136$ & $+0{,}1304$ & $+0{,}0009$ \\
+        Tonalità media & $-0{,}0455$ & $+0{,}0069$ & $-0{,}1490$ & $-0{,}0104$ \\
+        Curtosi & $-0{,}0187$ & $-0{,}0304$ & $-0{,}0675$ & $-0{,}0188$ \\
+        Asimmetria & $-0{,}0134$ & $-0{,}0050$ & $-0{,}0410$ & $+0{,}0051$ \\
+        Entropia di Shannon & $-0{,}0547$ & $-0{,}0492$ & $+0{,}0014$ & $-0{,}1242$ \\
+        Rapporto & $-0{,}0496$ & $-0{,}0658$ & $-0{,}1493$ & $-0{,}0730$ \\
+        Simmetria & $+0{,}0065$ & $-0{,}0197$ & $+0{,}0519$ & $-0{,}0392$ \\
+        Dominanza diagonale & $-0{,}0406$ & $-0{,}0976$ & $+0{,}0407$ & $-0{,}1084$ \\
+        Regola dei terzi & $+0{,}0288$ & $-0{,}0722$ & $+0{,}0763$ & $-0{,}0772$ \\
+        Complessità visiva & $-0{,}0665$ & $-0{,}0874$ & $-0{,}0425$ & $-0{,}0617$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Lettura congiunta dei due punteggi}
+
+Le Figure~\ref{fig:risultati-feature-pearson} e~\ref{fig:risultati-feature-spearman} mostrano rispettivamente il confronto con Pearson e Spearman. Ogni punto rappresenta la stessa caratteristica nei due grafici: la coordinata orizzontale indica la correlazione con l'engagement, quella verticale la correlazione con TruFor. Mantengo gli stessi simboli e colori, mentre i limiti degli assi sono adattati ai coefficienti di ciascun metodo.
+
+La retta rossa riassume le posizioni dei 19 descrittori. Quest'ultima ha pendenza positiva nel grafico di Pearson ed è più vicina all'orizzontale in quello di Spearman.
+
+Con entrambi i metodi le associazioni con l'engagement restano inferiori a $0{,}15$ in valore assoluto. Il confronto descrive associazioni lineari e monotone tra una caratteristica alla volta e i punteggi di engagement e TruFor.
+
+Con entrambi i metodi, il contrasto presenta associazioni positive con engagement e TruFor, mentre la saturazione presenta un'associazione negativa con l'engagement e positiva con TruFor. Con Spearman, le associazioni con l'engagement di rapporto d'aspetto, tonalità media e saturazione risultano più marcate rispetto a Pearson.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.7\linewidth]{caratteristiche_visive_pearson.pdf}
+    \caption{Confronto delle correlazioni di Pearson: ogni punto rappresenta una caratteristica. La retta nera puntinata indica y = x; quella rossa tratteggiata è l'adattamento ai 19 punti.}
+    \label{fig:risultati-feature-pearson}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.7\linewidth]{caratteristiche_visive_spearman.pdf}
+    \caption{Confronto delle correlazioni di Spearman: ogni punto rappresenta una caratteristica. La retta nera puntinata indica y = x; quella rossa tratteggiata è l'adattamento ai 19 punti.}
+    \label{fig:risultati-feature-spearman}
+\end{figure}
