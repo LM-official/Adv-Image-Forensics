@@ -9,7 +9,10 @@ In questo capitolo descrivo la pipeline. Svolgo prima un benchmark di TruFor su 
 
 Descrivo poi l'estrazione delle 19 caratteristiche visive e il confronto delle loro associazioni con l'engagement e con il punteggio globale di TruFor.
 
-\section{Benchmark preliminare di TruFor sul dataset}
+\section{TruFor}
+\label{sec:metodi-trufor}
+
+\subsection{Benchmark preliminare di TruFor sul dataset}
 \label{sec:metodi-trufor-benchmark}
 
 Eseguo TruFor sul campione descritto nella Sezione~\ref{sec:materiali-trufor-annotazioni}. Confronto la previsione del modello con il mio giudizio sull'autenticità di ciascun contenuto.
@@ -78,7 +81,7 @@ La Tabella~\ref{tab:trufor-confronto-soglie} mostra il confronto tra le soglie. 
     \end{minipage}
 \end{table}
 
-\section{Elaborazione del dataset e salvataggio degli output}
+\subsection{Elaborazione del dataset e salvataggio degli output}
 \label{sec:metodi-trufor-esecuzione}
 
 Dopo la verifica preliminare applico TruFor all'intero dataset filtrato. Lo script \path{scripts/trufor.py} avvia il programma di inferenza in un processo separato, usando l'interprete Python dell'ambiente corrente. Fornisco come argomenti le cartelle degli input e degli output e il limite di risoluzione.

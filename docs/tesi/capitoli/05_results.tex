@@ -8,12 +8,12 @@
 \section{Punteggio globale di TruFor ed engagement}
 \label{sec:risultati-trufor-engagement}
 
-Presento i risultati delle analisi descritte nella Sezione~\ref{sec:metodi-trufor-engagement}. Considero prima il solo valore globale di TruFor, come riferimento per valutare il contributo delle informazioni aggiunte dai passaggi successivi della pipeline. Le correlazioni e la regressione lineare comprendono 1.211 osservazioni. Per il GLM, l'esclusione dei punteggi di engagement nell'intervallo $[-0{,}5;\,0{,}5]$ lascia 1.195 casi: 583 con prestazioni superiori alle aspettative e 612 con prestazioni inferiori.
+Presento i risultati delle analisi descritte nella Sezione~\ref{sec:metodi-trufor-engagement}. Considero prima il solo valore globale di TruFor, come riferimento per valutare il contributo delle informazioni aggiunte dai passaggi successivi della pipeline. Le correlazioni e la regressione lineare comprendono 1.211 osservazioni. Per il GLM, l'esclusione delle osservazioni con indice di engagement nell'intervallo $[-0{,}5;\,0{,}5]$ lascia 1.195 casi: 583 con prestazioni superiori alle aspettative e 612 con prestazioni inferiori.
 
 \subsection{Correlazioni tra i punteggi}
 \label{subsec:risultati-trufor-correlazioni}
 
-Riporto nella Tabella~\ref{tab:risultati-trufor-correlazioni} i coefficienti di Pearson e Spearman. Entrambi assumono valori positivi vicini allo zero: osservo quindi un'associazione lineare e monotona debole tra il punteggio complessivo e lo score di engagement.
+Riporto nella Tabella~\ref{tab:risultati-trufor-correlazioni} i coefficienti di Pearson e Spearman. Entrambi assumono valori positivi vicini allo zero: osservo quindi un'associazione lineare e monotona debole tra la misura complessiva di TruFor e quella di engagement.
 
 \begin{table}[htbp]
     \centering
@@ -33,32 +33,35 @@ Riporto nella Tabella~\ref{tab:risultati-trufor-correlazioni} i coefficienti di 
 \subsection{Regressione lineare}
 \label{subsec:risultati-trufor-lineare}
 
-Nella Tabella~\ref{tab:risultati-trufor-lineare} riporto i risultati della regressione lineare dello score di engagement sul dato d'insieme di TruFor. Considero il parametro stimato, il suo intervallo di confidenza al $95\%$, il valore di $p$ e il coefficiente di determinazione $R^2$.
+Nella Tabella~\ref{tab:risultati-trufor-lineare} riporto i risultati della regressione lineare dell'indice di engagement sulla misura globale di TruFor. Considero il parametro stimato, il suo intervallo di confidenza al $95\%$, il valore di $p$ e il coefficiente di determinazione $R^2$.
 
-\begin{table}[htbp]
+\bigskip\noindent
+\begin{minipage}{\linewidth}
     \centering
     \small
-    \caption{Regressione lineare con il punteggio globale di TruFor e l'intercetta. Il valore di $R^2$ riguarda i dati usati per la stima. Fonte: report di regressione \texttt{scripts/temp/trufor\_crowdtangle\_regression.txt}.}
+    \makeatletter\def\@captype{table}\makeatother
+    \caption{Regressione lineare con l’indicatore globale di TruFor e l'intercetta. Il valore di $R^2$ riguarda i dati usati per la stima. Fonte: report di regressione \texttt{scripts/temp/trufor\_crowdtangle\_regression.txt}.}
     \label{tab:risultati-trufor-lineare}
     \begin{tabular}{@{}lr@{}}
         \toprule
         Quantità & Valore \\
         \midrule
         Numero di osservazioni & 1.211 \\
-        Coefficiente del punteggio globale & $4{,}8879$ \\
+        Coefficiente associato a TruFor & $4{,}8879$ \\
         Intervallo di confidenza al $95\%$ del coefficiente & $[-0{,}158;\,9{,}934]$ \\
         Valore di $p$ del coefficiente & $0{,}058$ \\
         $R^2$ & $0{,}003$ \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{minipage}
+\bigskip
 
 Ottengo $R^2=0{,}003$: il modello spiega circa lo $0{,}3\%$ della variabilità dello score di engagement nel campione. Il parametro stimato è positivo, ma il suo intervallo di confidenza comprende lo zero.
 
 \subsection{GLM binomiale}
 \label{subsec:risultati-trufor-glm}
 
-Nella Tabella~\ref{tab:risultati-trufor-glm} riporto i risultati del GLM binomiale per la probabilità di engagement superiore alle aspettative. Considero il coefficiente del punteggio generale, il suo intervallo di confidenza al $95\%$, la misura di $p$ e lo pseudo-$R^2$ di McFadden.
+Nella Tabella~\ref{tab:risultati-trufor-glm} riporto i risultati del GLM binomiale per la probabilità di prestazioni superiori alle aspettative. Considero il coefficiente associato a TruFor, il suo intervallo di confidenza al $95\%$, la misura di $p$ e lo pseudo-$R^2$ di McFadden.
 
 \begin{table}[htbp]
     \centering
@@ -70,7 +73,7 @@ Nella Tabella~\ref{tab:risultati-trufor-glm} riporto i risultati del GLM binomia
         Quantità & Valore \\
         \midrule
         Numero di osservazioni & 1.195 \\
-        Coefficiente del punteggio globale & $0{,}2731$ \\
+        Coefficiente associato a TruFor & $0{,}2731$ \\
         Intervallo di confidenza al $95\%$ del coefficiente & $[-0{,}160;\,0{,}706]$ \\
         Valore di $p$ del coefficiente & $0{,}217$ \\
         Pseudo-$R^2$ di McFadden & $0{,}0009$ \\
@@ -78,23 +81,23 @@ Nella Tabella~\ref{tab:risultati-trufor-glm} riporto i risultati del GLM binomia
     \end{tabular}
 \end{table}
 
-Ottengo uno pseudo-$R^2$ di McFadden pari a $0{,}0009$: il miglioramento dell'adattamento rispetto al modello con la sola intercetta è quindi limitato. Il coefficiente è positivo e il suo intervallo di confidenza comprende lo zero. Il punteggio globale offre un contributo limitato alla distinzione tra le due classi di engagement nei dati usati per la stima.
+Ottengo uno pseudo-$R^2$ di McFadden pari a $0{,}0009$: il miglioramento dell'adattamento rispetto al modello con la sola intercetta è quindi limitato. Il coefficiente è positivo e il suo intervallo di confidenza comprende lo zero. La misura globale offre un contributo limitato alla distinzione tra le due classi di engagement nei dati usati per la stima.
 
 \subsection{Interpretazione e riferimento per le analisi successive}
 \label{subsec:risultati-trufor-riferimento}
 
-Nel campione osservo un'associazione debole tra il punteggio globale di TruFor e l'engagement.
+Nel campione osservo un'associazione debole tra l’indicatore di TruFor e le prestazioni dei post rispetto alle aspettative.
 
-Uso questo risultato come riferimento per valutare se l'aggiunta delle caratteristiche visive e delle descrizioni delle regioni sospette migliora la previsione dell'engagement.
+Uso questo risultato come riferimento per valutare se l'aggiunta delle caratteristiche visive e delle descrizioni delle regioni sospette migliora la previsione della risposta del pubblico.
 
-\section{Caratteristiche visive, engagement e punteggio di TruFor}
+\section{Caratteristiche visive, engagement e indicatore di TruFor}
 \label{sec:risultati-feature-visive}
 
 Applico il confronto descritto nella Sezione~\ref{subsec:metodi-feature-correlazioni} alle 1.211 osservazioni della tabella elaborata. Per tutte le osservazioni dispongo delle 19 caratteristiche, del punteggio di engagement e di quello di TruFor. Riporto i risultati delle correlazioni di Pearson e Spearman.
 
 \subsection{Associazioni delle singole caratteristiche}
 
-La Tabella~\ref{tab:risultati-feature-correlazioni} mostra associazioni contenute con entrambi i metodi. Per l’engagement, Spearman evidenzia diverse associazioni più marcate rispetto a Pearson. Le correlazioni con TruFor mantengono invece più spesso segno e valori simili tra i due metodi. Il confronto indica quindi che la scelta del metodo incide soprattutto sulle associazioni con l’engagement.
+La Tabella~\ref{tab:risultati-feature-correlazioni} mostra associazioni contenute con entrambi i metodi. Per l’engagement, Spearman evidenzia diverse associazioni più marcate rispetto a Pearson. Le correlazioni con TruFor mantengono invece più spesso segno e valori simili tra i due metodi. Il confronto indica quindi che la scelta del metodo incide soprattutto sulle associazioni con la misura della risposta del pubblico.
 
 \begin{table}[htbp]
     \centering
@@ -130,26 +133,29 @@ La Tabella~\ref{tab:risultati-feature-correlazioni} mostra associazioni contenut
     \end{tabular}
 \end{table}
 
-\subsection{Lettura congiunta dei due punteggi}
+\subsection{Lettura congiunta delle due misure}
 
 Le Figure~\ref{fig:risultati-feature-pearson} e~\ref{fig:risultati-feature-spearman} mostrano rispettivamente il confronto con Pearson e Spearman. Ogni punto rappresenta la stessa caratteristica nei due grafici: la coordinata orizzontale indica la correlazione con l'engagement, quella verticale la correlazione con TruFor. Mantengo gli stessi simboli e colori, mentre i limiti degli assi sono adattati ai coefficienti di ciascun metodo.
 
 La retta rossa riassume le posizioni dei 19 descrittori. Quest'ultima ha pendenza positiva nel grafico di Pearson ed è più vicina all'orizzontale in quello di Spearman.
 
-Con entrambi i metodi le associazioni con l'engagement restano inferiori a $0{,}15$ in valore assoluto. Il confronto descrive associazioni lineari e monotone tra una caratteristica alla volta e i punteggi di engagement e TruFor.
+Con entrambi i metodi le associazioni con l'engagement restano inferiori a $0{,}15$ in valore assoluto. Il confronto descrive associazioni lineari e monotone tra una caratteristica alla volta e ciascuno dei due indicatori.
 
-Con entrambi i metodi, il contrasto presenta associazioni positive con engagement e TruFor, mentre la saturazione presenta un'associazione negativa con l'engagement e positiva con TruFor. Con Spearman, le associazioni con l'engagement di rapporto d'aspetto, tonalità media e saturazione risultano più marcate rispetto a Pearson.
+Con entrambi i metodi, il contrasto presenta associazioni positive con engagement e TruFor, mentre la saturazione è correlata negativamente con l'engagement e positivamente con quello di TruFor. Per rapporto d'aspetto, tonalità media e saturazione, Spearman rileva legami più marcati con l'engagement rispetto a Pearson.
 
 \begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.7\linewidth]{caratteristiche_visive_pearson.pdf}
+    \includegraphics[width=1\linewidth]{caratteristiche_visive_pearson.pdf}
     \caption{Confronto delle correlazioni di Pearson: ogni punto rappresenta una caratteristica. La retta nera puntinata indica y = x; quella rossa tratteggiata è l'adattamento ai 19 punti.}
     \label{fig:risultati-feature-pearson}
 \end{figure}
 
-\begin{figure}[!ht]
+\bigskip\noindent
+\begin{minipage}{\linewidth}
     \centering
-    \includegraphics[width=0.7\linewidth]{caratteristiche_visive_spearman.pdf}
+    \includegraphics[width=1\linewidth]{caratteristiche_visive_spearman.pdf}
+    \makeatletter\def\@captype{figure}\makeatother
     \caption{Confronto delle correlazioni di Spearman: ogni punto rappresenta una caratteristica. La retta nera puntinata indica y = x; quella rossa tratteggiata è l'adattamento ai 19 punti.}
     \label{fig:risultati-feature-spearman}
-\end{figure}
+\end{minipage}
+\bigskip
