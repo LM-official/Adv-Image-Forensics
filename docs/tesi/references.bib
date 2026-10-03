@@ -279,3 +279,90 @@
   keywords  = {Image edge detection;Detectors;Machine vision;Shape measurement;Performance analysis;Uncertainty;Gaussian approximation;Signal to noise ratio;Signal synthesis;Feature extraction;Edge detection;feature extraction;image processing;machine vision;multiscale image analysis},
   doi       = {10.1109/TPAMI.1986.4767851}
 }
+
+% ::::::::::::::::::::
+% MASK DESCRIPTION: BLIP AND OCR
+% ::::::::::::::::::::
+@InProceedings{pmlr-v162-li22n,
+  title     = {{BLIP}: Bootstrapping Language-Image Pre-training for Unified Vision-Language Understanding and Generation},
+  author    = {Li, Junnan and Li, Dongxu and Xiong, Caiming and Hoi, Steven},
+  booktitle = {Proceedings of the 39th International Conference on Machine Learning},
+  pages     = {12888--12900},
+  year      = {2022},
+  editor    = {Chaudhuri, Kamalika and Jegelka, Stefanie and Song, Le and Szepesvari, Csaba and Niu, Gang and Sabato, Sivan},
+  volume    = {162},
+  series    = {Proceedings of Machine Learning Research},
+  month     = {17--23 Jul},
+  publisher = {PMLR},
+  pdf       = {https://proceedings.mlr.press/v162/li22n/li22n.pdf},
+  url       = {https://proceedings.mlr.press/v162/li22n.html},
+  abstract  = {Vision-Language Pre-training (VLP) has advanced the performance for many vision-language tasks. However, most existing pre-trained models only excel in either understanding-based tasks or generation-based tasks. Furthermore, performance improvement has been largely achieved by scaling up the dataset with noisy image-text pairs collected from the web, which is a suboptimal source of supervision. In this paper, we propose BLIP, a new VLP framework which transfers flexibly to both vision-language understanding and generation tasks. BLIP effectively utilizes the noisy web data by bootstrapping the captions, where a captioner generates synthetic captions and a filter removes the noisy ones. We achieve state-of-the-art results on a wide range of vision-language tasks, such as image-text retrieval (+2.7% in average recall@1), image captioning (+2.8% in CIDEr), and VQA (+1.6% in VQA score). BLIP also demonstrates strong generalization ability when directly transferred to video-language tasks in a zero-shot manner. Code and models are available at https://github.com/salesforce/BLIP.}
+}
+
+@misc{easyocr_software,
+  author       = {{Jaided AI}},
+  title        = {{EasyOCR}: documentazione e codice sorgente},
+  year         = {2024},
+  howpublished = {\url{https://github.com/JaidedAI/EasyOCR/tree/v1.7.2}},
+  note         = {Versione 1.7.2. Consultato il 30 settembre 2026}
+}
+
+@article{DBLP:journals/corr/abs-1904-01941,
+  author      = {Youngmin Baek and Bado Lee and Dongyoon Han and Sangdoo Yun and Hwalsuk Lee},
+  title       = {Character Region Awareness for Text Detection},
+  journal     = {CoRR},
+  volume      = {abs/1904.01941},
+  year        = {2019},
+  url         = {http://arxiv.org/abs/1904.01941},
+  eprinttype  = {arXiv},
+  eprint      = {1904.01941},
+  timestamp   = {Wed, 24 Apr 2019 12:21:25 +0200},
+  biburl      = {https://dblp.org/rec/journals/corr/abs-1904-01941.bib},
+  bibsource   = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{DBLP:journals/corr/ShiBY15,
+  author      = {Baoguang Shi and Xiang Bai and Cong Yao},
+  title       = {An End-to-End Trainable Neural Network for Image-based Sequence Recognition and Its Application to Scene Text Recognition},
+  journal     = {CoRR},
+  volume      = {abs/1507.05717},
+  year        = {2015},
+  url         = {http://arxiv.org/abs/1507.05717},
+  eprinttype  = {arXiv},
+  eprint      = {1507.05717},
+  timestamp   = {Mon, 13 Aug 2018 16:48:09 +0200},
+  biburl      = {https://dblp.org/rec/journals/corr/ShiBY15.bib},
+  bibsource   = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{10.1145/1143844.1143891,
+  author    = {Graves, Alex and Fern{\'a}ndez, Santiago and Gomez, Faustino and Schmidhuber, J{\"u}rgen},
+  title     = {Connectionist temporal classification: labelling unsegmented sequence data with recurrent neural networks},
+  year      = {2006},
+  isbn      = {1595933832},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  url       = {https://doi.org/10.1145/1143844.1143891},
+  doi       = {10.1145/1143844.1143891},
+  abstract  = {Many real-world sequence learning tasks require the prediction of sequences of labels from noisy, unsegmented input data. In speech recognition, for example, an acoustic signal is transcribed into words or sub-word units. Recurrent neural networks (RNNs) are powerful sequence learners that would seem well suited to such tasks. However, because they require pre-segmented training data, and post-processing to transform their outputs into label sequences, their applicability has so far been limited. This paper presents a novel method for training RNNs to label unsegmented sequences directly, thereby solving both problems. An experiment on the TIMIT speech corpus demonstrates its advantages over both a baseline HMM and a hybrid HMM-RNN.},
+  booktitle = {Proceedings of the 23rd International Conference on Machine Learning},
+  pages     = {369-376},
+  numpages  = {8},
+  location  = {Pittsburgh, Pennsylvania, USA},
+  series    = {ICML '06}
+}
+
+@inproceedings{wolf-etal-2020-transformers,
+title     = "Transformers: State-of-the-Art Natural Language Processing",
+author    = "Wolf, Thomas and Debut, Lysandre and Sanh, Victor and Chaumond, Julien and Delangue, Clement and Moi, Anthony and Cistac, Pierric and Rault, Tim and Louf, Remi and Funtowicz, Morgan and Davison, Joe and Shleifer, Sam and von Platen, Patrick and Ma, Clara and Jernite, Yacine and Plu, Julien and Xu, Canwen and Le Scao, Teven and Gugger, Sylvain and Drame, Mariama and Lhoest, Quentin and Rush, Alexander",
+editor    = "Liu, Qun and Schlangen, David",
+booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+month     = oct,
+year      = "2020",
+address   = "Online",
+publisher = "Association for Computational Linguistics",
+url       = "https://aclanthology.org/2020.emnlp-demos.6/",
+doi       = "10.18653/v1/2020.emnlp-demos.6",
+pages     = "38--45",
+abstract  = "Recent progress in natural language processing has been driven by advances in both model architecture and model pretraining. Transformer architectures have facilitated building higher-capacity models and pretraining has made it possible to effectively utilize this capacity for a wide variety of tasks. Transformers is an open-source library with the goal of opening up these advances to the wider machine learning community. The library consists of carefully engineered state-of-the art Transformer architectures under a unified API. Backing this library is a curated collection of pretrained models made by and available for the community. Transformers is designed to be extensible by researchers, simple for practitioners, and fast and robust in industrial deployments. The library is available at \url{https://github.com/huggingface/transformers}."
+}

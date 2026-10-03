@@ -159,3 +159,171 @@ Con entrambi i metodi, il contrasto presenta associazioni positive con engagemen
     \label{fig:risultati-feature-spearman}
 \end{minipage}
 \bigskip
+
+\newpage
+\section{Valutazione delle maschere di localizzazione}
+\label{sec:risultati-maschere}
+
+Applico il protocollo della Sezione~\ref{subsec:metodi-maschere-taratura} alle 100 immagini annotate. Il report \path{mask_confusion_matrix.txt} comprende 148.230.685 pixel, dei quali il $66{,}29\%$ è annotato come alterato. Riporto nella Tabella~\ref{tab:risultati-maschere-confusione} i conteggi ottenuti con la configurazione finale.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Matrice di confusione a livello di pixel sulle immagini annotate manualmente.}
+    \label{tab:risultati-maschere-confusione}
+    \begin{tabular}{@{}lrr@{}}
+        \toprule
+        Annotazione manuale & Previsto autentico & Previsto alterato \\
+        \midrule
+        Autentico & 39.043.111 & 10.926.896 \\
+        Alterato & 59.256.116 & 39.004.562 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\bigskip\noindent
+\begin{minipage}{\linewidth}
+    \centering
+    \small
+    \makeatletter\def\@captype{table}\makeatother
+    \caption{Prestazioni della pipeline e della baseline che seleziona tutti i pixel. Fonte: \texttt{mask\_confusion\_matrix.txt}}
+    \label{tab:risultati-maschere-metriche}
+    \begin{tabular}{@{}lrr@{}}
+        \toprule
+        Metrica & Pipeline & Baseline \\
+        \midrule
+        Accuratezza & $52{,}65\%$ & $66{,}29\%$ \\
+        Precisione & $78{,}12\%$ & $66{,}29\%$ \\
+        Richiamo & $39{,}69\%$ & $100{,}00\%$ \\
+        F1-score & $0{,}5264$ & $0{,}7973$ \\
+        IoU aggregata & $0{,}3572$ & $0{,}6629$ \\
+        IoU media & $0{,}3501$ & $0{,}6351$ \\
+        \bottomrule
+    \end{tabular}
+\end{minipage}
+\bigskip
+
+La Tabella~\ref{tab:risultati-maschere-metriche} mostra una precisione superiore alla baseline: tra i pixel conservati aumenta la quota che coincide con il riferimento alterato. Il richiamo indica però che recupero meno della metà dei pixel annotati come alterati. Ottengo valori di accuratezza, F1-score, IoU aggregata e IoU media inferiori alla selezione dell'intera immagine. La quota elevata di pixel positivi nel riferimento favorisce questa baseline.
+
+Uso il mascheramento per isolare il contenuto da descrivere, cercando di conservare dettagli e contesto utili. Una selezione troppo restrittiva può impoverire le descrizioni: l'utilità delle maschere va quindi valutata anche nei passaggi successivi della pipeline.
+
+\newpage
+\subsection{Esempi visivi su immagini pubbliche}
+\label{subsec:risultati-maschere-esempi}
+
+Per mostrare gli effetti del mascheramento elaboro quattro immagini senza copyright raccolte da \href{https://commons.wikimedia.org/wiki/Main_Page}{Wikimedia Commons}. Applico la stessa configurazione della pipeline e confronto gli input con le immagini mascherate nella Figura~\ref{fig:maschere-esempi}.
+
+\bigskip\noindent
+\begin{minipage}{\linewidth}
+    \captionsetup{type=figure}
+    \centering
+    \makebox[0.48\linewidth]{\small Prima del mascheramento}\hfill
+    \makebox[0.48\linewidth]{\small Dopo il mascheramento}\par\medskip
+    \begin{subfigure}{\linewidth}
+        \centering
+        \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Politician_in_front_of_Ueda_station.jpg}}\hfill
+        \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Politician_in_front_of_Ueda_station_masked.png}}
+        \captionsetup{labelformat=empty}
+        \caption{A. Scena davanti alla stazione di Ueda. TruFor: $0{,}0156$; pixel non neri: $0{,}00\%$.}
+    \end{subfigure}
+    \par\medskip
+    \begin{subfigure}{\linewidth}
+        \centering
+        \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Rakesh_Brahma,_EM_Bodoland_Territorial_Region.jpg}}\hfill
+        \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Rakesh_Brahma,_EM_Bodoland_Territorial_Region_masked.png}}
+        \captionsetup{labelformat=empty}
+        \caption{B. Ritratto con cornice grafica. TruFor: $0{,}9043$; pixel non neri: $85{,}09\%$.}
+    \end{subfigure}
+    \par\medskip
+    \begin{subfigure}{\linewidth}
+        \centering
+        \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{South_Korean_politician_조승래.jpg}}\hfill
+        \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{South_Korean_politician_조승래_masked.png}}
+        \captionsetup{labelformat=empty}
+        \caption{C. Discorso al podio. TruFor: $0{,}1124$; pixel non neri: $96{,}27\%$.}
+    \end{subfigure}
+    \par\medskip
+    \begin{subfigure}{\linewidth}
+        \centering
+        \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Young_Politician_Naseer_Giade.jpg}}\hfill
+        \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Young_Politician_Naseer_Giade_masked.png}}
+        \captionsetup{labelformat=empty}
+        \caption{D. Manifesto elettorale. TruFor: $0{,}9307$; pixel non neri: $67{,}43\%$.}
+    \end{subfigure}
+    \caption[Mascheramento degli esempi A, B, C e D]{Mascheramento degli esempi A, B, C e D. I pixel neri indicano le regioni escluse. Fonti: A, \href{https://commons.wikimedia.org/wiki/File:Politician_in_front_of_Ueda_station.jpg}{Syced}; B, \href{https://commons.wikimedia.org/wiki/File:Rakesh_Brahma,_EM_Bodoland_Territorial_Region.jpg}{Swrang Borgoary}; C, \href{https://commons.wikimedia.org/wiki/File:South_Korean_politician_조승래.jpg}{Rickinasia}; D, \href{https://commons.wikimedia.org/wiki/File:Young_Politician_Naseer_Giade.jpg}{Naseer001}.}
+    \label{fig:maschere-esempi}
+\end{minipage}
+\bigskip
+
+\section{Descrizioni delle regioni sospette}
+\label{sec:risultati-descrizioni}
+
+Riporto nella Tabella~\ref{tab:risultati-descrizioni} i risultati del report \path{description_report.txt}, prodotto con la procedura della Sezione~\ref{sec:metodi-descrizioni}. Su 1.211 immagini ottengo 898 descrizioni testuali ($74{,}15\%$) e 313 etichette \texttt{nomask} ($25{,}85\%$).
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Riepilogo delle descrizioni e dieci parole più frequenti, da \texttt{description\_report.txt}. Lunghezze e frequenze escludono \texttt{nomask}.}
+    \label{tab:risultati-descrizioni}
+    \begin{tabular}{@{}lr@{}}
+        \toprule
+        Misura & Valore \\
+        \midrule
+        Immagini con risultato archiviato & 1.211 \\
+        Etichette \texttt{nomask} & 313 \\
+        Lunghezza minima & 5 parole \\
+        Lunghezza mediana & 17 parole \\
+        Lunghezza massima & 36 parole \\
+        \midrule
+        Parola & Occorrenze \\
+        \midrule
+        \texttt{a} & 865 \\
+        \texttt{is} & 727 \\
+        \texttt{of} & 666 \\
+        \texttt{there} & 659 \\
+        \texttt{in} & 415 \\
+        \texttt{man} & 401 \\
+        \texttt{with} & 395 \\
+        \texttt{and} & 309 \\
+        \texttt{picture} & 246 \\
+        \texttt{poster} & 199 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La quota di \texttt{nomask} indica la mancata produzione di una descrizione utilizzabile, non la quota di immagini autentiche. Comprende anche gli eventuali testi vuoti dopo la normalizzazione.
+
+Le lunghezze contano le parole dopo la normalizzazione e l'unione di BLIP e OCR, quindi hanno un significato diverso dal limite di 5--40 token imposto alla generazione BLIP. Tra i termini più frequenti prevalgono parole funzionali inglesi e compaiono anche \texttt{man}, \texttt{picture} e \texttt{poster}.
+
+Le descrizioni ottenute sono disponibili per la successiva analisi dell'engagement. Le statistiche ne descrivono la copertura e la composizione, ma non misurano la correttezza delle didascalie o delle trascrizioni. Il campo finale unisce i due contributi e non permette di valutarli separatamente.
+
+\subsection{Descrizioni degli esempi visivi}
+\label{subsec:risultati-descrizioni-esempi}
+
+Nella Tabella~\ref{tab:descrizioni-esempi-commons} riporto il campo \texttt{anomaly\_txt} ottenuto dalle immagini mascherate della Sezione~\ref{subsec:risultati-maschere-esempi}. Questi quattro esempi rimangono separati dal riepilogo delle 1.211 immagini del dataset politico, descritto nella Tabella~\ref{tab:risultati-descrizioni}.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Descrizioni delle immagini mascherate mostrate nella Figura~\ref{fig:maschere-esempi}.}
+    \label{tab:descrizioni-esempi-commons}
+    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.23\linewidth}>{\raggedright\arraybackslash}p{0.72\linewidth}@{}}
+        \toprule
+        Esempio & Testo finale \\
+        \midrule
+        A. Scena a Ueda & \texttt{nomask} \\
+        \addlinespace
+        B. Ritratto con cornice & \texttt{logo of united people s party library with silhouette a person party assan} \\
+        \addlinespace
+        C. Discorso al podio & \texttt{there is a man standing at podium in front of microphone} \\
+        \addlinespace
+        D. Manifesto elettorale & \texttt{there are two silhouettes of a man and woman facing each other for senator apc bauchi state ote amb sadique baba abubakar governor} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Nell'esempio A l'immagine mascherata è interamente nera: assegno quindi \texttt{nomask} senza interrogare BLIP e EasyOCR. Nell'esempio C la descrizione richiama l'uomo al podio e il microfono, ancora visibili dopo il mascheramento. Il testo finale non riporta le scritte coreane; il lettore OCR è configurato per italiano e inglese.
+
+Gli esempi B e D mostrano come il mascheramento influenzi l'interpretazione del contenuto. Il testo richiama sagome che corrispondono alle aree nere introdotte dalla procedura. Nell'esempio B la descrizione riconduce l'immagine a un logo e richiama il nome del partito, ma contiene anche termini errati: compaiono \texttt{library} e \texttt{assan} al posto delle scritte \texttt{LIBERAL} e \texttt{ASSAM}. Nell'esempio D descrive le aree nere come le sagome di un uomo e di una donna rivolti l'uno verso l'altra: attribuisce quindi caratteristiche che l'input mascherato non permette di ricavare. Il testo conserva informazioni presenti nelle scritte, tra cui \texttt{senator}, \texttt{apc}, \texttt{bauchi state} e \texttt{governor}. I due esempi mostrano così la presenza, nella stessa descrizione, di elementi riconoscibili, parole errate e interpretazioni delle forme prodotte dal mascheramento.
+
+Questi risultati illustrano come il testo possa combinare contenuto utile, errori e riferimenti alle aree nere introdotte dalla procedura. Poiché il CSV contiene soltanto la stringa finale, non attribuisco i singoli termini a BLIP o a EasyOCR.

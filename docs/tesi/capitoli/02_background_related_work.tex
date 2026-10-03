@@ -1,14 +1,13 @@
 % !TeX root = ../tesi.tex
 % !TeX encoding = UTF-8
 % !TeX spellcheck = it_IT
-% Fonte per TruFor: https://arxiv.org/abs/2212.10957v3
 
 \chapter{Background e lavori correlati}
 \label{chap:background}
 
 In questo capitolo presento TruFor, il sistema che utilizzo per studiare le manipolazioni. TruFor è un framework per l'analisi \emph{forense} delle immagini, cioè l'esame delle tracce lasciate dall'acquisizione e dalle elaborazioni successive, per individuare possibili manipolazioni. Introduco i compiti dell'analisi forense e descrivo il funzionamento di TruFor. Esamino poi i risultati e i limiti che gli autori riportano nel loro lavoro. Uso questi elementi per motivare la scelta del sistema nello studio della comunicazione politica sui social media.
 
-Presento poi gli strumenti statistici per l'analisi delle associazioni e i descrittori visivi che adopero per rappresentare le caratteristiche dell'immagine.
+Presento poi gli strumenti statistici per l'analisi delle associazioni e i descrittori visivi che adopero per rappresentare le caratteristiche dell'immagine. Infine introduco gli strumenti per il riconoscimento ottico dei caratteri, e per descrivere il contenuto delle regioni sospette.
 
 \section{TruFor}
 \label{sec:background-trufor}
@@ -206,3 +205,70 @@ Gli operatori di Sobel e il rilevamento dei bordi di Canny forniscono gli strume
 Eseguo le elaborazioni delle immagini con OpenCV~\cite{opencv_library} e i calcoli di asimmetria e curtosi con SciPy~\cite{2020SciPy-NMeth}. 
 
 Nella Sezione~\ref{sec:materiali-feature-visive} definisco le 19 caratteristiche e le scelte di calcolo adottate nel progetto, distinguendole dai principi generali dei lavori citati.
+
+\section{Descrizione del contenuto delle regioni sospette}
+\label{sec:background-descrizioni}
+
+La localizzazione indica quali pixel esaminare. Per studiare l'associazione tra il loro contenuto e l'engagement, costruisco una rappresentazione testuale delle regioni selezionate. Combino due compiti: l'\emph{image captioning}, che genera una didascalia del contenuto visivo, e il riconoscimento ottico dei caratteri, o OCR (Optical Character Recognition), che trascrive le scritte presenti nell'immagine.
+
+\subsection{BLIP e la generazione delle didascalie}
+\label{subsec:background-blip}
+
+BLIP (Bootstrapping Language-Image Pre-training) apprende da coppie immagine-testo. L'encoder visivo è un Vision Transformer: divide l'immagine in patch e le rappresenta come una sequenza di vettori. L'architettura \emph{MED (Multimodal mixture of Encoder-Decoder)} combina questa rappresentazione con tre modalità testuali: codifica del solo testo, codifica del testo insieme all'immagine e generazione di testo condizionata dall'immagine~\cite{pmlr-v162-li22n}.
+
+Per distinguere le ultime due modalità considero il funzionamento dell'attenzione. L'\emph{attenzione incrociata} permette al componente testuale di pesare le informazioni visive in funzione del testo elaborato. L'encoder testuale usa un'attenzione bidirezionale, che considera anche le parole successive. Il decoder usa invece un'attenzione causale: quando produce una nuova unità può consultare soltanto quelle già disponibili. Encoder e decoder condividono parte dei parametri, ma mantengono separati gli strati di attenzione interna.
+
+La generazione procede un \emph{token}, un'unità del vocabolario del modello, alla volta. Un token può corrispondere a una parte di parola. Indico con $J$ l'immagine fornita al modello e con $s_1,\ldots,s_L$ i token di una didascalia, incluso il simbolo finale. La sua probabilità si scompone come:
+\begin{equation}
+    P(s_1,\ldots,s_L\mid J)
+    =\prod_{j=1}^{L}P(s_j\mid s_1,\ldots,s_{j-1},J).
+    \label{eq:blip-generazione}
+\end{equation}
+
+Il preaddestramento combina i tre obiettivi della Tabella~\ref{tab:blip-obiettivi}. Le modalità di codifica insegnano al modello a confrontare immagini e testi; quella generativa gli insegna a produrre una descrizione.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Obiettivi del preaddestramento BLIP e informazioni apprese~\cite{pmlr-v162-li22n}.}
+    \label{tab:blip-obiettivi}
+    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}p{0.59\linewidth}@{}}
+        \toprule
+        Obiettivo & Funzione \\
+        \midrule
+        Image-Text Contrastive (ITC) & Avvicinare i vettori di immagini e testi corrispondenti e separarli da quelli degli altri abbinamenti. \\
+        \addlinespace
+        Image-Text Matching (ITM) & Classificare una coppia immagine-testo come corrispondente o meno, analizzando insieme le due modalità. \\
+        \addlinespace
+        Language Modeling (LM) & Predire il token successivo della didascalia usando l'immagine e i token precedenti. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Gli autori affrontano anche il rumore nelle coppie raccolte dal web con CapFilt (Captioning and Filtering). Adattano un generatore e un filtro su coppie annotate di COCO. Il generatore aggiunge didascalie sintetiche; il filtro scarta i testi giudicati incoerenti, sia originali sia generati. Le coppie conservate, unite a quelle annotate, servono per preaddestrare un nuovo modello.
+
+Nel progetto uso il modello già addestrato per ottenere una descrizione del contenuto selezionato dalla maschera. Nella mia pipeline eseguo soltanto l'inferenza. Una didascalia può non cogliere tutti i dettagli: il testo prodotto va interpretato come una stima del contenuto visivo.
+
+\subsection{OCR: localizzazione e riconoscimento del testo}
+\label{subsec:background-ocr}
+
+Una didascalia può descrivere una persona o un manifesto senza riportarne le scritte. Affianco quindi a BLIP \emph{EasyOCR}, una libreria che combina un rilevatore delle regioni testuali e un riconoscitore dei caratteri. La documentazione ufficiale identifica CRAFT e CRNN come riferimenti per questi due componenti~\cite{easyocr_software}.
+
+\emph{CRAFT (Character Region Awareness for Text detection)} è una rete convoluzionale che produce due mappe: la \emph{mappa delle regioni} localizza i caratteri e la \emph{mappa di affinità} evidenzia i collegamenti tra caratteri adiacenti della stessa parola. Applicando soglie alle mappe, il metodo individua le \emph{componenti connesse}, cioè insiemi contigui di pixel, e le racchiude in riquadri. Queste regioni indicano dove si trova il testo, che viene poi trascritto dal riconoscitore~\cite{DBLP:journals/corr/abs-1904-01941}.
+
+La \emph{CRNN (Convolutional Recurrent Neural Network)} trasforma l'area testuale in una stringa attraverso tre passaggi. Gli strati convoluzionali estraggono mappe di caratteristiche, lette per colonne da sinistra a destra per formare una sequenza di vettori. Gli strati ricorrenti \emph{LSTM (Long Short-Term Memory)} bidirezionali elaborano la sequenza nei due versi, usando il contesto a sinistra e a destra. Infine, per ogni elemento, la rete produce una distribuzione sui caratteri possibili e su un simbolo speciale di assenza di carattere, detto \emph{blank}~\cite{DBLP:journals/corr/ShiBY15}.
+
+La trascrizione usa il criterio \emph{CTC (Connectionist Temporal Classification)}. Più sequenze di predizioni possono rappresentare la stessa parola: per ottenere la stringa finale si accorpano prima i simboli uguali consecutivi e poi si eliminano i blank~\cite{10.1145/1143844.1143891}.
+
+Indico il blank con $\varnothing$: questo simbolo permette di separare due lettere uguali che devono essere mantenute. Infatti, $(\mathrm{l},\varnothing,\mathrm{l})$ diventa \texttt{ll}, mentre $(\mathrm{l},\mathrm{l})$ diventa \texttt{l}. Per esempio, la sequenza seguente produce la parola \texttt{voto}:
+\[
+    (\mathrm{v},\mathrm{v},\varnothing,\mathrm{o},\mathrm{o},\mathrm{t},\mathrm{o})
+    \;\longrightarrow\;
+    \texttt{voto}.
+\]
+
+Durante l'addestramento, il CTC somma le probabilità delle sequenze compatibili con la trascrizione di riferimento. La rete può quindi apprendere da coppie ritaglio-stringa senza conoscere in anticipo la posizione di ogni carattere.
+
+EasyOCR restituisce per ogni regione testuale le coordinate del riquadro che la delimita, una trascrizione e un punteggio di confidenza~\cite{easyocr_software}. Uso quest'ultimo per filtrare le letture. La confidenza riguarda il riconoscimento del testo ed è distinta dalla confidenza forense di TruFor.
+
+BLIP e EasyOCR forniscono informazioni complementari: in un manifesto, BLIP può descrivere il ritratto e lo sfondo, mentre l'OCR legge cognome e slogan. Entrambi elaborano i pixel conservati dalla maschera, dalla cui selezione dipende l'utilità del testo prodotto.

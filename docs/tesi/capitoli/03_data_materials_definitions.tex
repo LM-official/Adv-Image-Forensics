@@ -7,7 +7,7 @@
 
 In questo capitolo presento i dati che utilizzo per studiare la relazione tra il contenuto delle immagini politiche, le loro regioni potenzialmente alterate e l'\emph{engagement}: l'insieme delle interazioni degli utenti con un post. Il dataset associa i contenuti visivi a un indicatore che confronta le interazioni osservate con quelle attese per l'account autore. Questa associazione permette di valutare quali informazioni ricavate dalle immagini sono utili per distinguere le pubblicazioni con prestazioni superiori o inferiori alle aspettative.
 
-Descrivo la provenienza e la struttura dei dati, definisco la misura di engagement e illustro i criteri di selezione. Distinguo il dataset originale dal \emph{campione filtrato}, composto dalle immagini selezionate e dai rispettivi post di riferimento. Più avanti spiego le statistiche descrittive, l'integrazione di TruFor e le annotazioni per la verifica preliminare. Descrivo poi le caratteristiche visive e introduco il mascheramento delle immagini, i riferimenti manuali e le misure usate per valutarlo.
+Descrivo la provenienza e la struttura dei dati, definisco la misura di engagement e illustro i criteri di selezione. Distinguo il dataset originale dal \emph{campione filtrato}, composto dalle immagini selezionate e dai rispettivi post di riferimento. Più avanti spiego le statistiche descrittive, l'integrazione di TruFor e le annotazioni per la verifica preliminare. Descrivo poi le caratteristiche visive e introduco il mascheramento delle immagini, i riferimenti manuali e le misure usate per valutarlo. Infine presento i modelli e il formato dei dati per la descrizione testuale delle regioni sospette.
 
 \section{Dataset}
 \label{sec:materiali-dataset}
@@ -488,3 +488,16 @@ Per misurare la sovrapposizione uso l'Intersection over Union (IoU). Indico con 
     \label{eq:maschere-iou}
 \end{equation}
 La misura vale 1 quando le regioni coincidono e 0 quando sono disgiunte. Se entrambi gli insiemi sono vuoti, adotto la convenzione $\operatorname{IoU}_i=1$. Calcolo la IoU sia aggregando le intersezioni e le unioni di tutte le immagini, sia facendo la media dei valori ottenuti per ciascuna immagine. Nel primo caso incidono maggiormente le immagini con regioni di unione più estese; nel secondo ogni immagine ha lo stesso peso.
+
+\section{Modelli e dati per la descrizione testuale}
+\label{sec:materiali-descrizioni}
+
+Per descrivere le regioni sospette uso le immagini a colori su sfondo nero prodotte dal mascheramento automatico e salvate in \path{scripts/temp/masked/}.
+
+Per BLIP, descritto nella Sezione~\ref{subsec:background-blip}, adotto il modello \texttt{Salesforce/blip-image-captioning-large}, distribuito su \href{https://huggingface.co/Salesforce/blip-image-captioning-large}{Hugging Face}. Lo carico attraverso le classi \texttt{BlipProcessor} e \texttt{BlipForConditionalGeneration} della libreria Transformers. Il processore prepara le immagini per la rete e converte i token generati in testo. Fornisco soltanto l'immagine, senza un testo iniziale che orienti la didascalia~\cite{wolf-etal-2020-transformers}.
+
+Per l'OCR uso EasyOCR, specificato nella Sezione~\ref{subsec:background-ocr}, con le lingue italiano e inglese. Con questa combinazione, il lettore predefinito carica il rilevatore CRAFT e il riconoscitore \texttt{latin\_g2}, basato sull'architettura CRNN. Mantengo i pesi distribuiti per entrambi gli strumenti, senza un ulteriore addestramento sul dataset politico.
+
+Raccolgo il risultato nel campo \texttt{anomaly\_txt} di \path{dataset_filtered.csv}, associato a ciascuna immagine tramite \texttt{filename}. Il campo contiene la didascalia inglese normalizzata, seguita dalle parole riconosciute dall'OCR, oppure l'etichetta convenzionale \texttt{nomask}. Quest'ultima segnala l'assenza di una descrizione utilizzabile secondo le regole della Sezione~\ref{sec:metodi-descrizioni}.
+
+La rappresentazione può mescolare inglese e italiano e serve come input per la successiva analisi testuale.
