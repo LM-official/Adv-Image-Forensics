@@ -9,6 +9,8 @@ In questo capitolo descrivo la pipeline. Svolgo prima un benchmark di TruFor su 
 
 Descrivo poi l'estrazione delle 19 caratteristiche visive e il confronto delle loro associazioni con l'engagement e con il punteggio globale di TruFor.
 
+Illustro la creazione delle maschere per la successiva analisi del contenuto delle regioni sospette, insieme alla taratura dei parametri e al confronto con le annotazioni manuali.
+
 \section{TruFor}
 \label{sec:metodi-trufor}
 
@@ -170,3 +172,49 @@ L'interpretazione dipende dal contenuto e dalla scala dei file. Le finestre di f
 La tonalità ha natura circolare: valori vicini ai due estremi possono rappresentare colori simili. La media aritmetica trascura questa proprietà e include pixel poco saturi. Entropia e densità dei bordi descrivono frequenze e transizioni di intensità, da distinguere dalla complessità semantica della scena.
 
 Le misure aggregano regioni autentiche ed eventualmente alterate. Le associazioni con $t_i$ descrivono il comportamento del detector. Per verificare se queste caratteristiche siano associate anche a manipolazioni effettive servono annotazioni indipendenti. Le correlazioni con $c_i$ mostrano associazioni con l’engagement, che possono dipendere anche dall’account, dall’argomento e dalle condizioni di pubblicazione.
+
+\section{Creazione e valutazione delle maschere}
+\label{sec:metodi-maschere}
+
+Uso \path{scripts/mask.py} per selezionare le regioni sospette da fornire alla successiva descrizione testuale. Uso le mappe di anomalia e confidenza salvate da TruFor nei file .npz, descritti nella Sezione~\ref{subsec:materiali-trufor-output}. Applico questo passaggio a tutte le immagini con output disponibile, indipendentemente dalla decisione sul punteggio globale $t_i$.
+
+\subsection{Dalle mappe all'immagine mascherata}
+\label{subsec:metodi-maschere-creazione}
+
+Uso le mappe di anomalia e confidenza già riportate alle dimensioni originali, come descritto nella Sezione~\ref{sec:metodi-trufor-esecuzione}. Nella maschera iniziale seleziono un pixel solo quando entrambi i valori raggiungono o superano le rispettive soglie, riportate nella Tabella~\ref{tab:metodi-maschere-parametri}.
+
+Nelle immagini che combinano una fotografia e uno sfondo grafico uniforme, la maschera può selezionare la fotografia al posto della grafica. Per correggere questi casi introduco una regola di inversione della maschera. Uso il gradiente di Sobel, definito nella Sezione~\ref{subsec:feature-composizione}, per individuare i pixel \emph{piatti}, con variazioni di intensità inferiori alla soglia configurata. Inverto la maschera se la frazione di pixel piatti all'esterno supera quella all'interno della selezione di almeno il margine previsto. Applico la regola solo se la regione selezionata raggiunge l'area minima e lascia una parte dell'immagine esclusa. L'uniformità è però solo un indizio: la regola può invertire la selezione anche in presenza di sfondi autentici uniformi. I valori della configurazione sono specificati nella Tabella~\ref{tab:metodi-maschere-parametri}.
+
+Applico quindi una pulizia morfologica con un elemento strutturante ellittico. Eseguo prima l'\emph{apertura}, cioè erosione seguita da dilatazione, per rimuovere piccoli elementi isolati. Eseguo poi la \emph{chiusura}, cioè dilatazione seguita da erosione, per colmare piccoli vuoti. Infine individuo le componenti connesse considerando gli otto vicini di ciascun pixel e scarto quelle con area inferiore alla frazione minima dell'immagine. Ottengo così la maschera finale. L'inversione e la pulizia possono includere anche pixel esclusi dalle soglie iniziali.
+
+Applico la maschera finale all'originale secondo la definizione della Sezione~\ref{subsec:materiali-maschere-riferimento}. Salvo l'immagine mascherata in \path{scripts/temp/masked/}, in formato PNG senza perdita. Conservo anche gli output interamente neri, che indicano l'assenza di contenuto visibile dopo la selezione.
+
+\subsection{Taratura dei parametri e valutazione}
+\label{subsec:metodi-maschere-taratura}
+
+Svolgo diverse iterazioni di test sul campione della Sezione~\ref{subsec:materiali-maschere-riferimento} per scegliere la configurazione da adottare. Valuto le configurazioni sulla base della matrice di confusione a livello di pixel. Sommo i conteggi di tutte le immagini e calcolo accuratezza, precisione, richiamo e F1-score. Aggiungo le misure di IoU definite nella stessa sezione.
+
+Ricavo la previsione dalle immagini mascherate salvate, considerando positivo un pixel se almeno un canale ha intensità maggiore di zero. Confronto le prestazioni con una baseline che classifica tutti i pixel come alterati, per valutare la selezione rispetto alla conservazione dell'intera immagine.
+
+Riporto nella Tabella~\ref{tab:metodi-maschere-parametri} la configurazione finale, registrata in \path{scripts/config.py}. Salvo le metriche e le IoU delle singole immagini nel report \path{mask_confusion_matrix.txt}, Sezione~\ref{sec:risultati-maschere}.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Configurazione adottata per la creazione delle maschere. Le aree sono espresse rispetto alla superficie dell'immagine.}
+    \label{tab:metodi-maschere-parametri}
+    \begin{tabular}{@{}lr@{}}
+        \toprule
+        Parametro & Valore \\
+        \midrule
+        Soglia di anomalia & $0{,}50$ \\
+        Soglia di confidenza & $0{,}30$ \\
+        Inversione della polarità & Attiva \\
+        Soglia del gradiente per i pixel piatti & $12$ \\
+        Margine tra le frazioni di pixel piatti & $0{,}25$ \\
+        Area minima per valutare l'inversione & $3\%$ \\
+        Dimensione dell'elemento morfologico & $9\times9$ pixel \\
+        Area minima delle componenti connesse & $0{,}2\%$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}

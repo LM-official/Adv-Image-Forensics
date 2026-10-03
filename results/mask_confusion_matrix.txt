@@ -14,7 +14,7 @@ Manipulated pixels in the truth: 66.29%
   Recall        39.69%                100.00%	(ability to keep all the manipulated pixels)
   F1-score      0.5264                 0.7973	(final harmonic mean)
   IoU           0.3572                 0.6629	(overlap / union, all pixels pooled)
-  Mean IoU      0.3501                      -	(average of the per-image IoU below)
+  Mean IoU      0.3501                 0.6351	(average of the per-image IoU for each method)
 
 The baseline column is what 'keep every pixel' would score: it rises with the share of the truth painted manipulated,
 so it says how hard the trivial answer is to beat on this ground truth.

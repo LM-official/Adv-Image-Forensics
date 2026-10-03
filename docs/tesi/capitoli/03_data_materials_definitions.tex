@@ -7,7 +7,7 @@
 
 In questo capitolo presento i dati che utilizzo per studiare la relazione tra il contenuto delle immagini politiche, le loro regioni potenzialmente alterate e l'\emph{engagement}: l'insieme delle interazioni degli utenti con un post. Il dataset associa i contenuti visivi a un indicatore che confronta le interazioni osservate con quelle attese per l'account autore. Questa associazione permette di valutare quali informazioni ricavate dalle immagini sono utili per distinguere le pubblicazioni con prestazioni superiori o inferiori alle aspettative.
 
-Descrivo la provenienza e la struttura dei dati, definisco la misura di engagement e illustro i criteri di selezione. Distinguo il dataset originale dal \emph{campione filtrato}, composto dalle immagini selezionate e dai rispettivi post di riferimento. Più avanti spiego le statistiche descrittive, l'integrazione di TruFor e le annotazioni per la verifica preliminare. Descrivo poi le caratteristiche visive.
+Descrivo la provenienza e la struttura dei dati, definisco la misura di engagement e illustro i criteri di selezione. Distinguo il dataset originale dal \emph{campione filtrato}, composto dalle immagini selezionate e dai rispettivi post di riferimento. Più avanti spiego le statistiche descrittive, l'integrazione di TruFor e le annotazioni per la verifica preliminare. Descrivo poi le caratteristiche visive e introduco il mascheramento delle immagini, i riferimenti manuali e le misure usate per valutarlo.
 
 \section{Dataset}
 \label{sec:materiali-dataset}
@@ -471,3 +471,20 @@ La regola dei terzi (\texttt{rule\_of\_thirds}) misura la concentrazione del gra
 Un rapporto superiore a 1 indica una maggiore concentrazione di variazioni in quelle zone. Se il gradiente è nullo su tutta l'immagine, pongo la caratteristica a zero.
 
 La complessità visiva (\texttt{visual\_complexity}) è la frazione di pixel rilevati come bordi dall'algoritmo di Canny, applicato a $Q$ con soglie 100 e 200. La densità dei bordi è compresa tra 0 e 1~\cite{4767851}.
+
+\newpage
+\section{Annotazioni delle regioni e maschere di riferimento}
+\label{subsec:materiali-maschere-riferimento}
+
+Per valutare la localizzazione delle maschere uso le stesse 100 immagini della Sezione~\ref{sec:materiali-trufor-annotazioni}. Disegno manualmente una maschera per ciascuna immagine: coloro di bianco le regioni che credo alterate e di nero quelle autentiche. Conservo questa ground truth in \path{masked_truth/}, associandoli agli originali tramite il nome del file.
+
+Svolgo le due valutazioni in modo indipendente. L'etichetta $z_i$, definita nella Sezione~\ref{sec:materiali-trufor-annotazioni}, esprime il mio parere sull'aspetto complessivo dell'immagine. La maschera registra il giudizio sulle singole regioni. Un contenuto classificato globalmente come autentico può quindi avere regioni annotate come alterate, anche per un totale di aree maggiore della metà della superficie. L'etichetta globale non deriva dalla percentuale di pixel bianchi.
+
+La maschera binaria indica quali pixel conservare e quali escludere, secondo la segmentazione descritta nella Sezione~\ref{sec:background-rilevamento-localizzazione}. Applicandola all’originale ottengo l’immagine mascherata, che mantiene i colori dei pixel alterati e rende neri gli autentici.
+
+Per misurare la sovrapposizione uso l'Intersection over Union (IoU). Indico con $P_i$ l'insieme dei pixel previsti come alterati e con $T_i$ quello dei pixel alterati nel riferimento manuale:
+\begin{equation}
+    \operatorname{IoU}_i=\frac{|P_i\cap T_i|}{|P_i\cup T_i|}.
+    \label{eq:maschere-iou}
+\end{equation}
+La misura vale 1 quando le regioni coincidono e 0 quando sono disgiunte. Se entrambi gli insiemi sono vuoti, adotto la convenzione $\operatorname{IoU}_i=1$. Calcolo la IoU sia aggregando le intersezioni e le unioni di tutte le immagini, sia facendo la media dei valori ottenuti per ciascuna immagine. Nel primo caso incidono maggiormente le immagini con regioni di unione più estese; nel secondo ogni immagine ha lo stesso peso.
