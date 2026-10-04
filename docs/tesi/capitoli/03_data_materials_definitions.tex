@@ -7,7 +7,7 @@
 
 In questo capitolo presento i dati che utilizzo per studiare la relazione tra il contenuto delle immagini politiche, le loro regioni potenzialmente alterate e l'\emph{engagement}: l'insieme delle interazioni degli utenti con un post. Il dataset associa i contenuti visivi a un indicatore che confronta le interazioni osservate con quelle attese per l'account autore. Questa associazione permette di valutare quali informazioni ricavate dalle immagini sono utili per distinguere le pubblicazioni con prestazioni superiori o inferiori alle aspettative.
 
-Descrivo la provenienza e la struttura dei dati, definisco la misura di engagement e illustro i criteri di selezione. Distinguo il dataset originale dal \emph{campione filtrato}, composto dalle immagini selezionate e dai rispettivi post di riferimento. Più avanti spiego le statistiche descrittive, l'integrazione di TruFor e le annotazioni per la verifica preliminare. Descrivo poi le caratteristiche visive e introduco il mascheramento delle immagini, i riferimenti manuali e le misure usate per valutarlo. Infine presento i modelli e il formato dei dati per la descrizione testuale delle regioni sospette.
+Descrivo i dati, la misura di engagement, i criteri di selezione e le statistiche del campione (Sezione~\ref{sec:materiali-dataset}). Distinguo il dataset originale dal \emph{campione filtrato}, composto dalle immagini selezionate e dai rispettivi post di riferimento. Presento l'integrazione di TruFor e le annotazioni per la verifica preliminare (Sezione~\ref{sec:materiali-trufor}), poi definisco le misure statistiche (Sezione~\ref{sec:materiali-misure-statistiche}). Descrivo le caratteristiche visive (Sezione~\ref{sec:materiali-feature-visive}) e i riferimenti manuali per valutare le maschere (Sezione~\ref{subsec:materiali-maschere-riferimento}). Infine presento modelli e dati per la descrizione testuale (Sezione~\ref{sec:materiali-descrizioni}).
 
 \section{Dataset}
 \label{sec:materiali-dataset}
@@ -15,7 +15,7 @@ Descrivo la provenienza e la struttura dei dati, definisco la misura di engageme
 \subsection{Origine dei dati e contesto della raccolta}
 \label{sec:dataset-origine}
 
-Utilizzo una raccolta di contenuti pubblici di comunicazione politica pubblicati su Facebook e Instagram tra il 15 maggio e il 14 agosto 2024. L'intervallo comprende il periodo delle elezioni europee del 2024 e le settimane successive. I dati provengono da CrowdTangle e comprendono i metadati dei post e i materiali multimediali scaricati dai collegamenti agli allegati.
+Utilizzo una raccolta di contenuti pubblici di comunicazione politica pubblicati su Facebook e Instagram tra il 15 maggio e il 14 agosto 2024. L'intervallo rigurda il periodo delle elezioni europee del 2024, tenutesi tra il 6 e il 9 giugno. I dati provengono da CrowdTangle e comprendono i metadati dei post e i materiali multimediali scaricati dai collegamenti agli allegati.
 
 La disponibilità congiunta di immagini e misure di engagement motiva l'adozione di questo dataset. Posso associare a ciascuna immagine le informazioni prodotte dalla \emph{pipeline}, cioè dalla sequenza di elaborazioni automatiche, e confrontarle con la risposta degli utenti alla pubblicazione. La raccolta può comprendere sia inserzioni sponsorizzate sia resoconti delle attività dei politici.
 
@@ -162,8 +162,7 @@ La Tabella~\ref{tab:dataset-statistiche} mostra che la media del punteggio di en
 
 Per individuare le osservazioni estreme ricorro alle soglie di Tukey. Indico con $Q_1$ e $Q_3$ il primo e il terzo \emph{quartile}, ossia le soglie al di sotto delle quali si colloca rispettivamente il 25\% e il 75\% delle osservazioni. Definisco l'intervallo interquartile come $\mathrm{IQR}=Q_3-Q_1$ e considero estremi gli score inferiori a $Q_1-1{,}5\,\mathrm{IQR}$ o superiori a $Q_3+1{,}5\,\mathrm{IQR}$. Le soglie sono pari a circa $-7{,}895$ e $7{,}578$: 127 osservazioni, il 10,5\% del totale, si trovano al di fuori di questo intervallo. Mantengo queste osservazioni nell'analisi, perché il superamento delle soglie descrive la loro posizione nella distribuzione e non indica un errore nei dati.
 
-\bigskip\noindent
-\begin{minipage}{\linewidth}
+\begin{table}[htbp]
     \centering
     \makeatletter\def\@captype{table}\makeatother
     \caption{Statistiche della misura di engagement sulle 1.212 immagini selezionate, prima dell'esclusione dei casi prossimi allo zero.}
@@ -183,8 +182,7 @@ Per individuare le osservazioni estreme ricorro alle soglie di Tukey. Indico con
         Osservazioni oltre le soglie di Tukey & 127 (10,5\%) \\
         \bottomrule
     \end{tabular}
-\end{minipage}
-\bigskip
+\end{table}
 
 La Figura~\ref{fig:dataset-istogramma} mostra un istogramma della misura di engagement associata alle 1.212 immagini del campione filtrato. Per rendere leggibile la parte centrale della distribuzione, applico il \emph{clipping} solo nella rappresentazione grafica: riporto gli score inferiori a $-7{,}895$ sulla soglia inferiore e quelli superiori a $7{,}578$ sulla soglia superiore. Ad esempio, rappresento lo score $-304$ nella barra che contiene la soglia $-7{,}895$. Le barre ai bordi includono quindi anche le 127 osservazioni estreme. Nella parte centrale emergono due concentrazioni, ai lati dello zero, separate da una zona con poche osservazioni. La Figura~\ref{fig:dataset-boxplot} presenta un diagramma a scatola, o \emph{box plot}, della distribuzione originale, che mostra anche l'estensione della coda negativa.
 
@@ -198,15 +196,13 @@ La Figura~\ref{fig:dataset-istogramma} mostra un istogramma della misura di enga
 \end{minipage}
 \bigskip
 
-\noindent
-\begin{minipage}{\linewidth}
+\begin{table}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth]{engagement_boxplot.pdf}
     \makeatletter\def\@captype{figure}\makeatother
     \caption{Box plot del punteggio di engagement sulle 1.212 immagini selezionate. La scatola rappresenta l'intervallo interquartile, la linea interna la mediana e i punti oltre i baffi i valori estremi. La linea tratteggiata indica lo zero.}
     \label{fig:dataset-boxplot}
-\end{minipage}
-\bigskip
+\end{table}
 
 Dopo il filtraggio conto 584 score positivi, 618 negativi e 10 nulli. L'esclusione dell'intervallo $[-0{,}5;\,0{,}5]$ rimuove 16 osservazioni e lascia 1.196 esempi: 584 con prestazioni superiori alle aspettative e 612 con prestazioni inferiori. Applico la stessa regola alla tabella arricchita con le informazioni prodotte dalle elaborazioni successive, di 1.211 righe, e le osservazioni diventano 1.195, suddivise in 583 esempi con engagement superiore alle aspettative e 612 con engagement inferiore alle aspettative. Questa distinzione rende esplicita la differenza tra il campione descritto qui e quello riportato nelle analisi di classificazione archiviate.
 

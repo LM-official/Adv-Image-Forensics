@@ -5,30 +5,30 @@
 \chapter{Background e lavori correlati}
 \label{chap:background}
 
-In questo capitolo presento TruFor, il sistema che utilizzo per studiare le manipolazioni. TruFor è un framework per l'analisi \emph{forense} delle immagini, cioè l'esame delle tracce lasciate dall'acquisizione e dalle elaborazioni successive, per individuare possibili manipolazioni. Introduco i compiti dell'analisi forense e descrivo il funzionamento di TruFor. Esamino poi i risultati e i limiti che gli autori riportano nel loro lavoro. Uso questi elementi per motivare la scelta del sistema nello studio della comunicazione politica sui social media.
+In questo capitolo presento TruFor, il sistema che utilizzo per studiare le manipolazioni (Sezione~\ref{sec:background-trufor}). TruFor è un framework per l'analisi \emph{forense} delle immagini, cioè l'esame delle tracce lasciate dall'acquisizione e dalle elaborazioni successive, per individuare possibili manipolazioni. Introduco i compiti dell'analisi forense e descrivo il funzionamento di TruFor. Esamino poi i risultati e i limiti che gli autori riportano nel loro lavoro. Uso questi elementi per motivare la scelta del sistema nello studio della comunicazione politica sui social media.
 
-Presento poi gli strumenti statistici per l'analisi delle associazioni e i descrittori visivi che adopero per rappresentare le caratteristiche dell'immagine. Infine introduco gli strumenti per il riconoscimento ottico dei caratteri, e per descrivere il contenuto delle regioni sospette.
+Presento poi gli strumenti statistici per l'analisi delle associazioni (Sezione~\ref{sec:background-misure-statistiche}) e i descrittori visivi dell'immagine (Sezione~\ref{sec:background-feature-visive}). Introduco gli strumenti per descrivere le regioni sospette e riconoscerne le scritte (Sezione~\ref{sec:background-descrizioni}).
 
 \section{TruFor}
 \label{sec:background-trufor}
+
+Nel progetto uso TruFor già addestrato: il punteggio globale fornisce un riferimento per la classificazione dell'engagement, mentre le mappe guidano la selezione delle regioni da descrivere. Ne presento il funzionamento per chiarire quali informazioni ricavo e quali errori possono influenzare la mia pipeline.
 
 \subsection{Rilevamento e localizzazione delle manipolazioni}
 \label{sec:background-rilevamento-localizzazione}
 
 Isolo due compiti dell'analisi. Il \emph{rilevamento} classifica un'immagine come autentica o manipolata. La \emph{localizzazione} indica le regioni che il sistema segnala come manipolate. Descrivo questo compito con una \emph{segmentazione binaria}: il sistema assegna ciascun pixel alla classe ``autentico'' o ``manipolato''~\cite{Guillaro_2023_CVPR}.
 
-Osservo manipolazioni come il copia-incolla e l'inserimento di contenuti sintetici.
-
-Valuto positiva la classe ``manipolato'' e negativa la classe ``autentico''. Questa convenzione vale sia per le immagini nel rilevamento sia per i pixel nella localizzazione. TruFor può segnalare come manipolate anche regioni autentiche, producendo falsi positivi a livello di pixel. Nel rilevamento, i falsi positivi possono costituire una parte consistente delle segnalazioni quando le manipolazioni sono poco frequenti. Quando interpreto i risultati, distinguo quindi gli errori di localizzazione dagli errori di rilevamento.
+Osservo manipolazioni come il copia-incolla e l'inserimento di contenuti sintetici. Valuto positiva la classe ``manipolato'' e negativa la classe ``autentico''. Questa convenzione vale sia per le immagini nel rilevamento sia per i pixel nella localizzazione. TruFor può segnalare come manipolate anche regioni autentiche, producendo falsi positivi a livello di pixel. Nel rilevamento, i falsi positivi possono costituire una parte consistente delle segnalazioni quando le manipolazioni sono poco frequenti. Quando interpreto i risultati, distinguo quindi gli errori di localizzazione dagli errori di rilevamento.
 
 \subsection{Indizi visivi e impronta Noiseprint++}
 \label{sec:background-noiseprint}
 
-L'immagine RGB descrive il contenuto visibile; l'\emph{estrattore Noiseprint++} genera un'impronta, \emph{Noiseprint++}, che evidenzia le incoerenze tra le tracce presenti nelle diverse regioni. Trufor combina la fotografia con la sua impronta.
+L'immagine RGB descrive il contenuto visibile, come colori e forme. Dall'immagine l'\emph{estrattore Noiseprint++} ricava un'\emph{impronta}: una rappresentazione numerica delle tracce lasciate dall'acquisizione e dalle elaborazioni successive. TruFor analizza la fotografia e l'impronta con due rami distinti della rete, poi unisce le informazioni estratte. Usa così sia gli indizi visivi sia le tracce di elaborazione per localizzare possibili manipolazioni.
 
 Noiseprint++ estende \emph{Noiseprint}, un'impronta che rappresenta le tracce dei processi interni alla fotocamera. Noiseprint++ include anche le tracce delle elaborazioni successive all'acquisizione. L'addestramento dell'estrattore di impronta avviene con immagini autentiche. L'addestramento è auto-supervisionato: gli autori ricavano il segnale di apprendimento dalle relazioni tra gli esempi.
 
-Gli autori utilizzano 24.700 immagini acquisite con 1.475 modelli di fotocamera. Ne estraggono porzioni di $64 \times 64$ pixel. L'addestramento segue un criterio \emph{contrastivo}: produce impronte simili nelle aree che condividono le stesse proprietà e diverse nelle aree che differiscono. Le proprietà richieste sono il modello di fotocamera, la posizione nello spazio e la storia delle elaborazioni. Gli sviluppatori simulano quest'ultima con 512 combinazioni di ridimensionamento, compressione e variazioni di illuminazione.
+Gli autori utilizzano 24.700 immagini acquisite con 1.475 modelli di fotocamera. Ne estraggono porzioni di $64 \times 64$ pixel. L'addestramento segue un criterio \emph{contrastivo}: produce impronte simili nelle aree che condividono le stesse proprietà e diverse nelle aree che differiscono. Le proprietà richieste sono il modello di fotocamera, la posizione nello spazio e la storia delle elaborazioni. Durante l'addestramento, gli sviluppatori simulano elaborazioni con 512 combinazioni di ridimensionamento, compressione e variazioni di illuminazione.
 
 \subsection{Architettura e apprendimento}
 \label{sec:background-trufor-architettura}
@@ -169,9 +169,21 @@ Nei tre dataset della Tabella~4, TruFor supera questi metodi nell'F1-score con s
 
 Gli autori circoscrivono le capacità di TruFor alle manipolazioni locali. Il rilevamento delle immagini interamente generate resta fuori dalle capacità del sistema. La ricerca di incoerenze locali richiede regioni autentiche come riferimento. Differenzio quindi l'inserimento di contenuti sintetici in una fotografia dalla generazione totale.
 
+Mostro un esempio nella Figura~\ref{fig:trufor-limiti-generazione}, ottenuta eseguendo TruFor su un ritratto con cornice grafica e su un'immagine sintetica. Nel primo caso ottengo un punteggio globale di $0{,}9043$ e una mappa con regioni nettamente distinte. Nel secondo ottengo $0{,}0242$: la mappa presenta valori prevalentemente bassi, con alcuni picchi locali. Un punteggio basso non dimostra quindi l'origine fotografica dell'immagine. Uso questi due casi come illustrazione del limite, senza ricavarne una misura generale delle prestazioni.
+
+\bigskip\noindent
+\begin{minipage}{\linewidth}
+    \captionsetup{type=figure}
+    \centering
+    \includegraphics[width=\linewidth]{trufor_limiti.pdf}
+    \caption[Mappe TruFor di un ritratto con cornice e di un'immagine sintetica]{Mappe delle anomalie prodotte da TruFor alla risoluzione originale. Uso la stessa scala da 0 (blu) a 1 (rosso), senza applicare soglie o invertire le mappe. I punteggi indicati sono quelli globali del rilevatore. A: ritratto con cornice grafica, senza copyright, fonte \href{https://commons.wikimedia.org/wiki/File:Rakesh_Brahma,_EM_Bodoland_Territorial_Region.jpg}{Swrang Borgoary, Wikimedia Commons}. B: immagine sintetica generata con Gemini 3.1 Pro.}
+    \label{fig:trufor-limiti-generazione}
+\end{minipage}
+\bigskip
+
 L'addestramento richiede maschere di riferimento per i pixel e procede in fasi separate. Gli autori propongono come direzione di ricerca un addestramento congiunto per i componenti dell'intero sistema. La proposta include l'uso di etichette che indicano la classe dell'intera immagine.
 
-Il confronto con la letteratura fornisce due motivi per scegliere TruFor. Rispetto ai metodi che ricavano la decisione dalla sola mappa delle anomalie, TruFor considera anche l'affidabilità delle previsioni. Rispetto a CAT-Net v2, ottiene valori medi superiori nelle metriche di localizzazione e rilevamento. Queste evidenze riguardano i dataset del confronto e motivano la scelta di TruFor per la mia analisi. Uso i suoi output per esaminare le regioni sospette delle immagini politiche. Studio poi la relazione tra le caratteristiche visive e l'\emph{engagement}, cioè le interazioni degli utenti con il post.
+Scelgo TruFor per due ragioni. Rispetto ai metodi che ricavano la decisione dalla sola mappa delle anomalie, considera anche l'affidabilità delle previsioni: posso quindi usare entrambe le mappe per selezionare le regioni da descrivere. Nel confronto della Tabella~\ref{tab:trufor-medie} supera CAT-Net v2 nelle metriche medie di localizzazione e rilevamento. Questi risultati sostengono la scelta dello strumento, che fornisce sia il punteggio globale sia le mappe necessarie alla pipeline. I risultati riguardano però i dataset degli autori e richiedono una verifica distinta sul mio campione di immagini politiche.
 
 \newpage
 \section{Strumenti statistici per l'analisi delle associazioni}
@@ -190,7 +202,7 @@ Calcolo le correlazioni con SciPy~\cite{2020SciPy-NMeth} e stimo i modelli con s
 \section{Descrittori visivi dell'immagine}
 \label{sec:background-feature-visive}
 
-Per studiare la relazione tra l'aspetto delle immagini e l'engagement uso delle caratteristiche visive. Considero tono, esposizione, fuoco, nitidezza, colore, distribuzione delle intensità, composizione e struttura.
+Uso le caratteristiche visive per studiare la relazione tra l'aspetto delle immagini e l'engagement. Ipotizzo che la presentazione del contenuto possa attirare l'attenzione e facilitarne la comprensione. Contrasto e nitidezza possono rendere leggibili volti e scritte; colori e composizione evidenziano alcuni elementi. Considero tono, esposizione, fuoco, nitidezza, colore, distribuzione delle intensità, composizione e struttura.
 
 I lavori di Ke e colleghi e di Datta e colleghi mostrano come descrittori di questo tipo possano rappresentare proprietà rilevanti per la qualità e l'estetica fotografica~\cite{1640788,10.1007/11744078_23}. Nel mio studio li uso per descrivere le immagini e confrontarle con i punteggi di engagement e di TruFor.
 
@@ -252,13 +264,13 @@ Nel progetto uso il modello già addestrato per ottenere una descrizione del con
 \subsection{OCR: localizzazione e riconoscimento del testo}
 \label{subsec:background-ocr}
 
-Una didascalia può descrivere una persona o un manifesto senza riportarne le scritte. Affianco quindi a BLIP \emph{EasyOCR}, una libreria che combina un rilevatore delle regioni testuali e un riconoscitore dei caratteri. La documentazione ufficiale identifica CRAFT e CRNN come riferimenti per questi due componenti~\cite{easyocr_software}.
+Una didascalia può descrivere il ritratto e lo sfondo di un manifesto senza riportarne ad esempio il cognome o lo slogan. Affianco quindi a BLIP \emph{EasyOCR}. La libreria svolge due compiti: prima localizza le scritte nell'immagine, poi le trascrive. La documentazione ufficiale identifica CRAFT e CRNN come riferimenti per questi due componenti~\cite{easyocr_software}.
 
-\emph{CRAFT (Character Region Awareness for Text detection)} è una rete convoluzionale che produce due mappe: la \emph{mappa delle regioni} localizza i caratteri e la \emph{mappa di affinità} evidenzia i collegamenti tra caratteri adiacenti della stessa parola. Applicando soglie alle mappe, il metodo individua le \emph{componenti connesse}, cioè insiemi contigui di pixel, e le racchiude in riquadri. Queste regioni indicano dove si trova il testo, che viene poi trascritto dal riconoscitore~\cite{DBLP:journals/corr/abs-1904-01941}.
+\emph{CRAFT (Character Region Awareness for Text detection)} individua le regioni da passare al riconoscitore. La rete convoluzionale produce due mappe: la \emph{mappa delle regioni} localizza i caratteri e la \emph{mappa di affinità} evidenzia i collegamenti tra caratteri adiacenti della stessa parola. Applicando soglie alle mappe, il metodo individua le \emph{componenti connesse}, cioè insiemi contigui di pixel, e le racchiude in riquadri. L'output indica dove leggere, senza ancora trascrivere il testo~\cite{DBLP:journals/corr/abs-1904-01941}.
 
-La \emph{CRNN (Convolutional Recurrent Neural Network)} trasforma l'area testuale in una stringa attraverso tre passaggi. Gli strati convoluzionali estraggono mappe di caratteristiche, lette per colonne da sinistra a destra per formare una sequenza di vettori. Gli strati ricorrenti \emph{LSTM (Long Short-Term Memory)} bidirezionali elaborano la sequenza nei due versi, usando il contesto a sinistra e a destra. Infine, per ogni elemento, la rete produce una distribuzione sui caratteri possibili e su un simbolo speciale di assenza di carattere, detto \emph{blank}~\cite{DBLP:journals/corr/ShiBY15}.
+Una volta localizzate le scritte, occorre trascriverle. La \emph{CRNN (Convolutional Recurrent Neural Network)} elabora ciascuna area testuale. Gli strati convoluzionali ne estraggono una sequenza di vettori, leggendo le caratteristiche per colonne da sinistra a destra. Gli strati ricorrenti \emph{LSTM (Long Short-Term Memory)} bidirezionali usano il contesto nei due versi. Per ogni elemento della sequenza, la rete produce una distribuzione sui caratteri possibili e su un simbolo speciale di assenza di carattere, detto \emph{blank}~\cite{DBLP:journals/corr/ShiBY15}.
 
-La trascrizione usa il criterio \emph{CTC (Connectionist Temporal Classification)}. Più sequenze di predizioni possono rappresentare la stessa parola: per ottenere la stringa finale si accorpano prima i simboli uguali consecutivi e poi si eliminano i blank~\cite{10.1145/1143844.1143891}.
+La trascrizione usa il criterio \emph{CTC (Connectionist Temporal Classification)}. Per ottenere la stringa finale, si accorpano i simboli uguali consecutivi e si eliminano i blank~\cite{10.1145/1143844.1143891}.
 
 Indico il blank con $\varnothing$: questo simbolo permette di separare due lettere uguali che devono essere mantenute. Infatti, $(\mathrm{l},\varnothing,\mathrm{l})$ diventa \texttt{ll}, mentre $(\mathrm{l},\mathrm{l})$ diventa \texttt{l}. Per esempio, la sequenza seguente produce la parola \texttt{voto}:
 \[
@@ -271,4 +283,4 @@ Durante l'addestramento, il CTC somma le probabilità delle sequenze compatibili
 
 EasyOCR restituisce per ogni regione testuale le coordinate del riquadro che la delimita, una trascrizione e un punteggio di confidenza~\cite{easyocr_software}. Uso quest'ultimo per filtrare le letture. La confidenza riguarda il riconoscimento del testo ed è distinta dalla confidenza forense di TruFor.
 
-BLIP e EasyOCR forniscono informazioni complementari: in un manifesto, BLIP può descrivere il ritratto e lo sfondo, mentre l'OCR legge cognome e slogan. Entrambi elaborano i pixel conservati dalla maschera, dalla cui selezione dipende l'utilità del testo prodotto.
+Con l'OCR localizzo e trascrivo le scritte nelle regioni selezionate dalla maschera. Unisco le trascrizioni filtrate alla descrizione visiva di BLIP: questo testo alimenta le analisi successive.

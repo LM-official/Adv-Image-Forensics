@@ -5,11 +5,11 @@
 \chapter{Metodi}
 \label{chap:metodi}
 
-In questo capitolo descrivo la pipeline. Svolgo prima un benchmark di TruFor su 100 casi annotati, poi estendo l'elaborazione all'intero dataset selezionato. Salvo gli output e studio l'associazione tra il punteggio globale e l'engagement. Uso questa analisi come riferimento per i modelli che includono le caratteristiche visive e le descrizioni delle regioni sospette.
+In questo capitolo descrivo la pipeline. Svolgo prima un benchmark di TruFor su 100 casi annotati, poi estendo l'elaborazione all'intero dataset selezionato e salvo gli output (Sezione~\ref{sec:metodi-trufor}). Studio l'associazione tra il punteggio globale e l'engagement (Sezione~\ref{sec:metodi-trufor-engagement}). Uso questa analisi come riferimento per i modelli che includono le caratteristiche visive e le descrizioni delle regioni sospette.
 
-Descrivo poi l'estrazione delle 19 caratteristiche visive e il confronto delle loro associazioni con l'engagement e con il punteggio globale di TruFor.
+Descrivo poi l'estrazione delle 19 caratteristiche visive e il confronto delle loro associazioni con l'engagement e con il punteggio globale di TruFor (Sezione~\ref{sec:metodi-feature-visive}).
 
-Illustro la creazione delle maschere per la successiva analisi del contenuto delle regioni sospette, insieme alla taratura dei parametri e al confronto con le annotazioni manuali. Descrivo infine come combino BLIP e OCR per rappresentare in testo il contenuto selezionato.
+Illustro la creazione delle maschere, la taratura dei parametri e il confronto con le annotazioni manuali (Sezione~\ref{sec:metodi-maschere}). Descrivo come combino BLIP e OCR per rappresentare in testo il contenuto selezionato (Sezione~\ref{sec:metodi-descrizioni}).
 
 \section{TruFor}
 \label{sec:metodi-trufor}
@@ -162,7 +162,7 @@ Nelle Figure~\ref{fig:risultati-feature-pearson} e~\ref{fig:risultati-feature-sp
 
 Le caratteristiche possono essere correlate tra loro e le due coordinate derivano dallo stesso campione: la retta riassume il confronto tra descrittori e non costituisce un modello di previsione dell'engagement delle immagini. Escludo dal grafico le caratteristiche con correlazioni non definite, come avviene per una colonna costante.
 
-Conservo i due report nella cartella \path{scripts/temp/}, con i nomi \path{images_features_pearson.txt} e \path{images_features_spearman.txt}. Ogni report ordina le caratteristiche per $|b_j|$ decrescente. Lo script produce coefficienti descrittivi senza valori di $p$ o intervalli di confidenza.
+Conservo nella cartella \path{scripts/temp/} i report delle due analisi: \path{images_features_pearson.txt} e \path{images_features_spearman.txt}. Ogni report ordina le caratteristiche per $|b_j|$ decrescente. Lo script produce coefficienti descrittivi senza valori di $p$ o intervalli di confidenza.
 
 \subsection{Limiti della rappresentazione}
 \label{subsec:metodi-feature-limiti}
@@ -261,7 +261,7 @@ Uso BLIP in precisione a 32 bit, selezionando nell'ordine NVIDIA CUDA, Apple MPS
 
 Per controllare la lunghezza della didascalia generata da BLIP, imposto un minimo di 5 e un massimo di 40 nuovi token per immagine. Penalizzo con fattore $1{,}3$ il riuso dei token già presenti e impedisco la ripetizione di sequenze di due token. Mantengo disattivato il campionamento casuale. I parametri di temperatura, selezione probabilistica e seme casuale previsti per la modalità alternativa restano quindi inattivi. Queste impostazioni agiscono durante la generazione, prima della normalizzazione del testo e dell'aggiunta delle parole riconosciute dall'OCR.
 
-Per EasyOCR abilito l'accelerazione hardware supportata dal lettore e uso un fattore di ingrandimento di $1{,}5$ prima del rilevamento, per favorire la localizzazione delle scritte piccole. Conservo le trascrizioni con confidenza almeno pari a $0{,}65$, le normalizzo come descritto nella Sezione~\ref{subsec:metodi-descrizioni-output} e scarto le parole con meno di tre lettere. Ordino le parole candidate per confidenza decrescente del rispettivo riquadro, elimino i duplicati e ne mantengo al massimo venti. L'ordine delle parole nell'immagine non è conservato. Questo limite riduce il peso delle immagini dense di testo. Se l'OCR fallisce su una singola immagine, mantengo la sola didascalia di BLIP.
+Configuro EasyOCR per eseguire i calcoli sulla GPU, quando disponibile, così da velocizzare il riconoscimento delle scritte. In assenza di una GPU compatibile, il programma usa la CPU. Imposto un fattore di ingrandimento di $1{,}5$ prima del rilevamento, per favorire la localizzazione delle scritte piccole. Conservo le trascrizioni con confidenza almeno pari a $0{,}65$, le normalizzo come descritto nella Sezione~\ref{subsec:metodi-descrizioni-output} e scarto le parole con meno di tre lettere. Ordino le parole candidate per confidenza decrescente del rispettivo riquadro, elimino i duplicati e ne mantengo al massimo venti. L'ordine delle parole nell'immagine non è conservato. Questo limite riduce il peso delle immagini dense di testo. Se l'OCR fallisce su una singola immagine, mantengo la sola didascalia di BLIP.
 
 Salvo le descrizioni di ogni gruppo completato in \path{description_temp.csv}. In caso di interruzione, riparto saltando i file già registrati. La ripresa presuppone che modelli, maschere e parametri restano gli stessi.
 
@@ -311,3 +311,5 @@ Queste scelte preparano il testo per un'analisi lessicale. La rimozione delle ci
 Produco \path{description_report.txt} con il numero di risultati, il conteggio di \texttt{nomask}, la lunghezza minima, mediana e massima e le dieci parole più frequenti. Riporto i valori nella Sezione~\ref{sec:risultati-descrizioni}. Calcolo lunghezze e frequenze soltanto sulle descrizioni diverse da \texttt{nomask}, dopo l'unione di BLIP e OCR. Queste statistiche permettono di controllare la copertura e la distribuzione del testo prodotto. Per misurarne la correttezza servirebbero didascalie e trascrizioni di riferimento, distinte dalle annotazioni forensi.
 
 La descrizione eredita i limiti della maschera: parti escluse possono interrompere parole o rimuovere il contesto necessario a interpretare un oggetto. BLIP può generare dettagli assenti, cioè \emph{allucinazioni}, oppure descrivere lo sfondo nero introdotto dalla procedura. Anche l'OCR può produrre letture errate dopo il filtraggio. Considero quindi \texttt{anomaly\_txt} una rappresentazione da valutare nelle analisi successive, anziché una verifica delle manipolazioni.
+
+Mostro gli effetti del mascheramento nella Sezione~\ref{subsec:risultati-maschere-esempi} e le descrizioni ottenute nella Sezione~\ref{subsec:risultati-descrizioni-esempi}. Illustro la perdita di contesto, gli errori nel testo e l'interpretazione delle aree nere introdotte dalla maschera.
