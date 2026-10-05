@@ -7,7 +7,7 @@
 
 In questo capitolo presento TruFor, il sistema che utilizzo per studiare le manipolazioni (Sezione~\ref{sec:background-trufor}). TruFor è un framework per l'analisi \emph{forense} delle immagini, cioè l'esame delle tracce lasciate dall'acquisizione e dalle elaborazioni successive, per individuare possibili manipolazioni. Introduco i compiti dell'analisi forense e descrivo il funzionamento di TruFor. Esamino poi i risultati e i limiti che gli autori riportano nel loro lavoro. Uso questi elementi per motivare la scelta del sistema nello studio della comunicazione politica sui social media.
 
-Presento poi gli strumenti statistici per l'analisi delle associazioni (Sezione~\ref{sec:background-misure-statistiche}) e i descrittori visivi dell'immagine (Sezione~\ref{sec:background-feature-visive}). Introduco gli strumenti per descrivere le regioni sospette e riconoscerne le scritte (Sezione~\ref{sec:background-descrizioni}).
+Presento poi i descrittori visivi dell'immagine (Sezione~\ref{sec:background-feature-visive}) e gli strumenti per descrivere le regioni sospette e riconoscerne le scritte (Sezione~\ref{sec:background-descrizioni}). Concludo con gli strumenti statistici per analizzare le associazioni, rappresentare il testo, classificare l'engagement e interpretare le previsioni (Sezione~\ref{sec:background-analisi-engagement}).
 
 \section{TruFor}
 \label{sec:background-trufor}
@@ -186,33 +186,20 @@ L'addestramento richiede maschere di riferimento per i pixel e procede in fasi s
 Scelgo TruFor per due ragioni. Rispetto ai metodi che ricavano la decisione dalla sola mappa delle anomalie, considera anche l'affidabilità delle previsioni: posso quindi usare entrambe le mappe per selezionare le regioni da descrivere. Nel confronto della Tabella~\ref{tab:trufor-medie} supera CAT-Net v2 nelle metriche medie di localizzazione e rilevamento. Questi risultati sostengono la scelta dello strumento, che fornisce sia il punteggio globale sia le mappe necessarie alla pipeline. I risultati riguardano però i dataset degli autori e richiedono una verifica distinta sul mio campione di immagini politiche.
 
 \newpage
-\section{Strumenti statistici per l'analisi delle associazioni}
-\label{sec:background-misure-statistiche}
-
-Per studiare le relazioni tra il punteggio di TruFor, le caratteristiche visive e l'engagement impiego correlazioni e modelli statistici.
-
-Considero il coefficiente di Pearson per le associazioni lineari~\cite{10.1098/rspl.1895.0041} e quello di Spearman per le associazioni monotone, basate sull'ordinamento dei valori~\cite{ca468a70-0be4-389a-b0b9-5dd1ff52b33f}. Per interpretare i test statistici considero anche il valore di $p$, seguendo le indicazioni dell'American Statistical Association: la significatività statistica va distinta dall'intensità dell'associazione e dalla sua rilevanza~\cite{Wasserstein02042016}.
-
-Per descrivere l'engagement continuo uso la regressione lineare, stimata con il metodo dei minimi quadrati ordinari, OLS (Ordinary Least Squares). Ne valuto l'adattamento ai dati attraverso il coefficiente di determinazione $R^2$~\cite{James2013}.
-
-Per l'engagement rappresentato da due classi sfrutto invece un GLM (Generalized Linear Model) binomiale con collegamento logit~\cite{68aee965-a8a0-3e72-9f89-8d89ae91a62b}. Lo pseudo-$R^2$ di McFadden permette di confrontarlo con un modello che contiene la sola intercetta~\cite{mcfadden1972conditional}.
-
-Calcolo le correlazioni con SciPy~\cite{2020SciPy-NMeth} e stimo i modelli con statsmodels~\cite{josef_perktold_2024_10984387}. Nella Sezione~\ref{sec:materiali-misure-statistiche} presento le definizioni e le formule delle misure e dei modelli adottati.
-
 \section{Descrittori visivi dell'immagine}
 \label{sec:background-feature-visive}
 
 Uso le caratteristiche visive per studiare la relazione tra l'aspetto delle immagini e l'engagement. Ipotizzo che la presentazione del contenuto possa attirare l'attenzione e facilitarne la comprensione. Contrasto e nitidezza possono rendere leggibili volti e scritte; colori e composizione evidenziano alcuni elementi. Considero tono, esposizione, fuoco, nitidezza, colore, distribuzione delle intensità, composizione e struttura.
 
-I lavori di Ke e colleghi e di Datta e colleghi mostrano come descrittori di questo tipo possano rappresentare proprietà rilevanti per la qualità e l'estetica fotografica~\cite{1640788,10.1007/11744078_23}. Nel mio studio li uso per descrivere le immagini e confrontarle con i punteggi di engagement e di TruFor.
+Gli studi sulla qualità e sull'estetica fotografica mostrano come descrittori di questo tipo possano rappresentare proprietà rilevanti dell'immagine~\cite{1640788,10.1007/11744078_23}. Nel mio studio li uso per descrivere le immagini e confrontarle con i punteggi di engagement e di TruFor.
 
 Per rappresentare l'intensità riprendo i pesi dei canali di colore della raccomandazione ITU-R BT.601~\cite{itu_bt601}.
 
-Le misure di dettaglio si collegano agli studi sulla messa a fuoco di Pech-Pacheco e colleghi e alla rassegna degli operatori di misura di Pertuz e colleghi~\cite{903548,PERTUZ20131415}. Per la sfocatura seguo il principio di Crété-Roffet e colleghi: confronto le variazioni tra pixel vicini prima e dopo un ulteriore filtraggio~\cite{creteroffet:hal-00232709}.
+Le misure di dettaglio si collegano agli studi sulla messa a fuoco e alla rassegna degli operatori di misura~\cite{903548,PERTUZ20131415}. Per la sfocatura confronto le variazioni tra pixel vicini prima e dopo un ulteriore filtraggio~\cite{creteroffet:hal-00232709}.
 
-Per il colore uso la misura di vivacità di Hasler e Süsstrunk~\cite{10.1117/12.477378}. Il lavoro di Jonauskaite e Thorstenson offre un contesto sul rapporto tra colore ed emozioni~\cite{Jonauskaite2024}; definisco invece il calore della pipeline attraverso il bilanciamento dei canali rosso e blu. Per la distribuzione delle intensità uso anche l'entropia di Shannon~\cite{6773024}.
+Per il colore uso una misura di vivacità cromatica~\cite{10.1117/12.477378}. Considero anche gli studi sul rapporto tra colore ed emozioni~\cite{Jonauskaite2024}; definisco il calore della pipeline attraverso il bilanciamento dei canali rosso e blu. Per la distribuzione delle intensità uso anche l'entropia~\cite{6773024}.
 
-Gli operatori di Sobel e il rilevamento dei bordi di Canny forniscono gli strumenti per descrivere le variazioni locali e la struttura dell'immagine~\cite{996,4767851}.
+Gli operatori di gradiente e il rilevamento dei bordi forniscono gli strumenti per descrivere le variazioni locali e la struttura dell'immagine~\cite{996,4767851}.
 
 Eseguo le elaborazioni delle immagini con OpenCV~\cite{opencv_library} e i calcoli di asimmetria e curtosi con SciPy~\cite{2020SciPy-NMeth}. 
 
@@ -266,7 +253,7 @@ Nel progetto uso il modello già addestrato per ottenere una descrizione del con
 
 Una didascalia può descrivere il ritratto e lo sfondo di un manifesto senza riportarne ad esempio il cognome o lo slogan. Affianco quindi a BLIP \emph{EasyOCR}. La libreria svolge due compiti: prima localizza le scritte nell'immagine, poi le trascrive. La documentazione ufficiale identifica CRAFT e CRNN come riferimenti per questi due componenti~\cite{easyocr_software}.
 
-\emph{CRAFT (Character Region Awareness for Text detection)} individua le regioni da passare al riconoscitore. La rete convoluzionale produce due mappe: la \emph{mappa delle regioni} localizza i caratteri e la \emph{mappa di affinità} evidenzia i collegamenti tra caratteri adiacenti della stessa parola. Applicando soglie alle mappe, il metodo individua le \emph{componenti connesse}, cioè insiemi contigui di pixel, e le racchiude in riquadri. L'output indica dove leggere, senza ancora trascrivere il testo~\cite{DBLP:journals/corr/abs-1904-01941}.
+\emph{CRAFT (Character Region Awareness for Text detection)} individua le regioni da passare al riconoscitore. La rete convoluzionale produce due mappe: la \emph{mappa delle regioni} localizza i caratteri e la \emph{mappa di affinità} evidenzia i collegamenti tra caratteri adiacenti della stessa parola~\cite{DBLP:journals/corr/abs-1904-01941}. Applicando soglie alle mappe, il metodo individua le \emph{componenti connesse}, cioè insiemi contigui di pixel, e le racchiude in riquadri. L'output indica dove leggere, senza ancora trascrivere il testo.
 
 Una volta localizzate le scritte, occorre trascriverle. La \emph{CRNN (Convolutional Recurrent Neural Network)} elabora ciascuna area testuale. Gli strati convoluzionali ne estraggono una sequenza di vettori, leggendo le caratteristiche per colonne da sinistra a destra. Gli strati ricorrenti \emph{LSTM (Long Short-Term Memory)} bidirezionali usano il contesto nei due versi. Per ogni elemento della sequenza, la rete produce una distribuzione sui caratteri possibili e su un simbolo speciale di assenza di carattere, detto \emph{blank}~\cite{DBLP:journals/corr/ShiBY15}.
 
@@ -284,3 +271,78 @@ Durante l'addestramento, il CTC somma le probabilità delle sequenze compatibili
 EasyOCR restituisce per ogni regione testuale le coordinate del riquadro che la delimita, una trascrizione e un punteggio di confidenza~\cite{easyocr_software}. Uso quest'ultimo per filtrare le letture. La confidenza riguarda il riconoscimento del testo ed è distinta dalla confidenza forense di TruFor.
 
 Con l'OCR localizzo e trascrivo le scritte nelle regioni selezionate dalla maschera. Unisco le trascrizioni filtrate alla descrizione visiva di BLIP: questo testo alimenta le analisi successive.
+
+\section{Strumenti statistici per l'analisi dell'engagement}
+\label{sec:background-analisi-engagement}
+
+Per studiare le relazioni tra il punteggio di TruFor, le caratteristiche visive, il testo e l'engagement uso misure di associazione, rappresentazioni numeriche e modelli statistici. Presento ciascuno strumento separatamente, distinguendo analisi delle associazioni, predizione e interpretazione. Riporto le definizioni operative nelle Sezioni~\ref{sec:materiali-misure-statistiche} e~\ref{sec:materiali-classificazione}.
+
+\subsection{Correlazione di Pearson}
+\label{subsec:background-pearson}
+
+Uso il \emph{coefficiente di Pearson} per misurare l'associazione lineare tra due variabili~\cite{10.1098/rspl.1895.0041}. Nel progetto lo calcolo con SciPy per confrontare il punteggio TruFor e le caratteristiche visive con l'engagement~\cite{2020SciPy-NMeth}.
+
+\subsection{Correlazione di Spearman}
+\label{subsec:background-spearman}
+
+Affianco a Pearson il \emph{coefficiente di Spearman} per le associazioni monotone, basate sull'ordinamento dei valori~\cite{ca468a70-0be4-389a-b0b9-5dd1ff52b33f}. Lo uso per valutare se, all'aumentare di una variabile, l'altra tende ad aumentare o diminuire, anche senza una relazione lineare.
+
+\subsection{Valore di \texorpdfstring{$p$}{p}}
+\label{subsec:background-p-value}
+
+Per interpretare i test statistici considero il valore di $p$. Distinguo la significatività statistica dall'intensità dell'associazione e dalla sua rilevanza~\cite{Wasserstein02042016}.
+
+\subsection{Regressione lineare}
+\label{subsec:background-ols}
+
+Per descrivere l'engagement continuo uso la regressione lineare, stimata con il metodo dei minimi quadrati ordinari, \emph{OLS (Ordinary Least Squares)}~\cite{James2013}. Stimo i coefficienti con statsmodels~\cite{josef_perktold_2024_10984387}.
+
+\subsection{Coefficiente di determinazione \texorpdfstring{$R^2$}{R2}}
+\label{subsec:background-r-quadro}
+
+Valuto l'adattamento della regressione lineare attraverso il \emph{coefficiente di determinazione $R^2$}~\cite{James2013}. La misura descrive quanto il modello spiega la variabilità della risposta sui dati considerati; la capacità predittiva richiede una valutazione su osservazioni escluse dalla stima.
+
+\subsection{Rappresentazione TF-IDF}
+\label{subsec:background-tfidf}
+
+Per usare le descrizioni in un modello statistico trasformo le parole in vettori. La tecnica \emph{TF-IDF (Term Frequency--Inverse Document Frequency)} combina la frequenza di un termine nel documento con una misura che diminuisce quando il termine compare in molti documenti~\cite{SALTON1988513}. Considero parole singole: il vettore conserva il loro peso, ma perde l'ordine all'interno della frase.
+
+\subsection{Analisi delle componenti principali}
+\label{subsec:background-pca}
+
+Affianco alla rappresentazione lessicale una versione ridotta mediante \emph{PCA (Principal Component Analysis)}. La PCA costruisce combinazioni lineari delle variabili, ordinate per varianza spiegata e tra loro non correlate sul campione. La riduzione limita il numero di predittori, ma ogni componente combina più parole. La varianza conservata riguarda i dati testuali: una soglia elevata non garantisce di preservare l'informazione più utile per l'engagement~\cite{jolliffe2016principal}.
+
+\subsection{Regressione logistica regolarizzata}
+\label{subsec:background-logistica}
+
+Uso la regressione logistica per stimare la probabilità della classe di engagement superiore alle aspettative. Per la classificazione applico una penalità L2, che limita l'ampiezza dei coefficienti. Valuto le previsioni mediante validazione incrociata, usando accuratezza e AUC per descrivere la capacità di distinguere le due classi.
+
+\subsection{GLM binomiale per l'analisi statistica}
+\label{subsec:background-glm}
+
+La regressione logistica è un caso particolare di \emph{GLM (Generalized Linear Model)}: usa una risposta binaria e il collegamento logit~\cite{68aee965-a8a0-3e72-9f89-8d89ae91a62b}. Per l'analisi statistica stimo il modello senza penalizzazione con statsmodels. Esamino i coefficienti, gli errori standard, gli intervalli di confidenza e i p-value. Nella stima non penalizzata, la separazione completa o quasi completa delle classi può impedire l'esistenza di stime finite. La convergenza numerica è un controllo necessario, ma la validità dell'inferenza dipende anche dalle ipotesi del modello~\cite{10.1093/biomet/71.1.1}.
+
+\subsection{Pseudo-\texorpdfstring{$R^2$}{R2} di McFadden}
+\label{subsec:background-mcfadden}
+
+Uso lo \emph{pseudo-$R^2$ di McFadden} per confrontare il GLM con un modello che contiene la sola intercetta~\cite{mcfadden1972conditional}. Il confronto riguarda la verosimiglianza dei due modelli e non esprime una quota di varianza spiegata.
+
+\subsection{Importanza per permutazione}
+\label{subsec:background-permutazione}
+
+L'\emph{importanza per permutazione} misura la perdita di prestazione quando rimescolo i valori di una variabile, mantenendo fisso il modello~\cite{JMLR:v20:18-760}. Nel mio caso misuro il calo dell'AUC su un singolo modello.
+
+\subsection{SHAP}
+\label{subsec:background-shap}
+
+\emph{SHAP (SHapley Additive exPlanations)} assegna contributi alle variabili per spiegare una previsione rispetto a un riferimento~\cite{NIPS2017_8a20a862}. Nel progetto aggrego i valori assoluti di questi contributi per ottenere un ordinamento globale.
+
+\subsection{LIME}
+\label{subsec:background-lime}
+
+\emph{LIME (Local Interpretable Model-agnostic Explanations)} approssima il comportamento del classificatore nell'intorno di un'osservazione mediante un modello interpretabile~\cite{ribeiro2016whyitrustyou}. Come SHAP, descrive il funzionamento del modello: le spiegazioni, da sole, non identificano effetti causali sul comportamento degli utenti.
+
+\subsection{Correzione per confronti multipli}
+\label{subsec:background-benjamini-hochberg}
+
+Per l'analisi dei coefficienti visivi considero anche la molteplicità delle verifiche. La procedura adottata controlla, sotto le sue ipotesi, il tasso atteso di false scoperte, FDR (False Discovery Rate): la proporzione di ipotesi nulle vere fra quelle rifiutate, posta a zero quando non vi sono rifiuti~\cite{10.1111/j.2517-6161.1995.tb02031.x}. La applico all'intera famiglia delle 19 caratteristiche visive. Questa correzione riguarda i test statistici e ha uno scopo diverso dall'ordinamento delle importanze del classificatore.

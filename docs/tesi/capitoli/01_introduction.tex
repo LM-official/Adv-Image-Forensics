@@ -1,0 +1,85 @@
+% !TeX root = ../tesi.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = it_IT
+
+\chapter{Introduzione}
+\label{chap:introduzione}
+
+I social network costituiscono uno spazio rilevante della comunicazione politica. Le immagini contribuiscono alla presentazione dei candidati e dei loro messaggi: il ritocco e l'aggiunta di elementi grafici o testuali fanno parte di questa costruzione. Tali modifiche possono avere una funzione comunicativa anche senza un intento ingannevole. Studio il loro rapporto con l'\emph{engagement}, cioè le interazioni degli utenti con i post, per comprendere come il pubblico partecipa alla comunicazione politica online.
+
+Gli strumenti forensi come TruFor permettono di rilevare e localizzare possibili manipolazioni~\cite{Guillaro_2023_CVPR}. Il punteggio e le mappe segnalano indizi forensi, ma non descrivono il messaggio contenuto nelle regioni individuate. Resta quindi da verificare quale relazione intercorra tra questo contenuto e l'engagement. Per esaminarla occorre descrivere le regioni segnalate e collegare le informazioni ottenute ai dati sulle interazioni.
+
+Affronto questa domanda: \emph{quanto contribuiscono il contenuto delle regioni potenzialmente alterate e le caratteristiche visive alla classificazione dell'engagement, rispetto al solo punteggio TruFor?} Considero post politici pubblicati su Facebook e Instagram nel periodo delle elezioni europee del 2024. Uso l'indicatore di CrowdTangle per distinguere i post con engagement superiore o inferiore alle aspettative dell'account~\cite{DVN/SCCQYD_2019}, secondo la definizione del Capitolo~\ref{chap:dataset}.
+
+Presento l'approccio e il contributo nella Sezione~\ref{sec:introduzione-approccio}; nella Sezione~\ref{sec:introduzione-organizzazione} sintetizzo i risultati, le implicazioni e la struttura della tesi.
+
+\section{Approccio e contributo}
+\label{sec:introduzione-approccio}
+
+L'elemento distintivo del progetto consiste nel descrivere le regioni potenzialmente modificate, anziché l'immagine nel suo insieme. Questa scelta offre una base per formulare ipotesi sul ruolo comunicativo delle modifiche a partire dai contenuti segnalati dal rilevatore.
+
+Realizzo una pipeline che applica alle immagini una maschera ricavata dalle mappe di TruFor~\cite{Guillaro_2023_CVPR}. Descrivo il contenuto conservato con BLIP (Bootstrapping Language-Image Pre-training)~\cite{pmlr-v162-li22n} e aggiungo le scritte lette mediante OCR (Optical Character Recognition)~\cite{easyocr_software}. Trasformo il testo in vettori numerici e in una versione a dimensionalità ridotta. Affianco a queste rappresentazioni il punteggio globale di TruFor e 19 caratteristiche visive estratte dall'immagine intera.
+
+Confronto le combinazioni dei tre blocchi informativi mediante modelli lineari generalizzati, GLM (Generalized Linear Models), della famiglia binomiale~\cite{68aee965-a8a0-3e72-9f89-8d89ae91a62b}. Affianco una regressione logistica regolarizzata per la classificazione e strumenti che rendono leggibile il contributo delle parole alle previsioni.
+
+Il contributo comprende lo strumento di analisi automatizzata, il codice riutilizzabile e lo studio esplorativo sul campione politico. Integro modelli forensi e linguistici già addestrati nel procedimento riassunto nella Figura~\ref{fig:pipeline-generale}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        blocco/.style={draw=black!65, rounded corners=2pt, align=center,
+            font=\small, text width=2.5cm, minimum height=0.85cm, inner sep=5pt},
+        dato/.style={blocco, fill=black!4},
+        modulo/.style={blocco, fill=sapred!20},
+        flusso/.style={-{Stealth[length=2mm]}, semithick, draw=black!70}
+    ]
+        \node[dato, text width=4.4cm] (post) at (0,0)
+            {Post e immagini\\Facebook e Instagram};
+        \node[modulo, text width=4.4cm] (filtro) at (0,-1.3)
+            {Filtraggio\\del campione};
+        \node[dato] (immagini) at (0,-2.6) {Immagini};
+        \node[dato, text width=3cm] (engagement) at (4,-2.6)
+            {Engagement\\CrowdTangle};
+        \node[modulo] (trufor) at (-2,-4) {TruFor};
+        \node[modulo] (visive) at (2,-4) {Analisi visiva};
+        \node[dato] (punteggio) at (-4,-5.5) {Punteggio globale};
+        \node[dato] (mappe) at (-0.7,-5.5)
+            {Mappe TruFor};
+        \node[dato, text width=3cm] (caratteristiche) at (3.1,-5.5)
+            {Caratteristiche\\visive (19)};
+        \node[modulo, text width=3.2cm] (descrizione) at (-0.7,-7)
+            {Maschera,\\BLIP e OCR};
+        \node[dato, text width=3.2cm] (testo) at (-0.7,-8.5)
+            {Rappresentazioni\\numeriche del testo};
+        \node[modulo, text width=7cm, minimum height=1.2cm] (modelli) at (0,-10.1)
+            {Classificazione dell'engagement\\Confronto dei blocchi informativi,\\validazione e interpretazione};
+
+        \draw[flusso] (post) -- (filtro);
+        \draw[flusso] (filtro) -- (immagini);
+        \draw[flusso] (filtro.east) -| (engagement.north);
+        \draw[flusso] (immagini.south) -- ++(0,-0.2) -| (trufor.north);
+        \draw[flusso] (immagini.south) -- ++(0,-0.2) -| (visive.north);
+        \draw[flusso] (trufor.south) -- ++(0,-0.2) -| (punteggio.north);
+        \draw[flusso] (trufor.south) -- ++(0,-0.2) -| (mappe.north);
+        \draw[flusso] (visive.south) -- ++(0,-0.2) -| (caratteristiche.north);
+        \draw[flusso] (mappe) -- (descrizione);
+        \draw[flusso] (descrizione) -- (testo);
+        \draw[flusso] (testo.south) -- (testo.south |- modelli.north);
+        \draw[flusso] (punteggio.south) -- (-4,-9.25) -| ([xshift=-2.7cm]modelli.north);
+        \draw[flusso] (caratteristiche.south) -- (caratteristiche.south |- modelli.north);
+        \draw[flusso] (engagement.east) -- ++(0.4,0) |- (modelli.east);
+    \end{tikzpicture}
+    \caption{Schema della pipeline. I riquadri colorati indicano le elaborazioni; quelli grigi i dati. Le mappe TruFor guidano la selezione delle regioni da descrivere; estraggo le caratteristiche visive dall'immagine intera. Confronto i tre blocchi informativi usando l'engagement di CrowdTangle per definire le classi di riferimento.}
+    \label{fig:pipeline-generale}
+\end{figure}
+
+\section{Risultati, implicazioni e struttura della tesi}
+\label{sec:introduzione-organizzazione}
+
+Nelle analisi del solo punteggio di manipolazione osservo un'associazione debole con l'engagement, non statisticamente significativa alla soglia del $5\%$. Sul campione finale di 1.195 osservazioni la logistica con testo e punteggio TruFor raggiunge il $59{,}4\%$ di accuratezza, contro il $51{,}2\%$ ottenuto assegnando sempre la classe più frequente. Nel confronto fra GLM, l'aggiunta del testo o delle caratteristiche visive migliora l'indice di validazione rispetto al solo TruFor. La combinazione di entrambi i blocchi migliora l'adattamento ai dati di addestramento, ma ottiene risultati inferiori in validazione rispetto alle due aggiunte separate.
+
+Il confronto sostiene una capacità predittiva modesta e indica che il contenuto descritto e l'aspetto generale dell'immagine aggiungono informazioni utili al punteggio di manipolazione. La preparazione dei dati usa però l'intero campione prima della validazione e le suddivisioni non separano account o periodi. Interpreto quindi gli esiti come esplorativi. Spiego questi risultati come associazioni tra le informazioni ricavate dalle immagini e l’engagement osservato.
+
+Il lavoro può aiutare chi analizza le campagne sui social network a valutare le scelte visive sulla base di riscontri empirici. Applicare lo strumento ad altre raccolte di immagini associate a dati di engagement permette di confrontare campagne, periodi e contesti diversi. Questo riutilizzo consente di verificare quali relazioni si ripresentino e quali siano specifiche del caso esaminato.
+
+Nel Capitolo~\ref{chap:background} presento gli strumenti e i riferimenti teorici. Nel Capitolo~\ref{chap:dataset} descrivo dati, rappresentazioni e misure. Nel Capitolo~\ref{chap:metodi} illustro la pipeline e il protocollo di valutazione; nel Capitolo~\ref{chap:risultati} riporto gli esiti. Concludo con la discussione nel Capitolo~\ref{chap:discussione}, i limiti e gli sviluppi futuri nel Capitolo~\ref{chap:limiti}, e la sintesi dei contributi nel Capitolo~\ref{chap:conclusioni}.
