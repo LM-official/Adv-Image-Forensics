@@ -21,14 +21,13 @@ Per aggiornare TruFor basta sostituire la cartella \path{TruFor/} con la nuova v
 \subsection{Organizzazione degli input e degli output}
 \label{subsec:materiali-trufor-output}
 
-Uso \path{scripts/temp/} come cartella di lavoro. Al suo interno, \path{images/} contiene i collegamenti ai file selezionati come input (Sezione~\ref{subsec:dataset-campione-filtrato}) e \path{npz/} contiene gli archivi prodotti da TruFor. Conservo i punteggi associati ai post in \path{dataset_filtered.csv}.
+Uso \path{scripts/temp/} come cartella di lavoro. Al suo interno, \path{images/} contiene i collegamenti ai file selezionati come input (Sottosezione~\ref{subsec:dataset-campione-filtrato}) e \path{npz/} contiene gli archivi prodotti da TruFor. Conservo i punteggi associati ai post in \path{dataset_filtered.csv}.
 
-Per ogni file elaborato acquisisco un archivio NumPy, con estensione \texttt{.npz}. Il nome conserva quello dell'input e aggiunge l'estensione, per esempio \path{picture.jpg.npz}. Riporto nella Tabella~\ref{tab:materiali-trufor-output} i campi utilizzati dal progetto. Per il significato delle due mappe richiamo la Sezione~\ref{sec:background-trufor-architettura}.
+Per ogni file elaborato acquisisco un archivio NumPy, con estensione \texttt{.npz}. Il nome conserva quello dell'input e aggiunge l'estensione, per esempio \path{picture.jpg.npz}. Riporto nella Tabella~\ref{tab:materiali-trufor-output} i campi utilizzati dal progetto. Per il significato delle due mappe richiamo la Sottosezione~\ref{subsec:background-trufor-architettura}.
 
 \begin{table}[htbp]
     \centering
     \small
-    \makeatletter\def\@captype{table}\makeatother
     \caption{Campi degli output di TruFor utilizzati nella pipeline~\cite{Guillaro_2023_CVPR}.}
     \label{tab:materiali-trufor-output}
     \begin{tabular}{@{}lp{0.75\linewidth}@{}}
@@ -46,16 +45,15 @@ Per ogni file elaborato acquisisco un archivio NumPy, con estensione \texttt{.np
     \end{tabular}
 \end{table}
 
-Indico con $t_i$ il punteggio globale prodotto per l'immagine $i$. Il valore appartiene all'intervallo $[0,1]$; cresce all'aumentare dell'evidenza di manipolazione rilevata dal modello.
+Indico con $t_i$ il punteggio globale prodotto per l'immagine $i$ (Sottosezione~\ref{subsec:background-trufor-output}).
 
 \section{Test preliminare di TruFor sul dataset}
 \label{sec:metodi-trufor-benchmark}
-\label{sec:metodi-trufor}
 
 \subsection{Annotazione manuale del campione}
-\label{sec:materiali-trufor-annotazioni}
+\label{subsec:materiali-trufor-annotazioni}
 
-Prima dell'elaborazione completa considero un sotto-insieme eterogeneo di 100 contenuti del dataset. Assegno manualmente a ciascuno un'etichetta globale, che indico con $z_i$: 0 per i media che giudico autentici e 1 per quelli che credo alterati. Il campione comprende 38 casi nella prima classe e 62 nella seconda. Uso queste annotazioni come ground truth del confronto. Seguendo la convenzione definita nella Sezione~\ref{sec:background-rilevamento-localizzazione}, considero positiva la classe ``alterato``, indipendentemente dal tipo di alterazione.
+Prima dell'elaborazione completa considero un sottoinsieme eterogeneo di 100 contenuti del dataset, scelti casualmente tra i post contenenti immagini. Assegno manualmente a ciascuno un'etichetta globale, che indico con $z_i$: 0 per i media che giudico autentici e 1 per quelli che credo alterati. Il campione comprende 38 casi nella prima classe e 62 nella seconda. Uso queste annotazioni come ground truth del confronto. Seguendo la convenzione definita nella Sottosezione~\ref{subsec:background-rilevamento-localizzazione}, considero positiva la classe ``alterato``, indipendentemente dal tipo di alterazione.
 
 Registro le etichette in \path{scripts/temp/trufor_truth.csv}, con i campi \texttt{filename} e \texttt{label}. Il primo identifica il file senza estensione; il secondo contiene $z_i$.
 
@@ -64,7 +62,7 @@ Attribuisco alla verifica un carattere esplorativo. Le annotazioni riflettono il
 \subsection{Protocollo di valutazione}
 \label{subsec:trufor-test-protocollo}
 
-Eseguo TruFor sul campione descritto nella Sezione~\ref{sec:materiali-trufor-annotazioni}. Confronto la previsione del modello con il mio giudizio sull'autenticità di ciascun contenuto.
+Eseguo TruFor sul campione descritto nella Sottosezione~\ref{subsec:materiali-trufor-annotazioni}. Confronto la previsione del modello con il mio giudizio sull'autenticità di ciascun contenuto.
 
 Per ricavare una decisione dal punteggio $t_i$, applico la soglia $\tau=0{,}25$, impostata tramite \texttt{TRUFOR\_THRESHOLD}. Indico con $\widehat{z}_i$ la classe prevista:
 \begin{equation}
@@ -86,7 +84,7 @@ Salvo il confronto in \path{trufor_confusion_matrix.txt}. Il documento contiene 
 \subsection{Risultati del test e confronto delle soglie}
 \label{subsec:trufor-test-risultati}
 
-Riporto nella Tabella~\ref{tab:trufor-confusione} il confronto con le annotazioni manuali. Alla soglia $0{,}25$, TruFor riconosce 51 dei 62 casi alterati e 24 dei 38 casi autentici. Conto 14 falsi positivi e 11 falsi negativi.
+Riporto nella Tabella~\ref{tab:trufor-confusione} il confronto con le annotazioni manuali.
 
 \begin{table}[htbp]
     \centering
@@ -151,18 +149,18 @@ Estraggo dagli archivi il campo \texttt{score}, descritto nella Tabella~\ref{tab
 \section{Creazione e valutazione delle maschere}
 \label{sec:metodi-maschere}
 
-Uso \path{scripts/mask.py} per selezionare le regioni sospette da fornire alla successiva descrizione testuale. Uso le mappe di anomalia e confidenza salvate da TruFor nei file .npz, descritti nella Sezione~\ref{subsec:materiali-trufor-output}. Applico questo passaggio a tutte le immagini con output disponibile, indipendentemente dalla decisione sul punteggio globale $t_i$.
+Uso \path{scripts/mask.py} per selezionare le regioni sospette da fornire alla successiva descrizione testuale. Uso le mappe di anomalia e confidenza salvate da TruFor nei file .npz, descritti nella Sottosezione~\ref{subsec:materiali-trufor-output}. Applico questo passaggio a tutte le immagini con output disponibile, indipendentemente dalla decisione sul punteggio globale $t_i$.
 
 \subsection{Annotazioni delle regioni e maschere di riferimento}
 \label{subsec:materiali-maschere-riferimento}
 
-Per valutare la localizzazione delle maschere uso le stesse 100 immagini della Sezione~\ref{sec:materiali-trufor-annotazioni}. Disegno manualmente una maschera per ciascuna immagine: coloro di bianco le regioni che credo alterate e di nero quelle autentiche. Conservo queste maschere di riferimento in \path{masked_truth/}, associandole agli originali tramite il nome del file.
+Per valutare la localizzazione delle maschere uso le stesse 100 immagini della Sottosezione~\ref{subsec:materiali-trufor-annotazioni}. Disegno manualmente una maschera per ciascuna immagine: coloro di bianco le regioni che credo alterate e di nero quelle autentiche. Conservo queste maschere di riferimento in \path{masked_truth/}, associandole agli originali tramite il nome del file.
 
-Svolgo le due valutazioni in modo indipendente. L'etichetta $z_i$, definita nella Sezione~\ref{sec:materiali-trufor-annotazioni}, esprime il mio parere sull'aspetto complessivo dell'immagine. La maschera registra il giudizio sulle singole regioni. Un contenuto classificato globalmente come autentico può quindi avere regioni annotate come alterate, anche per un totale di aree maggiore della metà della superficie. L'etichetta globale non deriva dalla percentuale di pixel bianchi.
+Svolgo le due valutazioni in modo indipendente. L'etichetta $z_i$, definita nella Sottosezione~\ref{subsec:materiali-trufor-annotazioni}, esprime il mio parere sull'aspetto complessivo dell'immagine. La maschera registra il giudizio sulle singole regioni. Un contenuto classificato globalmente come autentico può quindi avere regioni annotate come alterate, anche per un totale di aree maggiore della metà della superficie. L'etichetta globale non deriva dalla percentuale di pixel bianchi.
 
-La maschera binaria indica quali pixel conservare e quali escludere, secondo la segmentazione descritta nella Sezione~\ref{sec:background-rilevamento-localizzazione}. Applicandola all'originale ottengo l'immagine mascherata, che mantiene i colori dei pixel selezionati e rende neri quelli esclusi.
+La maschera binaria indica quali pixel conservare e quali escludere, secondo la segmentazione descritta nella Sottosezione~\ref{subsec:background-rilevamento-localizzazione}. Applicandola all'originale ottengo l'immagine mascherata, che mantiene i colori dei pixel selezionati e rende neri quelli esclusi.
 
-Per misurare la sovrapposizione uso l'Intersection over Union (IoU). Indico con $P_i$ l'insieme dei pixel previsti come alterati e con $T_i$ quello dei pixel alterati nel riferimento manuale:
+Per misurare la sovrapposizione uso l'\emph{Intersection over Union} (IoU). Indico con $P_i$ l'insieme dei pixel previsti come alterati e con $T_i$ quello dei pixel alterati nel riferimento manuale:
 \begin{equation}
     \operatorname{IoU}_i=\frac{|P_i\cap T_i|}{|P_i\cup T_i|}.
     \label{eq:maschere-iou}
@@ -174,20 +172,20 @@ La misura vale 1 quando le regioni coincidono e 0 quando sono disgiunte. Se entr
 
 Uso le mappe di anomalia e confidenza già riportate alle dimensioni originali, come descritto nella Sezione~\ref{sec:metodi-trufor-esecuzione}. Nella maschera iniziale seleziono un pixel solo quando entrambi i valori raggiungono o superano le rispettive soglie, riportate nella Tabella~\ref{tab:metodi-maschere-parametri}.
 
-Nelle immagini che combinano una fotografia e uno sfondo grafico uniforme, la maschera può selezionare la fotografia al posto della grafica. Per correggere questi casi introduco una regola di inversione della maschera. Uso il gradiente di Sobel, definito nella Sezione~\ref{subsec:feature-composizione}, per individuare i pixel \emph{piatti}, con variazioni di intensità inferiori alla soglia configurata. Inverto la maschera se la frazione di pixel piatti all'esterno supera quella all'interno della selezione di almeno il margine previsto. Applico la regola solo se la regione selezionata raggiunge l'area minima e lascia una parte dell'immagine esclusa. L'uniformità è però solo un indizio: la regola può invertire la selezione anche in presenza di sfondi autentici uniformi. I valori della configurazione sono specificati nella Tabella~\ref{tab:metodi-maschere-parametri}.
+Nelle immagini che combinano una fotografia e uno sfondo grafico uniforme, la maschera può selezionare la fotografia al posto della grafica. Per correggere questi casi introduco una regola di inversione della maschera. Uso il \emph{gradiente di Sobel}, che stima le variazioni locali di intensità in orizzontale ($g_x$) e in verticale ($g_y$) sull'immagine in scala di grigi~\cite{996}. Considero \emph{piatti} i pixel per cui il modulo $\sqrt{g_x^2+g_y^2}$ è inferiore alla soglia configurata. Inverto la maschera se la frazione di pixel piatti all'esterno supera quella all'interno della selezione di almeno il margine previsto. Applico la regola solo se la regione selezionata raggiunge l'area minima e lascia una parte dell'immagine esclusa. L'uniformità è però solo un indizio: la regola può invertire la selezione anche in presenza di sfondi autentici uniformi. I valori della configurazione sono specificati nella Tabella~\ref{tab:metodi-maschere-parametri}.
 
 Applico quindi una pulizia morfologica con un elemento strutturante ellittico. Eseguo prima l'\emph{apertura}, cioè erosione seguita da dilatazione, per rimuovere piccoli elementi isolati. Eseguo poi la \emph{chiusura}, cioè dilatazione seguita da erosione, per colmare piccoli vuoti. Infine individuo le componenti connesse considerando gli otto vicini di ciascun pixel e scarto quelle con area inferiore alla frazione minima dell'immagine. Ottengo così la maschera finale. L'inversione e la pulizia possono includere anche pixel esclusi dalle soglie iniziali.
 
-Applico la maschera finale all'originale secondo la definizione della Sezione~\ref{subsec:materiali-maschere-riferimento}. Salvo l'immagine mascherata in \path{scripts/temp/masked/}, in formato PNG senza perdita. Conservo anche gli output interamente neri, che indicano l'assenza di contenuto visibile dopo la selezione.
+Applico la maschera finale all'originale secondo la definizione della Sottosezione~\ref{subsec:materiali-maschere-riferimento}. Salvo l'immagine mascherata in \path{scripts/temp/masked/}, in formato PNG senza perdita. Conservo anche gli output interamente neri, che indicano l'assenza di contenuto visibile dopo la selezione.
 
 \subsection{Taratura dei parametri e valutazione}
 \label{subsec:metodi-maschere-taratura}
 
-Svolgo diverse iterazioni di test sul campione della Sezione~\ref{subsec:materiali-maschere-riferimento} per scegliere la configurazione da adottare. Valuto le configurazioni sulla base della matrice di confusione a livello di pixel. Sommo i conteggi di tutte le immagini e calcolo accuratezza, precisione, richiamo e F1-score. Aggiungo le misure di IoU definite nella stessa sezione.
+Svolgo diverse iterazioni di test sul campione della Sottosezione~\ref{subsec:materiali-maschere-riferimento} per scegliere la configurazione da adottare. Valuto le configurazioni sulla base della matrice di confusione a livello di pixel. Sommo i conteggi di tutte le immagini e calcolo accuratezza, precisione, richiamo e F1-score. Aggiungo le misure di IoU definite nella stessa sottosezione.
 
 Ricavo la previsione dalle immagini mascherate salvate, considerando positivo un pixel se almeno un canale ha intensità maggiore di zero. Confronto le prestazioni con una baseline che classifica tutti i pixel come alterati, per valutare la selezione rispetto alla conservazione dell'intera immagine.
 
-Riporto nella Tabella~\ref{tab:metodi-maschere-parametri} la configurazione finale, registrata in \path{scripts/config.py}. Salvo le metriche e le IoU delle singole immagini nel report \path{mask_confusion_matrix.txt}, Sezione~\ref{sec:risultati-maschere}.
+Riporto nella Tabella~\ref{tab:metodi-maschere-parametri} la configurazione finale, registrata in \path{scripts/config.py}. Salvo le metriche e le IoU delle singole immagini nel report \path{mask_confusion_matrix.txt}; ne presento i risultati nella Sottosezione~\ref{subsec:risultati-maschere}.
 
 \begin{table}[htbp]
     \centering
@@ -211,9 +209,9 @@ Riporto nella Tabella~\ref{tab:metodi-maschere-parametri} la configurazione fina
 \end{table}
 
 \subsection{Risultati della valutazione delle maschere}
-\label{sec:risultati-maschere}
+\label{subsec:risultati-maschere}
 
-Applico il protocollo della Sezione~\ref{subsec:metodi-maschere-taratura} alle 100 immagini annotate. Il report \path{mask_confusion_matrix.txt} comprende 148.230.685 pixel, dei quali il $66{,}29\%$ è annotato come alterato. Riporto nella Tabella~\ref{tab:risultati-maschere-confusione} i conteggi ottenuti con la configurazione finale.
+Applico il protocollo della Sottosezione~\ref{subsec:metodi-maschere-taratura} alle 100 immagini annotate. Il report \path{mask_confusion_matrix.txt} comprende 148.230.685 pixel, dei quali il $66{,}29\%$ è annotato come alterato. Riporto nella Tabella~\ref{tab:risultati-maschere-confusione} i conteggi ottenuti con la configurazione finale.
 
 \begin{table}[htbp]
     \centering
@@ -230,11 +228,9 @@ Applico il protocollo della Sezione~\ref{subsec:metodi-maschere-taratura} alle 1
     \end{tabular}
 \end{table}
 
-\bigskip\noindent
-\begin{minipage}{\linewidth}
+\begin{table}
     \centering
     \small
-    \makeatletter\def\@captype{table}\makeatother
     \caption{Prestazioni della pipeline e della baseline che seleziona tutti i pixel. Fonte: \texttt{mask\_confusion\_matrix.txt}}
     \label{tab:risultati-maschere-metriche}
     \begin{tabular}{@{}lrr@{}}
@@ -249,10 +245,10 @@ Applico il protocollo della Sezione~\ref{subsec:metodi-maschere-taratura} alle 1
         IoU media & $0{,}3501$ & $0{,}6351$ \\
         \bottomrule
     \end{tabular}
-\end{minipage}
-\bigskip
+\end{table}
 
-La Tabella~\ref{tab:risultati-maschere-metriche} mostra una precisione superiore alla baseline: tra i pixel conservati aumenta la quota che coincide con il riferimento alterato. Il richiamo indica però che recupero meno della metà dei pixel annotati come alterati. Ottengo valori di accuratezza, F1-score, IoU aggregata e IoU media inferiori alla selezione dell'intera immagine. La quota elevata di pixel positivi nel riferimento favorisce questa baseline.
+\newpage
+La Tabella~\ref{tab:risultati-maschere-metriche} mostra una precisione superiore alla baseline: tra i pixel conservati aumenta la quota che coincide con il riferimento alterato. Il richiamo indica però che recupero meno della metà dei pixel annotati come alterati. Ottengo valori di accuratezza, F1-score, IoU aggregata e IoU media inferiori a quelli della baseline che seleziona l'intera immagine. La quota elevata di pixel positivi nel riferimento favorisce questa baseline.
 
 Uso il mascheramento per isolare il contenuto da descrivere, cercando di conservare dettagli e contesto utili. Una selezione troppo restrittiva può impoverire le descrizioni: l'utilità delle maschere va quindi valutata anche nei passaggi successivi della pipeline.
 
@@ -266,40 +262,42 @@ Per mostrare gli effetti del mascheramento elaboro quattro immagini senza copyri
 \begin{minipage}{\linewidth}
     \captionsetup{type=figure}
     \centering
+    \renewcommand{\thesubfigure}{\Alph{subfigure}}
+    \captionsetup[subfigure]{labelformat=simple,labelsep=period,hypcap=true}
     \makebox[0.48\linewidth]{\small Prima del mascheramento}\hfill
     \makebox[0.48\linewidth]{\small Dopo il mascheramento}\par\medskip
     \begin{subfigure}{\linewidth}
         \centering
         \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Politician_in_front_of_Ueda_station.jpg}}\hfill
         \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Politician_in_front_of_Ueda_station_masked.png}}
-        \captionsetup{labelformat=empty}
-        \caption{A. Scena davanti alla stazione di Ueda. TruFor: $0{,}0156$; pixel non neri: $0{,}00\%$.}
+        \caption{Scena davanti alla stazione di Ueda. TruFor: $0{,}0156$; pixel non neri: $0{,}00\%$.}
+        \label{fig:maschere-esempio-ueda}
     \end{subfigure}
     \par\medskip
     \begin{subfigure}{\linewidth}
         \centering
         \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Rakesh_Brahma,_EM_Bodoland_Territorial_Region.jpg}}\hfill
         \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Rakesh_Brahma,_EM_Bodoland_Territorial_Region_masked.png}}
-        \captionsetup{labelformat=empty}
-        \caption{B. Ritratto con cornice grafica. TruFor: $0{,}9043$; pixel non neri: $85{,}09\%$.}
+        \caption{Ritratto con cornice grafica. TruFor: $0{,}9043$; pixel non neri: $85{,}09\%$.}
+        \label{fig:maschere-esempio-brahma}
     \end{subfigure}
     \par\medskip
     \begin{subfigure}{\linewidth}
         \centering
         \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{South_Korean_politician_조승래.jpg}}\hfill
         \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{South_Korean_politician_조승래_masked.png}}
-        \captionsetup{labelformat=empty}
-        \caption{C. Discorso al podio. TruFor: $0{,}1124$; pixel non neri: $96{,}27\%$.}
+        \caption{Discorso al podio. TruFor: $0{,}1124$; pixel non neri: $96{,}27\%$.}
+        \label{fig:maschere-esempio-podio}
     \end{subfigure}
     \par\medskip
     \begin{subfigure}{\linewidth}
         \centering
         \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Young_Politician_Naseer_Giade.jpg}}\hfill
         \makebox[0.48\linewidth]{\includegraphics[width=0.48\linewidth,height=3.5cm,keepaspectratio]{Young_Politician_Naseer_Giade_masked.png}}
-        \captionsetup{labelformat=empty}
-        \caption{D. Manifesto elettorale. TruFor: $0{,}9307$; pixel non neri: $67{,}43\%$.}
+        \caption{Manifesto elettorale. TruFor: $0{,}9307$; pixel non neri: $67{,}43\%$.}
+        \label{fig:maschere-esempio-manifesto}
     \end{subfigure}
-    \caption[Mascheramento degli esempi A, B, C e D]{Mascheramento degli esempi A, B, C e D. I pixel neri indicano le regioni escluse. Fonti: A, \href{https://commons.wikimedia.org/wiki/File:Politician_in_front_of_Ueda_station.jpg}{Syced}; B, \href{https://commons.wikimedia.org/wiki/File:Rakesh_Brahma,_EM_Bodoland_Territorial_Region.jpg}{Swrang Borgoary}; C, \href{https://commons.wikimedia.org/wiki/File:South_Korean_politician_조승래.jpg}{Rickinasia}; D, \href{https://commons.wikimedia.org/wiki/File:Young_Politician_Naseer_Giade.jpg}{Naseer001}.}
+    \caption[Mascheramento dei quattro esempi]{Mascheramento dei quattro esempi. I pixel neri indicano le regioni escluse. Fonti: \subref{fig:maschere-esempio-ueda}, \href{https://commons.wikimedia.org/wiki/File:Politician_in_front_of_Ueda_station.jpg}{Syced}; \subref{fig:maschere-esempio-brahma}, \href{https://commons.wikimedia.org/wiki/File:Rakesh_Brahma,_EM_Bodoland_Territorial_Region.jpg}{Swrang Borgoary}; \subref{fig:maschere-esempio-podio}, \href{https://commons.wikimedia.org/wiki/File:South_Korean_politician_조승래.jpg}{Rickinasia}; \subref{fig:maschere-esempio-manifesto}, \href{https://commons.wikimedia.org/wiki/File:Young_Politician_Naseer_Giade.jpg}{Naseer001}.}
     \label{fig:maschere-esempi}
 \end{minipage}
 \bigskip
@@ -307,7 +305,7 @@ Per mostrare gli effetti del mascheramento elaboro quattro immagini senza copyri
 \section{Descrizione testuale delle regioni sospette}
 \label{sec:metodi-descrizioni}
 
-Con \path{scripts/describe.py} trasformo le immagini mascherate nel campo \texttt{anomaly\_txt}, definito nella Sezione~\ref{sec:materiali-descrizioni}. Uso BLIP per descrivere il contenuto visivo e EasyOCR per estrarre le scritte. La Figura~\ref{fig:descrizione-flusso} riassume il percorso degli input che superano il controllo sull'area visibile.
+Con \path{scripts/describe.py} trasformo le immagini mascherate nel campo \texttt{anomaly\_txt}, definito nella Sottosezione~\ref{subsec:materiali-descrizioni}. Uso BLIP per descrivere il contenuto visivo e EasyOCR per estrarre le scritte. La Figura~\ref{fig:descrizione-flusso} riassume il percorso degli input che superano il controllo sull'area visibile.
 
 \begin{figure}[htbp]
     \centering
@@ -331,37 +329,37 @@ Con \path{scripts/describe.py} trasformo le immagini mascherate nel campo \textt
 \end{figure}
 
 \subsection{Modelli e formato della descrizione}
-\label{sec:materiali-descrizioni}
+\label{subsec:materiali-descrizioni}
 
 Per descrivere le regioni sospette uso le immagini a colori su sfondo nero prodotte dal mascheramento automatico e salvate in \path{scripts/temp/masked/}.
 
-Per BLIP, descritto nella Sezione~\ref{subsec:background-blip}, adotto il modello \texttt{Salesforce/blip-image-captioning-large}, distribuito su \href{https://huggingface.co/Salesforce/blip-image-captioning-large}{Hugging Face}. Lo carico attraverso le classi \texttt{BlipProcessor} e \texttt{BlipForConditionalGeneration} della libreria Transformers. Il processore prepara le immagini per la rete e converte i token generati in testo. Fornisco soltanto l'immagine, senza un testo iniziale che orienti la didascalia~\cite{wolf-etal-2020-transformers}.
+Per BLIP~\cite{pmlr-v162-li22n}, descritto nella Sottosezione~\ref{subsec:background-blip}, adotto il modello \texttt{Salesforce/blip-image-captioning-large}, distribuito su \href{https://huggingface.co/Salesforce/blip-image-captioning-large}{Hugging Face}. Lo carico attraverso le classi \texttt{BlipProcessor} e \texttt{BlipForConditionalGeneration} della libreria Transformers~\cite{wolf-etal-2020-transformers}. Il processore prepara le immagini per la rete e converte i token generati in testo. Fornisco soltanto l'immagine, senza un testo iniziale che orienti la didascalia.
 
-Per l'OCR uso EasyOCR, specificato nella Sezione~\ref{subsec:background-ocr}, con le lingue italiano e inglese. Con questa combinazione, il lettore predefinito carica il rilevatore CRAFT e il riconoscitore \texttt{latin\_g2}, basato sull'architettura CRNN. Mantengo i pesi distribuiti per entrambi gli strumenti, senza un ulteriore addestramento sul dataset politico.
+Per l'OCR uso EasyOCR~\cite{easyocr_software}, specificato nella Sottosezione~\ref{subsec:background-ocr}, con le lingue italiano e inglese. Con questa combinazione, il lettore predefinito carica il rilevatore CRAFT e il riconoscitore \texttt{latin\_g2}, basato sull'architettura CRNN. Mantengo i pesi distribuiti per entrambi gli strumenti, senza un ulteriore addestramento sul dataset politico.
 
-Raccolgo il risultato nel campo \texttt{anomaly\_txt} di \path{dataset_filtered.csv}, associato a ciascuna immagine tramite \texttt{filename}. Il campo contiene la didascalia inglese normalizzata, seguita dalle parole riconosciute dall'OCR, oppure l'etichetta convenzionale \texttt{nomask}. Quest'ultima segnala l'assenza di una descrizione utilizzabile secondo le regole della Sezione~\ref{sec:metodi-descrizioni}.
+Raccolgo il risultato nel campo \texttt{anomaly\_txt} di \path{dataset_filtered.csv}, associato a ciascuna immagine tramite \texttt{filename}. Il campo contiene la didascalia inglese normalizzata, seguita dalle parole riconosciute dall'OCR, oppure l'etichetta convenzionale \texttt{nomask}. Quest'ultima segnala l'assenza di una descrizione utilizzabile secondo il controllo dell'area visibile (Sottosezione~\ref{subsec:metodi-descrizioni-input}) e la normalizzazione del testo (Sottosezione~\ref{subsec:metodi-descrizioni-output}).
 
 La rappresentazione può mescolare inglese e italiano e serve come input per la successiva analisi testuale.
 
 \subsection{Controllo dell'area visibile e ritaglio}
 \label{subsec:metodi-descrizioni-input}
 
-Prima di interrogare i modelli misuro la frazione di pixel non neri nell'immagine mascherata. Se questa frazione è minore o uguale al $2\%$, assegno \texttt{nomask} e salto sia BLIP sia l'OCR, per evitare la generazione di testo da input con contenuto visibile assente o limitato. Questa condizione può verificarsi anche per regioni selezionate piccole o contenenti pixel originariamente neri, indistinguibili dallo sfondo del mascheramento. L'etichetta \texttt{nomask} indica quindi l'esclusione dalla descrizione, non l'autenticità dell'immagine.
+Prima di interrogare i modelli misuro la frazione di pixel non neri nell'immagine mascherata. Se questa frazione non supera la soglia indicata nella Tabella~\ref{tab:descrizioni-parametri}, assegno \texttt{nomask} e salto sia BLIP sia l'OCR, per evitare la generazione di testo da input con contenuto visibile assente o limitato. Questa condizione può verificarsi anche per regioni selezionate piccole o contenenti pixel originariamente neri, indistinguibili dallo sfondo del mascheramento. L'etichetta \texttt{nomask} indica quindi l'esclusione dalla descrizione, non l'autenticità dell'immagine.
 
-Per le altre immagini ritaglio il rettangolo che racchiude tutti i pixel non neri, aggiungendo un margine di 10 pixel entro i bordi dell'immagine. Fornisco lo stesso ritaglio a BLIP ed EasyOCR, riducendo la cornice nera intorno al contenuto. Le aree nere interne rimangono tali e le eventuali regioni separate vengono descritte insieme.
+Per le altre immagini ritaglio il rettangolo che racchiude tutti i pixel non neri, aggiungendo un margine entro i bordi dell'immagine. Fornisco lo stesso ritaglio a BLIP ed EasyOCR, riducendo la cornice nera intorno al contenuto. Le aree nere interne rimangono tali e le eventuali regioni separate vengono descritte insieme.
 
 \subsection{Generazione della didascalia e lettura delle scritte}
 \label{subsec:metodi-descrizioni-modelli}
 
-Elaboro gruppi di 30 immagini e carico i modelli una sola volta per esecuzione. Salto i file illeggibili. Riporto nella Tabella~\ref{tab:descrizioni-parametri} i parametri della configurazione corrente, definiti in \path{scripts/config.py}.
+Elaboro le immagini in gruppi e carico i modelli una sola volta per esecuzione. Salto i file illeggibili. Riporto nella Tabella~\ref{tab:descrizioni-parametri} i parametri della configurazione corrente, definiti in \path{scripts/config.py}.
 
-Uso BLIP in precisione a 32 bit, selezionando nell'ordine NVIDIA CUDA, Apple MPS o la CPU secondo la disponibilità. Per generare le didascalie uso la \emph{beam search}: a ogni passo seleziono cinque sequenze candidate e restituisco quella con il punteggio finale migliore.
+Uso BLIP in precisione a 32 bit, selezionando nell'ordine NVIDIA CUDA, Apple MPS o la CPU secondo la disponibilità. Per generare le didascalie uso la \emph{beam search}: a ogni passo seleziono più sequenze candidate e restituisco quella con il punteggio finale migliore.
 
-Per controllare la lunghezza della didascalia generata da BLIP, imposto un minimo di 5 e un massimo di 40 nuovi token per immagine. Penalizzo con fattore $1{,}3$ il riuso dei token già presenti e impedisco la ripetizione di sequenze di due token. Mantengo disattivato il campionamento casuale. I parametri di temperatura, selezione probabilistica e seme casuale previsti per la modalità alternativa restano quindi inattivi. Queste impostazioni agiscono durante la generazione, prima della normalizzazione del testo e dell'aggiunta delle parole riconosciute dall'OCR.
+Per controllare la lunghezza della didascalia generata da BLIP, imposto un numero minimo e massimo di nuovi token per immagine. Penalizzo il riuso dei token già presenti e impedisco la ripetizione di sequenze di lunghezza prefissata. Mantengo disattivato il campionamento casuale. I parametri di temperatura, selezione probabilistica e seme casuale previsti per la modalità alternativa restano quindi inattivi. Queste impostazioni agiscono durante la generazione, prima della normalizzazione del testo e dell'aggiunta delle parole riconosciute dall'OCR.
 
-Configuro EasyOCR per eseguire i calcoli sulla GPU, quando disponibile, così da velocizzare il riconoscimento delle scritte. In assenza di una GPU compatibile, il programma usa la CPU. Imposto un fattore di ingrandimento di $1{,}5$ prima del rilevamento, per favorire la localizzazione delle scritte piccole. Conservo le trascrizioni con confidenza almeno pari a $0{,}65$, le normalizzo come descritto nella Sezione~\ref{subsec:metodi-descrizioni-output} e scarto le parole con meno di tre lettere. Ordino le parole candidate per confidenza decrescente del rispettivo riquadro, elimino i duplicati e ne mantengo al massimo venti. L'ordine delle parole nell'immagine non è conservato. Questo limite riduce il peso delle immagini dense di testo. Se l'OCR fallisce su una singola immagine, mantengo la sola didascalia di BLIP.
+Configuro EasyOCR per eseguire i calcoli sulla GPU, quando disponibile, così da velocizzare il riconoscimento delle scritte. In assenza di una GPU compatibile, il programma usa la CPU. Richiedo un ingrandimento prima del rilevamento, per favorire la localizzazione delle scritte piccole. Conservo le trascrizioni che raggiungono la soglia di confidenza, le normalizzo come descritto nella Sottosezione~\ref{subsec:metodi-descrizioni-output} e scarto le parole che non raggiungono la lunghezza minima prevista. Ordino le parole candidate per confidenza decrescente del rispettivo riquadro, elimino i duplicati e ne limito il numero. L'ordine delle parole nell'immagine non è conservato. Questo limite riduce il peso delle immagini dense di testo. Se l'OCR fallisce su una singola immagine, mantengo la sola didascalia di BLIP.
 
-Salvo le descrizioni di ogni gruppo completato in \path{description_temp.csv}. In caso di interruzione, riparto saltando i file già registrati. La ripresa presuppone che modelli, maschere e parametri restano gli stessi.
+Salvo le descrizioni di ogni gruppo completato in \path{description_temp.csv}. In caso di interruzione, riparto saltando i file già registrati. La ripresa presuppone che modelli, maschere e parametri restino gli stessi.
 
 Al termine unisco le descrizioni a \path{dataset_filtered.csv} tramite \texttt{filename}, conservando solo le osservazioni corrispondenti e prive di valori mancanti. Rimuovo quindi il file intermedio.
 
@@ -402,19 +400,19 @@ Al termine unisco le descrizioni a \path{dataset_filtered.csv} tramite \texttt{f
 
 Applico la funzione \texttt{clean\_text} separatamente alla didascalia di BLIP e alle trascrizioni di EasyOCR. Riconduco le lettere accentate alla forma senza accento, converto il testo in minuscolo e sostituisco ogni carattere diverso da \texttt{a--z} con uno spazio. Nella didascalia mantengo solo la prima occorrenza di ciascuna parola; nell'OCR elimino i duplicati durante la selezione per confidenza. Concateno infine i due contributi. Una parola presente in entrambi può quindi comparire due volte nel risultato. Se la stringa finale è vuota, assegno \texttt{nomask}.
 
-Queste scelte preparano il testo per un'analisi lessicale. La rimozione delle cifre perde informazioni come anni e numeri nelle date; il limite minimo OCR esclude anche sigle di due lettere. Conservo in questa fase articoli e preposizioni. La rimozione delle parole funzionali, o \emph{stop word}, si effettua nella successiva vettorizzazione.
+Queste scelte preparano il testo per un'analisi lessicale. Rimuovendo le cifre, perdo informazioni come anni e i numeri presenti nelle date; il limite minimo OCR esclude anche sigle di due lettere. Conservo in questa fase articoli e preposizioni. La rimozione delle parole funzionali, o \emph{stop word}, si effettua nella successiva vettorizzazione.
 
 \subsection{Controllo delle descrizioni e limiti}
 \label{subsec:metodi-descrizioni-controllo}
 
-Produco \path{description_report.txt} con il numero di risultati, il conteggio di \texttt{nomask}, la lunghezza minima, mediana e massima e le dieci parole più frequenti. Riporto i valori nella Sezione~\ref{sec:risultati-descrizioni}. Calcolo lunghezze e frequenze soltanto sulle descrizioni diverse da \texttt{nomask}, dopo l'unione di BLIP e OCR. Queste statistiche permettono di controllare la copertura e la distribuzione del testo prodotto. Per misurarne la correttezza servirebbero didascalie e trascrizioni di riferimento, distinte dalle annotazioni forensi.
+Produco \path{description_report.txt} con il numero di risultati, il conteggio di \texttt{nomask}, la lunghezza minima, mediana e massima e le dieci parole più frequenti. Riporto i valori nella Sottosezione~\ref{subsec:risultati-descrizioni}. Calcolo lunghezze e frequenze soltanto sulle descrizioni diverse da \texttt{nomask}, dopo l'unione di BLIP e OCR. Queste statistiche permettono di controllare la copertura e la distribuzione del testo prodotto. Per misurarne la correttezza servirebbero didascalie e trascrizioni di riferimento, distinte dalle annotazioni forensi.
 
 La descrizione eredita i limiti della maschera: parti escluse possono interrompere parole o rimuovere il contesto necessario a interpretare un oggetto. BLIP può generare dettagli assenti, cioè \emph{allucinazioni}, oppure descrivere lo sfondo nero introdotto dalla procedura. Anche l'OCR può produrre letture errate dopo il filtraggio. Considero quindi \texttt{anomaly\_txt} una rappresentazione da valutare nelle analisi successive, anziché una verifica delle manipolazioni.
 
-Mostro gli effetti del mascheramento nella Sezione~\ref{subsec:risultati-maschere-esempi} e le descrizioni ottenute nella Sezione~\ref{subsec:risultati-descrizioni-esempi}. Illustro la perdita di contesto, gli errori nel testo e l'interpretazione delle aree nere introdotte dalla maschera.
+Mostro gli effetti del mascheramento nella Sottosezione~\ref{subsec:risultati-maschere-esempi} e le descrizioni ottenute nella Sottosezione~\ref{subsec:risultati-descrizioni-esempi}. Illustro la perdita di contesto, gli errori nel testo e l'interpretazione delle aree nere introdotte dalla maschera.
 
 \subsection{Risultati delle descrizioni sul dataset}
-\label{sec:risultati-descrizioni}
+\label{subsec:risultati-descrizioni}
 
 Riporto nella Tabella~\ref{tab:risultati-descrizioni} i risultati del report \path{description_report.txt}, prodotto con la procedura della Sezione~\ref{sec:metodi-descrizioni}. Su 1.211 immagini ottengo 898 descrizioni testuali ($74{,}15\%$) e 313 etichette \texttt{nomask} ($25{,}85\%$).
 
@@ -449,7 +447,7 @@ Riporto nella Tabella~\ref{tab:risultati-descrizioni} i risultati del report \pa
     \end{tabular}
 \end{table}
 
-La quota di \texttt{nomask} indica la mancata produzione di una descrizione utilizzabile, non la quota di immagini autentiche. Comprende anche gli eventuali testi vuoti dopo la normalizzazione.
+La quota di \texttt{nomask} va interpretata secondo le condizioni definite nelle Sottosezioni~\ref{subsec:metodi-descrizioni-input} e~\ref{subsec:metodi-descrizioni-output}.
 
 Le lunghezze contano le parole dopo la normalizzazione e l'unione di BLIP e OCR, quindi hanno un significato diverso dal limite di 5--40 token imposto alla generazione BLIP. Tra i termini più frequenti prevalgono parole funzionali inglesi e compaiono anche \texttt{man}, \texttt{picture} e \texttt{poster}.
 
@@ -458,7 +456,7 @@ Le descrizioni ottenute sono disponibili per la successiva analisi dell'engageme
 \subsection{Descrizioni degli esempi visivi}
 \label{subsec:risultati-descrizioni-esempi}
 
-Nella Tabella~\ref{tab:descrizioni-esempi-commons} riporto il campo \texttt{anomaly\_txt} ottenuto dalle immagini mascherate della Sezione~\ref{subsec:risultati-maschere-esempi}. Questi quattro esempi rimangono separati dal riepilogo delle 1.211 immagini del dataset politico, descritto nella Tabella~\ref{tab:risultati-descrizioni}.
+Nella Tabella~\ref{tab:descrizioni-esempi-commons} riporto il campo \texttt{anomaly\_txt} ottenuto dalle immagini mascherate della Sottosezione~\ref{subsec:risultati-maschere-esempi}. Questi quattro esempi rimangono separati dal riepilogo delle 1.211 immagini del dataset politico, descritto nella Tabella~\ref{tab:risultati-descrizioni}.
 
 \begin{table}[htbp]
     \centering
@@ -469,19 +467,19 @@ Nella Tabella~\ref{tab:descrizioni-esempi-commons} riporto il campo \texttt{anom
         \toprule
         Esempio & Testo finale \\
         \midrule
-        A. Scena a Ueda & \texttt{nomask} \\
+        \subref{fig:maschere-esempio-ueda}. Scena a Ueda & \texttt{nomask} \\
         \addlinespace
-        B. Ritratto con cornice & \texttt{logo of united people s party library with silhouette a person party assan} \\
+        \subref{fig:maschere-esempio-brahma}. Ritratto con cornice & \texttt{logo of united people s party library with silhouette a person party assan} \\
         \addlinespace
-        C. Discorso al podio & \texttt{there is a man standing at podium in front of microphone} \\
+        \subref{fig:maschere-esempio-podio}. Discorso al podio & \texttt{there is a man standing at podium in front of microphone} \\
         \addlinespace
-        D. Manifesto elettorale & \texttt{there are two silhouettes of a man and woman facing each other for senator apc bauchi state ote amb sadique baba abubakar governor} \\
+        \subref{fig:maschere-esempio-manifesto}. Manifesto elettorale & \texttt{there are two silhouettes of a man and woman facing each other for senator apc bauchi state ote amb sadique baba abubakar governor} \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Nell'esempio A l'immagine mascherata è interamente nera: assegno quindi \texttt{nomask} senza interrogare BLIP e EasyOCR. Nell'esempio C la descrizione richiama l'uomo al podio e il microfono, ancora visibili dopo il mascheramento. Il testo finale non riporta le scritte coreane; il lettore OCR è configurato per italiano e inglese.
+Nell'esempio~\subref{fig:maschere-esempio-ueda} l'immagine mascherata è interamente nera: assegno quindi \texttt{nomask} senza interrogare BLIP e EasyOCR. Nell'esempio~\subref{fig:maschere-esempio-podio} la descrizione richiama l'uomo al podio e il microfono, ancora visibili dopo il mascheramento. Il testo finale non riporta le scritte coreane; il lettore OCR è configurato per italiano e inglese.
 
-Gli esempi B e D mostrano come il mascheramento influenzi l'interpretazione del contenuto. Il testo richiama sagome che corrispondono alle aree nere introdotte dalla procedura. Nell'esempio B la descrizione riconduce l'immagine a un logo e richiama il nome del partito, ma contiene anche termini errati: compaiono \texttt{library} e \texttt{assan} al posto delle scritte \texttt{LIBERAL} e \texttt{ASSAM}. Nell'esempio D descrive le aree nere come le sagome di un uomo e di una donna rivolti l'uno verso l'altra: attribuisce quindi caratteristiche che l'input mascherato non permette di ricavare. Il testo conserva informazioni presenti nelle scritte, tra cui \texttt{senator}, \texttt{apc}, \texttt{bauchi state} e \texttt{governor}. I due esempi mostrano così la presenza, nella stessa descrizione, di elementi riconoscibili, parole errate e interpretazioni delle forme prodotte dal mascheramento.
+Gli esempi~\subref{fig:maschere-esempio-brahma} e~\subref{fig:maschere-esempio-manifesto} mostrano come il mascheramento influenzi l'interpretazione del contenuto. Il testo richiama sagome che corrispondono alle aree nere introdotte dalla procedura. Nell'esempio~\subref{fig:maschere-esempio-brahma} la descrizione riconduce l'immagine a un logo e richiama il nome del partito, ma contiene anche termini errati: compaiono \texttt{library} e \texttt{assan} al posto delle scritte \texttt{LIBERAL} e \texttt{ASSAM}. Nell'esempio~\subref{fig:maschere-esempio-manifesto} descrive le aree nere come le sagome di un uomo e di una donna rivolti l'uno verso l'altra: attribuisce quindi caratteristiche che l'input mascherato non permette di ricavare. Il testo conserva informazioni presenti nelle scritte, tra cui \texttt{senator}, \texttt{apc}, \texttt{bauchi state} e \texttt{governor}. I due esempi mostrano così la presenza, nella stessa descrizione, di elementi riconoscibili, parole errate e interpretazioni delle forme prodotte dal mascheramento.
 
 Questi risultati illustrano come il testo possa combinare contenuto utile, errori e riferimenti alle aree nere introdotte dalla procedura. Poiché il CSV contiene soltanto la stringa finale, non attribuisco i singoli termini a BLIP o a EasyOCR.

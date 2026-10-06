@@ -4,27 +4,24 @@
 
 \chapter{Conclusioni, limitazioni e sviluppi futuri}
 \label{chap:conclusioni-limitazioni-sviluppi}
-% Conservo i rimandi ai due capitoli precedenti, ora riuniti.
-\label{chap:conclusioni}
-\label{chap:limiti}
 
 In questo capitolo sintetizzo la risposta alla domanda di ricerca (Sezione~\ref{sec:conclusioni-risposta}) e il contributo del progetto (Sezione~\ref{sec:conclusioni-contributo}). Delimito poi le conclusioni attraverso i limiti del campione, delle rappresentazioni e della valutazione (Sezione~\ref{sec:conclusioni-limitazioni}). Infine propongo le verifiche successive (Sezione~\ref{sec:conclusioni-sviluppi}).
 
 \section{Risposta alla domanda di ricerca}
 \label{sec:conclusioni-risposta}
 
-La domanda iniziale riguarda il contributo del contenuto delle regioni sospette e delle caratteristiche visive alla classificazione dell'engagement, rispetto al solo punteggio TruFor. Nel campione analizzato osservo un contributo predittivo modesto delle rappresentazioni arricchite. Testo e caratteristiche visive, aggiunti separatamente, migliorano il confronto con il punteggio forense; la loro combinazione non produce un ulteriore miglioramento in validazione.
+La domanda iniziale riguarda il contributo del contenuto delle regioni sospette e delle caratteristiche visive alla classificazione dell'engagement, rispetto al solo punteggio TruFor e, per il testo, anche rispetto al modello che include già le caratteristiche visive. Nel campione analizzato osservo un contributo predittivo modesto delle rappresentazioni arricchite. L'aggiunta separata del testo e delle caratteristiche visive migliora le prestazioni rispetto al solo punteggio forense. Quando il riferimento comprende già TruFor e le caratteristiche visive, aggiungere il testo peggiora invece l'indice in validazione: il protocollo adottato non evidenzia un vantaggio predittivo ulteriore delle descrizioni.
 
-Sul campione finale di 1.195 osservazioni, la logistica con TruFor e testo TF-IDF raggiunge il $59{,}4\%$ di accuratezza, contro la baseline di maggioranza del $51{,}2\%$, e AUC $0{,}644$ (Tabella~\ref{tab:risultati-classificazione-logistica}). Nel confronto tra GLM sulle stesse partizioni, $Q_{\mathrm{CV}}$ passa da $-0{,}0060$ per il solo TruFor a $0{,}0234$ con il testo e a $0{,}0278$ con le caratteristiche visive. Il modello completo raggiunge il maggiore pseudo-$R^2$ sui dati di stima, pari a $0{,}1605$, ma il suo indice in validazione scende a $0{,}0128$ (Tabella~\ref{tab:risultati-confronto-blocchi}). Il migliore adattamento al campione non si traduce quindi nella migliore prestazione sulle partizioni escluse dalla stima.
+Sul campione finale di 1.195 osservazioni, la logistica con TruFor e testo TF-IDF raggiunge un'accuratezza del $59{,}4\%$. Questo valore supera il $51{,}2\%$ della baseline di maggioranza. Il modello ottiene un'AUC pari a $0{,}644$ (Tabella~\ref{tab:risultati-classificazione-logistica}). Nel confronto tra GLM sulle stesse partizioni, $Q_{\mathrm{CV}}$ passa da $-0{,}0060$ per il solo TruFor a $0{,}0234$ con il testo e a $0{,}0278$ con le caratteristiche visive. Il modello completo raggiunge il maggiore pseudo-$R^2$ sui dati di stima, pari a $0{,}1605$, ma il suo indice in validazione scende a $0{,}0128$ (Tabella~\ref{tab:risultati-confronto-blocchi}). Il migliore adattamento al campione non si traduce quindi nella migliore prestazione sulle partizioni escluse dalla stima.
 
 Questi risultati sostengono l'utilità di esaminare informazioni più articolate del solo punteggio TruFor, entro il protocollo adottato. Non dimostrano che testo e caratteristiche visive siano ridondanti, né che descrivere le regioni sospette sia preferibile a descrivere l'immagine intera. Studio inoltre associazioni con l'engagement osservato, senza identificare effetti causali delle modifiche alle immagini sulle interazioni degli utenti.
 
 \section{Contributo del progetto}
 \label{sec:conclusioni-contributo}
 
-Realizzo una pipeline che collega immagini politiche, indizi forensi e misure di engagement. Integro i modelli preaddestrati di TruFor, BLIP ed EasyOCR con il filtraggio dei dati, il mascheramento, l'estrazione delle caratteristiche visive e le analisi statistiche. Il contributo consiste nell'integrazione di questi componenti e nel confronto delle rappresentazioni ottenute.
+Realizzo una pipeline che collega immagini politiche, indizi forensi e misure di engagement. Integro i modelli preaddestrati di TruFor~\cite{Guillaro_2023_CVPR}, BLIP~\cite{pmlr-v162-li22n} ed EasyOCR~\cite{easyocr_software} con il filtraggio dei dati, il mascheramento, l'estrazione delle caratteristiche visive e le analisi statistiche. Il contributo consiste nell'integrazione di questi componenti e nel confronto delle rappresentazioni ottenute.
 
-Mantengo distinti il ramo che descrive le regioni sospette e quello che misura le 19 caratteristiche dell'immagine intera. Raccolgo gli output in una tabella comune e li collego agli originali mediante l'identificatore del file. Le mappe, le immagini mascherate e i testi intermedi permettono di ispezionare il passaggio dall'immagine ai predittori; i parametri centralizzati permettono di ripetere l'elaborazione con configurazioni diverse (Sezione~\ref{subsec:pipeline-output}).
+Mantengo distinti il ramo che descrive le regioni sospette e quello che misura le 19 caratteristiche dell'immagine intera. Raccolgo gli output in una tabella comune e li collego agli originali mediante l'identificatore del file. Le mappe, le immagini mascherate e i testi intermedi permettono di ispezionare il passaggio dall'immagine ai predittori; i parametri centralizzati permettono di ripetere l'elaborazione con configurazioni diverse (Sottosezione~\ref{subsec:pipeline-output}).
 
 Il confronto sul medesimo campione distingue il contributo di TruFor, del testo e delle caratteristiche visive. Affianco alla valutazione predittiva l'analisi dei coefficienti e le spiegazioni delle previsioni. Ottengo così uno strumento per formulare e verificare ipotesi sul comportamento dei modelli, mantenendo separate significatività statistica, capacità predittiva e interpretazione causale.
 
@@ -32,14 +29,14 @@ Il confronto sul medesimo campione distingue il contributo di TruFor, del testo 
 \label{sec:conclusioni-limitazioni}
 
 \subsection{Validazione e selezione dei parametri}
-\label{sec:limiti-validazione}
+\label{subsec:limiti-validazione}
 
 Apprendo vocabolario, pesi IDF, PCA e standardizzazione visiva sull'intero campione prima della validazione. Le osservazioni escluse dalla stima del classificatore partecipano quindi alla preparazione dei predittori. L'assenza delle etichette in queste trasformazioni non basta a rendere indipendente la valutazione. Anche la prevalenza del riferimento nullo usa tutte le etichette. I report attuali non quantificano il possibile ottimismo introdotto da queste scelte.
 
 La grid search seleziona la configurazione sullo stesso campione e sulle stesse partizioni usate per confrontare le alternative. Il massimo di $Q_{\mathrm{CV}}$, pari a $0{,}0647$, documenta la selezione e non costituisce una valutazione indipendente (Sezione~\ref{sec:associazione-grid-search}). Inoltre, logistica e GLM usano suddivisioni diverse. I report non forniscono intervalli d'incertezza per le differenze tra le prestazioni.
 
 \subsection{Campione e interpretazione statistica}
-\label{sec:limiti-campione}
+\label{subsec:limiti-campione}
 
 Analizzo una raccolta di comunicazione politica su Facebook e Instagram riferita a un periodo specifico. I filtri richiedono una prima fotografia disponibile e dati completi; quando più post condividono lo stesso file, conservo quello con engagement maggiore. La classificazione esclude inoltre l'intervallo centrale dello score. Queste scelte delimitano il campione e la popolazione a cui riferisco i risultati (Sezione~\ref{sec:dataset-selezione}).
 
@@ -48,20 +45,20 @@ Le partizioni operano sulle singole osservazioni, senza separare account o perio
 La correzione Benjamini--Hochberg riguarda soltanto i 19 test visivi del modello TruFor e caratteristiche visive, non tutte le analisi esplorate. Le sue garanzie dipendono dalle assunzioni sulla dipendenza tra i test~\cite{10.1111/j.2517-6161.1995.tb02031.x}. Il risultato sul rapporto d'aspetto resta un'associazione condizionata ai predittori inclusi; account, piattaforma e periodo rimangono fuori dal modello.
 
 \subsection{Rappresentazioni automatiche e spiegazioni}
-\label{sec:limiti-rappresentazioni}
+\label{subsec:limiti-rappresentazioni}
 
-Le regioni selezionate costituiscono ipotesi di localizzazione, non alterazioni accertate. Il test preliminare su 100 immagini usa le mie annotazioni come riferimento; sullo stesso campione scelgo e valuto i parametri del mascheramento (Sezioni~\ref{sec:metodi-trufor-benchmark} e~\ref{subsec:metodi-maschere-taratura}). La verifica ha quindi carattere esplorativo. Inoltre, l'ambito di TruFor riguarda le manipolazioni locali e non fornisce una verifica generale dell'autenticità delle immagini interamente generate (Sezione~\ref{sec:background-trufor-limiti}).
+Le regioni selezionate costituiscono ipotesi di localizzazione, non alterazioni accertate. Il test preliminare su 100 immagini usa le mie annotazioni come riferimento; sullo stesso campione scelgo e valuto i parametri del mascheramento (Sezione~\ref{sec:metodi-trufor-benchmark} e Sottosezione~\ref{subsec:metodi-maschere-taratura}). La verifica ha quindi carattere esplorativo. Inoltre, l'ambito di TruFor riguarda le manipolazioni locali e non fornisce una verifica generale dell'autenticità delle immagini interamente generate (Sottosezione~\ref{subsec:background-trufor-limiti}).
 
-Il testo eredita gli errori di localizzazione, mascheramento, descrizione e OCR. Manca una valutazione quantitativa rispetto a descrizioni di riferimento. Il campo finale unisce didascalia e trascrizione, mentre TF-IDF assegna lo stesso vettore nullo a \texttt{nomask} e alle descrizioni senza termini conservati. Queste scelte limitano la possibilità di attribuire il segnale a ciascun componente. Anche le caratteristiche visive dipendono da risoluzione, compressione e contenuto e aggregano regioni autentiche ed eventualmente alterate (Sezione~\ref{subsec:metodi-feature-limiti}).
+Il testo eredita gli errori di localizzazione, mascheramento, descrizione e OCR. Manca una valutazione quantitativa rispetto a descrizioni di riferimento. Il campo finale unisce didascalia e trascrizione, mentre TF-IDF assegna lo stesso vettore nullo a \texttt{nomask} e alle descrizioni senza termini conservati. Queste scelte limitano la possibilità di attribuire il segnale a ciascun componente. Anche le caratteristiche visive dipendono da risoluzione, compressione e contenuto e aggregano regioni autentiche ed eventualmente alterate (Sezione~\ref{sec:metodi-feature-limiti}).
 
-Le spiegazioni usano il modello riaddestrato sull'intero campione e le stesse osservazioni di stima. SHAP usa il mascheramento indipendente anche se le parole sono correlate; LIME perturba coordinate TF-IDF continue e può produrre combinazioni lontane dai testi osservati. Le importanze e gli esempi locali aiutano a ispezionare il classificatore, ma la loro stabilità su nuovi dati rimane da verificare.
+Le spiegazioni usano il modello riaddestrato sull'intero campione e le stesse osservazioni di stima. SHAP~\cite{NIPS2017_8a20a862} usa il mascheramento indipendente anche se le parole sono correlate; LIME~\cite{ribeiro2016whyitrustyou} perturba coordinate TF-IDF continue e può produrre combinazioni lontane dai testi osservati. Le importanze e gli esempi locali aiutano a ispezionare il classificatore, ma la loro stabilità su nuovi dati rimane da verificare.
 
 \section{Sviluppi futuri e verifiche successive}
 \label{sec:conclusioni-sviluppi}
 
-Individuo come prima priorità una valutazione che separi preparazione, selezione e verifica. Propongo di apprendere ogni trasformazione e la prevalenza del modello nullo sulle sole partizioni di addestramento. Una validazione annidata permette di scegliere gli iperparametri all'interno di ciascuna partizione esterna di addestramento, riservando quella esclusa alla valutazione. Propongo inoltre di usare partizioni comuni e ripetizioni con ricampionamento coerente con le dipendenze tra post, per confrontare i modelli e quantificare l'incertezza.
+La prima priorità è ottenere una valutazione indipendente delle prestazioni, perché la preparazione dei dati e la selezione degli iperparametri sullo stesso campione possono rendere ottimistico il confronto.
 
-La seconda priorità riguarda il contributo della localizzazione. Propongo di confrontare descrizioni delle regioni sospette e dell'immagine intera, usando gli stessi strumenti, osservazioni e protocolli. Prevedo di conservare separatamente gli output BLIP e OCR per confrontarne il contributo e di distinguere i casi \texttt{nomask} dai testi privi di termini nel vocabolario. Una valutazione su immagini e annotazioni non usate nella taratura permette inoltre di esaminare gli errori delle maschere e delle descrizioni.
+La seconda priorità è isolare il contributo della localizzazione, perché i risultati attuali riflettono l'intera pipeline e non distinguono il ruolo della selezione delle regioni da quello dei componenti di descrizione.
 
 Riassumo nella Tabella~\ref{tab:conclusioni-verifiche} le domande ancora aperte e le verifiche corrispondenti. Le proposte richiedono nuovi esperimenti: i risultati riportati nella tesi descrivono la pipeline e il protocollo attuali.
 
@@ -74,7 +71,7 @@ Riassumo nella Tabella~\ref{tab:conclusioni-verifiche} le domande ancora aperte 
         \toprule
         Domanda aperta & Verifica proposta \\
         \midrule
-        Quanto si mantengono le prestazioni dopo una valutazione indipendente dalla selezione? & Apprendere le trasformazioni nelle partizioni di addestramento; usare validazione annidata e quantificare l'incertezza del confronto. \\
+        Quanto si mantengono le prestazioni dopo una valutazione indipendente dalla selezione? & Apprendere le trasformazioni nelle partizioni di addestramento; usare una validazione annidata, scegliendo gli iperparametri entro ciascuna partizione esterna di addestramento e riservando quella esclusa alla valutazione; quantificare l'incertezza del confronto. \\
         \addlinespace
         Il risultato si estende a nuovi account o periodi? & Separare account e intervalli temporali; verificare la sensibilità al filtro centrale e alla gestione dei duplicati. \\
         \addlinespace

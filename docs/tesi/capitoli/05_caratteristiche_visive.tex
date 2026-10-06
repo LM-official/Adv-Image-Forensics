@@ -5,7 +5,7 @@
 \chapter{Caratteristiche visive dell'immagine intera}
 \label{chap:caratteristiche-visive}
 
-In questo capitolo descrivo le caratteristiche visive che affianco al punteggio TruFor e al testo delle regioni sospette. Chiarisco il ruolo di questo ramo nella pipeline (Sezione~\ref{sec:feature-ruolo}), definisco le 19 misure (Sezione~\ref{sec:materiali-feature-visive}) e descrivo come le estraggo e le associo alle osservazioni (Sezione~\ref{subsec:metodi-feature-estrazione}). Concludo con i limiti della rappresentazione (Sezione~\ref{subsec:metodi-feature-limiti}).
+In questo capitolo descrivo le caratteristiche visive che affianco al punteggio TruFor e al testo delle regioni sospette. Chiarisco il ruolo di questo ramo nella pipeline (Sezione~\ref{sec:feature-ruolo}), definisco le 19 misure (Sezione~\ref{sec:materiali-feature-visive}) e descrivo come le estraggo e le associo alle osservazioni (Sezione~\ref{sec:metodi-feature-estrazione}). Concludo con i limiti della rappresentazione (Sezione~\ref{sec:metodi-feature-limiti}).
 
 \section{Ruolo delle caratteristiche visive nella pipeline}
 \label{sec:feature-ruolo}
@@ -51,14 +51,14 @@ Assegno pesi diversi ai tre canali per approssimare il loro diverso contributo a
 \end{equation}
 Uso $L$ per luminosità, contrasto e gamma dinamica; uso $Q$ per le misure di dettaglio, distribuzione delle intensità e struttura. Interpreto $L$ come un'approssimazione della luminosità~\cite{itu_bt601}.
 
-Nelle sezioni seguenti impiego queste notazioni per definire le singole caratteristiche visive. Riporto tra parentesi i nomi delle colonne con cui salvo le caratteristiche nel \path{dataset_filtered.csv}.
+Nelle sottosezioni seguenti impiego queste notazioni per definire le singole caratteristiche visive. Riporto tra parentesi i nomi delle colonne con cui salvo le caratteristiche nel \path{dataset_filtered.csv}.
 
 \subsection{Tono ed esposizione}
 \label{subsec:feature-tono}
 
-La luminosità (\texttt{brightness}) è $\mu(L)/255$ e il contrasto (\texttt{contrast}) è $\sigma(L)/255$.
+La \emph{luminosità} (\texttt{brightness}) è $\mu(L)/255$ e il \emph{contrasto} (\texttt{contrast}) è $\sigma(L)/255$.
 
-Indico con $P_q(L)$ il percentile di ordine $q$ delle intensità di $L$, cioè la soglia sotto cui si trova il $q\%$ dei pixel. Calcolo la gamma dinamica robusta (\texttt{dynamic\_range}) come segue:
+Indico con $P_q(L)$ il percentile di ordine $q$ delle intensità di $L$, cioè la soglia sotto cui si trova il $q\%$ dei pixel. Calcolo la \emph{gamma dinamica robusta} (\texttt{dynamic\_range}) come segue:
 \begin{equation}
     \texttt{dynamic\_range}=\frac{P_{99}(L)-P_1(L)}{255}.
     \label{eq:feature-gamma-dinamica}
@@ -70,75 +70,79 @@ Escludendo le code dell'istogramma riduco il peso delle intensità estreme isola
 
 Uso il \emph{Laplaciano}, un operatore basato sulle derivate seconde dell'intensità, per evidenziare le variazioni locali. Indico con $\Delta Q$ la sua risposta discreta.
 
-La nitidezza (\texttt{sharpness}) è la varianza $\sigma^2(\Delta Q)$. Valori elevati indicano una maggiore variabilità della risposta, che può dipendere da dettagli, contorni o rumore~\cite{903548}.
+La \emph{nitidezza} (\texttt{sharpness}) è la varianza $\sigma^2(\Delta Q)$. Valori elevati indicano una maggiore variabilità della risposta, che può dipendere da dettagli, contorni o rumore~\cite{903548}.
 
-Per misurare la limpidezza (\texttt{clearness}) confronto l'immagine in scala di grigi $Q$ con una sua versione sfocata. Ottengo quest'ultima applicando un filtro gaussiano, che attenua le variazioni tra pixel vicini. Indico con $G_2(Q)$ l'immagine filtrata con deviazione standard di 2 pixel e calcolo:
+Per misurare la \emph{limpidezza} (\texttt{clearness}) confronto l'immagine in scala di grigi $Q$ con una sua versione sfocata. Ottengo quest'ultima applicando un filtro gaussiano, che attenua le variazioni tra pixel vicini. Indico con $G_2(Q)$ l'immagine filtrata con deviazione standard di 2 pixel e calcolo:
 \begin{equation}
     \texttt{clearness}=\frac{\sqrt{\mu\bigl((Q-G_2(Q))^2\bigr)}}{255}.
+    \label{eq:feature-limpidezza}
 \end{equation}
 La misura cresce quanto più l'immagine differisce dalla sua versione sfocata: indica quindi quanto sono marcate le variazioni di intensità rimosse dal filtro~\cite{PERTUZ20131415}.
 
-Per misurare la sfocatura (\texttt{blur}) sfrutto il principio che un'immagine già sfocata perde poco dettaglio quando la sfoco ulteriormente. Sfoco $Q$ separatamente in orizzontale e in verticale, usando filtri che calcolano la media su 9 pixel. Per ciascuna direzione misuro quanto si riducono le differenze di intensità tra pixel vicini rispetto a quelle iniziali. Una riduzione piccola produce un indice di sfocatura alto. Conservo il maggiore dei due indici, compreso tra 0 e 1 e crescente con il grado di sfocatura~\cite{creteroffet:hal-00232709}.
+Per misurare la \emph{sfocatura} (\texttt{blur}) sfrutto il principio che un'immagine già sfocata perde poco dettaglio quando la sfoco ulteriormente. Sfoco $Q$ separatamente in orizzontale e in verticale, usando filtri che calcolano la media su 9 pixel. Per ciascuna direzione misuro quanto si riducono le differenze di intensità tra pixel vicini rispetto a quelle iniziali. Una riduzione piccola produce un indice di sfocatura alto. Conservo il maggiore dei due indici, compreso tra 0 e 1 e crescente con il grado di sfocatura~\cite{creteroffet:hal-00232709}.
 
-La profondità di campo (\texttt{depth\_of\_field}) è un indicatore del rapporto di dettaglio tra centro e periferia di una foto. Definisco il centro $C$ come il rettangolo che occupa il terzo centrale di ciascuna dimensione e la periferia $P$ come tutti i pixel restanti. Calcolo
+La \emph{profondità di campo} (\texttt{depth\_of\_field}) è un indicatore del rapporto di dettaglio tra centro e periferia di una foto. Definisco il centro $C$ come il rettangolo che occupa il terzo centrale di ciascuna dimensione e la periferia $P$ come tutti i pixel restanti. Calcolo
 \begin{equation}
     \texttt{depth\_of\_field}=
     \frac{\sigma^2((\Delta Q)_C)}{\sigma^2((\Delta Q)_P)+10^{-6}}.
+    \label{eq:feature-profondita-campo}
 \end{equation}
 Il termine $10^{-6}$ rende il rapporto definito anche con una periferia uniforme. Un rapporto elevato indica più dettaglio al centro; l'interpretazione come soggetto a fuoco su sfondo sfocato richiede che il soggetto occupi quella regione~\cite{10.1007/11744078_23}.
 
 \subsection{Colore}
 \label{subsec:feature-colore}
 
-Per la vivacità (\texttt{colorfulness}) uso la misura di Hasler e Süsstrunk. Definisco i canali di opposizione $U=R-G$ e $V=(R+G)/2-B$ e calcolo:
+Per la \emph{vivacità} (\texttt{colorfulness}) uso la misura di Hasler e Süsstrunk. Definisco i canali di opposizione $U=R-G$ e $V=(R+G)/2-B$ e calcolo:
 \begin{equation}
     \texttt{colorfulness}=
     \sqrt{\sigma^2(U)+\sigma^2(V)}+
     0{,}3\sqrt{\mu(U)^2+\mu(V)^2}.
+    \label{eq:feature-vivacita}
 \end{equation}
 La misura vale zero quando i tre canali coincidono. Mantengo la scala originale, senza normalizzarla~\cite{10.1117/12.477378}.
 
-Converto l'immagine nel formato HSV (Hue, Saturation, Value). Nella rappresentazione OpenCV a 8 bit la tonalità varia da 0 a 179 e la saturazione e il valore da 0 a 255~\cite{opencv_library}.
+Converto l'immagine nello spazio di colore HSV (Hue, Saturation, Value). Nella rappresentazione OpenCV a 8 bit la tonalità varia da 0 a 179 e la saturazione e il valore da 0 a 255~\cite{opencv_library}.
 
-La saturazione (\texttt{saturation}) è la media del relativo canale divisa per 255.
+La \emph{saturazione} (\texttt{saturation}) è la media del relativo canale divisa per 255.
 
-La tonalità media (\texttt{hue\_mean}) è la media aritmetica del canale di tonalità divisa per 179.
+La \emph{tonalità media} (\texttt{hue\_mean}) è la media aritmetica del canale di tonalità divisa per 179.
 
-Il calore (\texttt{warmth}) è $\mu\bigl((R-B)/(R+B+10^{-6})\bigr)$. Il segno positivo indica una prevalenza del rosso sul blu, quello negativo la prevalenza opposta. Questa definizione produce un indice cromatico compreso tra $-1$ e $1$~\cite{Jonauskaite2024}.
+Il \emph{calore} (\texttt{warmth}) è $\mu\bigl((R-B)/(R+B+10^{-6})\bigr)$. Il segno positivo indica una prevalenza del rosso sul blu, quello negativo la prevalenza opposta. Questa definizione produce un indice cromatico compreso tra $-1$ e $1$~\cite{Jonauskaite2024}.
 
 \subsection{Distribuzione delle intensità}
 \label{subsec:feature-distribuzione}
 
-Descrivo la forma dell'istogramma di $Q$ attraverso i momenti centrali $m_k=\mu\bigl((Q-\mu(Q))^k\bigr)$. L'asimmetria (\texttt{skewness}) è $m_3/m_2^{3/2}$. La curtosi (\texttt{kurtosis}) è $m_4/m_2^2-3$: uso quindi l'eccesso di curtosi, che per una distribuzione normale vale zero. Calcolo entrambi i rapporti con le impostazioni predefinite di SciPy, senza correzione del bias~\cite{2020SciPy-NMeth}.
+Descrivo la forma dell'istogramma di $Q$ attraverso i momenti centrali $m_k=\mu\bigl((Q-\mu(Q))^k\bigr)$. L'\emph{asimmetria} (\texttt{skewness}) è $m_3/m_2^{3/2}$. La \emph{curtosi} (\texttt{kurtosis}) è $m_4/m_2^2-3$: uso quindi l'eccesso di curtosi, che per una distribuzione normale vale zero. Calcolo entrambi i rapporti con le impostazioni predefinite di SciPy, senza correzione del bias~\cite{2020SciPy-NMeth}.
 
 L'\emph{entropia di Shannon} (\texttt{shannon\_entropy}) riassume la dispersione delle frequenze dei livelli di grigio. Se $p_v$ è la frazione di pixel con intensità $v$, definisco
 \begin{equation}
     \texttt{shannon\_entropy}=-\sum_{v:p_v>0}p_v\log_2 p_v.
+    \label{eq:feature-entropia}
 \end{equation}
 L'entropia è espressa in bit, tra 0 e 8 per 256 livelli. Vale zero per un'immagine uniforme e cresce quando le frequenze si distribuiscono su più livelli. L'istogramma ignora la posizione dei pixel: immagini con disposizioni spaziali diverse possono avere la stessa entropia~\cite{6773024}.
 
 \subsection{Composizione e struttura}
 \label{subsec:feature-composizione}
 
-L'\texttt{aspect\_ratio} è $W/H$: valori superiori a 1 indicano un formato orizzontale, inferiori a 1 un formato verticale.
+Il \emph{rapporto d'aspetto} (\texttt{aspect\_ratio}) è $W/H$: valori superiori a 1 indicano un formato orizzontale, inferiori a 1 un formato verticale.
 
-La simmetria (\texttt{symmetry}) confronta la metà sinistra $Q_S$ con la metà destra riflessa orizzontalmente $Q_D^{\leftrightarrow}$. Calcolo $1-\mu(|Q_S-Q_D^{\leftrightarrow}|)/255$, escludendo la colonna centrale quando la larghezza è dispari. L'indice appartiene a $[0,1]$ ed è massimo quando le due metà coincidono nelle intensità.
+La \emph{simmetria} (\texttt{symmetry}) confronta la metà sinistra $Q_S$ con la metà destra riflessa orizzontalmente $Q_D^{\leftrightarrow}$. Calcolo $1-\mu(|Q_S-Q_D^{\leftrightarrow}|)/255$, escludendo la colonna centrale quando la larghezza è dispari. L'indice appartiene a $[0,1]$ ed è massimo quando le due metà coincidono nelle intensità.
 
-Per le due misure successive calcolo gli operatori di Sobel di dimensione $3\times3$ per misurare le variazioni di intensità in orizzontale ($g_x$) e in verticale ($g_y$). Le combino nel modulo del gradiente $M=\sqrt{g_x^2+g_y^2}$, che indica quanto è forte la variazione in ciascun pixel~\cite{996}.
+Per le due misure successive applico gli operatori di Sobel di dimensione $3\times3$ per misurare le variazioni di intensità in orizzontale ($g_x$) e in verticale ($g_y$). Le combino nel modulo del gradiente $M=\sqrt{g_x^2+g_y^2}$, che indica quanto è forte la variazione in ciascun pixel~\cite{996}.
 
-La dominanza diagonale (\texttt{diagonal\_dominance}) misura quanto prevalgono le variazioni orientate lungo le diagonali. Considero le direzioni vicine a $45^\circ$ e $135^\circ$, con una tolleranza di $22{,}5^\circ$. Sommo le intensità del gradiente $M$ nei pixel con queste direzioni e divido per la somma di $M$ su tutta l'immagine. Ottengo una quota compresa tra 0 e 1, che cresce con la presenza di variazioni diagonali, pesate per la loro forza.
+La \emph{dominanza diagonale} (\texttt{diagonal\_dominance}) misura quanto prevalgono le variazioni orientate lungo le diagonali. Considero le direzioni vicine a $45^\circ$ e $135^\circ$, con una tolleranza di $22{,}5^\circ$. Sommo le intensità del gradiente $M$ nei pixel con queste direzioni e divido per la somma di $M$ su tutta l'immagine. Ottengo una quota compresa tra 0 e 1, che cresce con la presenza di variazioni diagonali, pesate per la loro forza.
 
-La regola dei terzi (\texttt{rule\_of\_thirds}) misura la concentrazione del gradiente vicino alle quattro intersezioni di una griglia $3\times3$. Costruisco attorno ad ogni intersezione un disco di raggio pari al $10\%$ della diagonale dell'immagine. Indico con $D$ l'unione dei quattro dischi e con $M_D$ le intensità del gradiente nei pixel di $D$ e calcolo:
+La \emph{regola dei terzi} (\texttt{rule\_of\_thirds}) misura la concentrazione del gradiente vicino alle quattro intersezioni di una griglia $3\times3$. Costruisco attorno ad ogni intersezione un disco di raggio pari al $10\%$ della diagonale dell'immagine. Indico con $D$ l'unione dei quattro dischi e con $M_D$ le intensità del gradiente nei pixel di $D$ e calcolo:
 \begin{equation}
     \texttt{rule\_of\_thirds}=\frac{\mu(M_D)}{\mu(M)}.
     \label{eq:feature-regola-terzi}
 \end{equation}
 Un rapporto superiore a 1 indica una maggiore concentrazione di variazioni in quelle zone. Se il gradiente è nullo su tutta l'immagine, pongo la caratteristica a zero.
 
-La complessità visiva (\texttt{visual\_complexity}) è la frazione di pixel rilevati come bordi dall'algoritmo di Canny, applicato a $Q$ con soglie 100 e 200. La densità dei bordi è compresa tra 0 e 1~\cite{4767851}.
+La \emph{complessità visiva} (\texttt{visual\_complexity}) è la frazione di pixel rilevati come bordi dall'algoritmo di Canny, applicato a $Q$ con soglie 100 e 200. La densità dei bordi è compresa tra 0 e 1~\cite{4767851}.
 
 \section{Estrazione e aggiornamento della tabella}
-\label{subsec:metodi-feature-estrazione}
+\label{sec:metodi-feature-estrazione}
 
 Dopo l'inferenza di TruFor eseguo \path{scripts/features.py}, che associa a ciascuna osservazione il vettore definito nella Sezione~\ref{sec:materiali-feature-visive}.
 
@@ -151,11 +155,10 @@ Salvo le caratteristiche nelle scale definite nella Sezione~\ref{sec:materiali-f
 Gestisco separatamente i casi degeneri. Salto i file che non riesco a leggere. Sostituisco con zero i valori non finiti, come asimmetria e curtosi di un'immagine uniforme. Per una direzione priva di variazioni assegno zero al relativo indice di sfocatura; assegno zero anche alla dominanza diagonale e alla regola dei terzi quando il gradiente è nullo. Questi zeri sono convenzioni numeriche: in particolare, l'assenza di variazioni rende la sfocatura non valutabile attraverso il confronto adottato.
 
 \section{Limiti della rappresentazione}
-\label{subsec:metodi-feature-limiti}
+\label{sec:metodi-feature-limiti}
 
 L'interpretazione dipende dal contenuto e dalla scala dei file. Le finestre di filtraggio sono espresse in pixel: risoluzione, compressione e rumore possono modificare nitidezza, sfocatura e bordi. Testo al centro o sfondi uniformi possono aumentare il rapporto centro-periferia indipendentemente dalla messa a fuoco.
 
 La tonalità ha natura circolare: valori vicini ai due estremi possono rappresentare colori simili. La media aritmetica trascura questa proprietà e include pixel poco saturi. Entropia e densità dei bordi descrivono frequenze e transizioni di intensità, da distinguere dalla complessità semantica della scena.
 
 Le misure aggregano regioni autentiche ed eventualmente alterate. Le associazioni con il punteggio TruFor $t_i$ descrivono il comportamento del rilevatore. Per verificare se queste caratteristiche siano associate anche a manipolazioni effettive servono annotazioni indipendenti. Le correlazioni con il punteggio di engagement $c_i$ mostrano associazioni, che possono dipendere anche dall’account, dall’argomento e dalle condizioni di pubblicazione.
-

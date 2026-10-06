@@ -4,37 +4,28 @@
 
 \chapter{Associazione con l'engagement}
 \label{chap:associazione-engagement}
-% Alias dei capitoli precedenti, per conservare i rimandi durante la riorganizzazione.
-\label{chap:metodi}
-\label{chap:risultati}
-\label{chap:discussione}
 
-In questo capitolo rispondo alla domanda di ricerca: quanto contribuiscono il contenuto delle regioni sospette e le caratteristiche visive alla classificazione dell'engagement, rispetto al solo punteggio TruFor? Presento il campione e il protocollo comune (Sezione~\ref{sec:associazione-impostazione}), poi esamino il solo punteggio globale di TruFor (Sezione~\ref{sec:risultati-trufor-engagement}), le caratteristiche visive (Sezione~\ref{sec:risultati-feature-visive}) e il testo (Sezione~\ref{sec:risultati-classificazione}). Descrivo la ricerca degli iperparametri tramite grid search (Sezione~\ref{sec:associazione-grid-search}) e confronto i blocchi informativi (Sezione~\ref{sec:risultati-confronto-blocchi}). Concludo con l'interpretazione delle previsioni sulle parole (Sezione~\ref{sec:risultati-spiegazioni}). Per ogni confronto affianco procedura, risultati e interpretazione.
+In questo capitolo rispondo alla domanda di ricerca: quanto contribuiscono il contenuto delle regioni sospette e le caratteristiche visive alla classificazione dell'engagement, rispetto al solo punteggio TruFor? Presento il campione e il protocollo comune (Sezione~\ref{sec:associazione-impostazione}), poi esamino il solo punteggio globale di TruFor (Sezione~\ref{sec:associazione-trufor}), le caratteristiche visive (Sezione~\ref{sec:associazione-visive}) e il testo (Sezione~\ref{sec:associazione-testo}). Descrivo la ricerca degli iperparametri tramite grid search (Sezione~\ref{sec:associazione-grid-search}) e confronto i blocchi informativi (Sezione~\ref{sec:associazione-confronto-blocchi}). Concludo con l'interpretazione delle previsioni sulle parole (Sezione~\ref{sec:associazione-spiegazioni}). Per ogni confronto affianco procedura, risultati e interpretazione.
 
 \section{Campione, modelli e protocollo di valutazione}
 \label{sec:associazione-impostazione}
-\label{sec:materiali-classificazione}
-\label{sec:materiali-misure-statistiche}
-\label{sec:metodi-classificazione}
 
-Uso le informazioni prodotte dai rami dei Capitoli~\ref{chap:localizzazione-descrizione} e~\ref{chap:caratteristiche-visive}: il punteggio globale TruFor $t_i$, il testo delle regioni sospette e le 19 caratteristiche dell'immagine intera. Le associo al punteggio continuo di engagement $c_i$ e alla risposta binaria $y_i$, definiti nella Sezione~\ref{sec:dataset-engagement} e nell'Equazione~\ref{eq:dataset-target}. La classe 1 indica prestazioni superiori alle aspettative dell'account; la classe 0 indica prestazioni inferiori.
+Uso le informazioni prodotte dai rami dei Capitoli~\ref{chap:localizzazione-descrizione} e~\ref{chap:caratteristiche-visive}: il punteggio globale TruFor $t_i$, il testo delle regioni sospette e le 19 caratteristiche dell'immagine intera. Le associo al punteggio continuo di engagement $c_i$ e alla risposta binaria $y_i$, definiti nella Sottosezione~\ref{subsec:dataset-engagement} e nell'Equazione~\ref{eq:dataset-target}. La classe 1 indica prestazioni superiori alle aspettative dell'account; la classe 0 indica prestazioni inferiori.
 
-Indico con $n$ il numero di osservazioni dell'analisi. Per correlazioni e regressione lineare considero tutte le 1.211 osservazioni. Per la classificazione escludo le 16 osservazioni con $|c_i|\leq0{,}5$ e mantengo allineati risposta e predittori sulle 1.195 righe rimanenti (Tabella~\ref{tab:associazione-campione}). Le 309 osservazioni con \texttt{nomask} partecipano anche alla classificazione: la loro codifica testuale è descritta nella Sezione~\ref{subsec:materiali-tfidf}.
+Indico con $n$ il numero di osservazioni dell'analisi. Uso i campioni distinti nella Sottosezione~\ref{subsec:dataset-statistiche}, mantenendo allineati risposta e predittori. La Tabella~\ref{tab:associazione-campione} incrocia le classi di engagement con la disponibilità della descrizione testuale. Anche le osservazioni con \texttt{nomask} partecipano alla classificazione: la loro codifica è descritta nella Sottosezione~\ref{subsec:associazione-testo-preparazione}.
 
 \begin{table}[htbp]
     \centering\small
-    \caption{Campione delle analisi. Conteggi dai report di correlazione e classificazione in \texttt{scripts/temp/}; il conteggio di \texttt{nomask} deriva dalla tabella elaborata dopo lo stesso filtro.}
+    \caption{Disponibilità della descrizione per classe di engagement nel campione di classificazione. Conteggi da \texttt{results/dataset\_filtered.csv}, dopo l'esclusione dei casi con $|c_i|\leq0{,}5$.}
     \label{tab:associazione-campione}
-    \begin{tabular}{@{}lr@{}}
+    \begin{tabular}{@{}lrrr@{}}
         \toprule
-        Osservazioni & Numero \\
+        Classe & Descrizione testuale & \texttt{nomask} & Totale \\
         \midrule
-        Tabella elaborata: correlazioni e regressione lineare & 1.211 \\
-        Escluse dalla classificazione: $|c_i|\leq0{,}5$ & 16 \\
-        Campione per la classificazione & 1.195 \\
-        Classe 1: engagement sopra le aspettative & 583 \\
-        Classe 0: engagement sotto le aspettative & 612 \\
-        Casi \texttt{nomask} nel campione di classificazione & 309 \\
+        1: sopra le aspettative & 440 & 143 & 583 \\
+        0: sotto le aspettative & 446 & 166 & 612 \\
+        \midrule
+        Totale & 886 & 309 & 1.195 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -44,21 +35,20 @@ Uso SciPy per le correlazioni~\cite{2020SciPy-NMeth}, statsmodels per OLS e GLM~
 Avvio le analisi con \path{scripts/classification_home.py}. Lo script condivide le funzioni di preparazione dei dati fra i moduli di classificazione. Riporto i valori dei report finali in \path{scripts/temp/}.
 
 \subsection{Modello binomiale e significato dei coefficienti}
-\label{subsec:materiali-glm}
-\label{subsec:materiali-p-value}
+\label{subsec:associazione-glm}
 
-Per la risposta binaria uso un GLM binomiale con collegamento logit, corrispondente alla regressione logistica introdotta nella Sezione~\ref{subsec:background-glm}. Con il vettore di predittori ${u}_i$ scrivo:
+Per la risposta binaria uso un GLM binomiale con collegamento logit, corrispondente alla regressione logistica introdotta nella Sottosezione~\ref{subsec:background-glm}. Con il vettore di predittori $\mathbf{u}_i$ scrivo:
 \begin{equation}
     \log\frac{p_i}{1-p_i}=\beta_0+\sum_j\beta_j u_{ij},
-    \qquad p_i=\Pr(y_i=1\mid{u}_i).
+    \qquad p_i=\Pr(y_i=1\mid\mathbf{u}_i).
     \label{eq:classificazione-logit}
 \end{equation}
 
-Il rapporto $p_i/(1-p_i)$ esprime le \emph{odds}, ossia il rapporto tra la probabilità che l'evento si verifichi e la probabilità che non si verifichi. A parità degli altri predittori, un incremento $\Delta$ della variabile $j$ moltiplica le odds per $\exp(\beta_j\Delta)$. L'\emph{odds ratio} $\exp(\beta_j)$ riguarda un incremento unitario. Per un peso TF-IDF non equivale all'aggiunta di una parola, che modifica anche la normalizzazione della riga.
+Indico con $\beta_0$ l'intercetta e con $\beta_j$ il coefficiente del predittore $u_{ij}$. Il rapporto $p_i/(1-p_i)$ esprime le \emph{odds}, ossia il rapporto tra la probabilità che l'evento si verifichi e la probabilità che non si verifichi. A parità degli altri predittori, un incremento $\Delta$ della variabile $j$ moltiplica le odds per $\exp(\beta_j\Delta)$. L'\emph{odds ratio} $\exp(\beta_j)$ riguarda un incremento unitario. Per un peso TF-IDF non equivale all'aggiunta di una parola, che modifica anche la normalizzazione della riga.
 
-Distinguo due finalità. Per la predizione uso la logistica con penalità L2. Per esaminare coefficienti, intervalli di confidenza e test uso il GLM stimato per massima verosimiglianza~\cite{68aee965-a8a0-3e72-9f89-8d89ae91a62b}. Quando questo fit non converge, ricorro alla regolarizzazione senza attribuire p-value ai coefficienti ottenuti.
+Distinguo due finalità. Per la predizione uso la logistica con \emph{penalità L2}, detta anche \emph{ridge}: aggiungo alla funzione da minimizzare un termine proporzionale alla somma dei quadrati dei coefficienti. In scikit-learn il parametro $C$ è l'inverso dell'intensità della regolarizzazione: valori più piccoli impongono una penalizzazione maggiore. Per esaminare coefficienti, intervalli di confidenza e test uso il GLM stimato per massima verosimiglianza~\cite{68aee965-a8a0-3e72-9f89-8d89ae91a62b}. Quando questo fit non converge, ricorro alla regolarizzazione senza attribuire p-value ai coefficienti ottenuti.
 
-Il valore di $p$ misura, sotto l'ipotesi nulla e le assunzioni del test, la probabilità di un risultato almeno altrettanto estremo quanto quello osservato. Nei test sui coefficienti l'ipotesi nulla pone il parametro a zero. Un $p$ piccolo indica scarsa compatibilità con questa ipotesi: non ne misura la probabilità, la dimensione dell'associazione o il carattere causale~\cite{Wasserstein02042016}.
+Nei test sui coefficienti l'ipotesi nulla è $H_0:\beta_j=0$. Interpreto i valori di $p$~\cite{10.1007/11744078_23} secondo la Sottosezione~\ref{subsec:background-p-value}.
 
 \subsection{Adattamento e prestazioni in validazione}
 \label{subsec:materiali-metriche-classificazione}
@@ -70,7 +60,9 @@ Misuro l'adattamento sui dati di stima con lo pseudo-$R^2$ di McFadden:
 \end{equation}
 dove $\ell$ indica la log-verosimiglianza e il modello nullo contiene la sola intercetta. Quest'ultimo assegna a tutti i casi la prevalenza della classe 1. Un valore maggiore segnala un migliore adattamento rispetto al riferimento; non esprime una quota di varianza spiegata~\cite{mcfadden1972conditional}.
 
-Per le probabilità $\widehat p_i^{\mathrm{CV}}$ ottenute mediante CV (Cross-Validation), definisco la perdita logaritmica media e l'indice di confronto con il riferimento nullo:
+Per la \emph{validazione incrociata}, CV (Cross-Validation), suddivido il campione in cinque parti disgiunte. A turno, escludo una parte dalla stima dei coefficienti e uso il modello stimato sulle altre quattro per prevedere le probabilità delle osservazioni escluse. Riunisco queste probabilità per calcolare le metriche.
+
+Per le probabilità $\widehat p_i^{\mathrm{CV}}$ così ottenute, definisco la perdita logaritmica media e l'indice di confronto con il riferimento nullo:
 \begin{equation}
     L_{\mathrm{CV}}=-\frac{1}{n}\sum_i
     \left[y_i\log\widehat p_i^{\mathrm{CV}}+
@@ -85,7 +77,7 @@ Per la logistica assegno la classe 1 quando la probabilità prevista è almeno $
 \subsection{Partizioni e limiti del protocollo}
 \label{subsec:metodi-classificazione-validazione}
 
-Ogni osservazione riceve una probabilità da un modello addestrato sulle altre quattro partizioni. Riunisco le probabilità per calcolare le metriche. La Tabella~\ref{tab:associazione-validazione} distingue le suddivisioni effettivamente implementate.
+Le partizioni sono \emph{stratificate} quando mantengono approssimativamente le proporzioni delle classi del campione. La \emph{grid search} confronta tutte le combinazioni di valori prefissati degli \emph{iperparametri}, cioè delle impostazioni scelte prima della stima dei coefficienti. La Tabella~\ref{tab:associazione-validazione} distingue le suddivisioni effettivamente implementate.
 
 \begin{table}[htbp]
     \centering\small
@@ -108,44 +100,42 @@ Nel protocollo implementato apprendo vocabolario, pesi IDF, PCA e standardizzazi
 
 \newpage
 \section{Il solo punteggio TruFor come riferimento}
-\label{sec:metodi-trufor-engagement}
-\label{sec:risultati-trufor-engagement}
+\label{sec:associazione-trufor}
 
-Studio prima quanto il solo punteggio globale $t_i$ sia associato all'engagement. Uso $c_i$ per correlazioni e regressione lineare, e $y_i$ per il GLM binomiale. Questo confronto fornisce il riferimento per valutare le informazioni aggiunte dalla pipeline.
+Studio prima quanto il solo punteggio globale $t_i$ sia associato all'engagement. Uso $c_i$ per correlazioni e regressione lineare, e $y_i$ per il GLM binomiale. Questo confronto fornisce il riferimento per valutare le informazioni aggiunte dalla pipeline. La Tabella~\ref{tab:metodi-trufor-analisi} collega ciascuna analisi alla sua implementazione.
 
 \begin{table}[htbp]
     \centering
     \small
-    \caption{Analisi dell'associazione tra il punteggio di TruFor e l'engagement.}
+    \caption{Funzioni di \texttt{scripts/trufor.py} e chiamate di libreria usate per le analisi sul solo punteggio TruFor.}
     \label{tab:metodi-trufor-analisi}
     \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.23\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.46\linewidth}@{}}
         \toprule
-        Analisi & Variabili & Aspetto esaminato \\
+        Analisi & Funzione nello script & Chiamata di libreria \\
         \midrule
-        Correlazione di Pearson & $t_i$ e $c_i$ & Associazione lineare tra i due punteggi. \\
+        Correlazione di Pearson & \texttt{correlation} & \path{scipy.stats.pearsonr} \\
         \addlinespace
-        Correlazione di Spearman & Ranghi di $t_i$ e $c_i$ & Associazione monotona tra i due punteggi. \\
+        Correlazione di Spearman & \texttt{correlation} & \path{scipy.stats.spearmanr} \\
         \addlinespace
-        Regressione lineare & $c_i$ in funzione di $t_i$ & Variazione media dello score di engagement al variare del punteggio globale. \\
+        Regressione lineare & \texttt{regression} & \path{statsmodels.api.OLS} \\
         \addlinespace
-        GLM binomiale & $y_i$ in funzione di $t_i$ & Probabilità di engagement superiore alle aspettative. \\
+        GLM binomiale & \texttt{glm} & \path{statsmodels.api.GLM} con \path{statsmodels.api.families.Binomial} \\
         \bottomrule
     \end{tabular}
 \end{table}
 
 \subsection{Correlazioni tra i punteggi}
-\label{subsec:materiali-correlazioni}
-\label{subsec:risultati-trufor-correlazioni}
+\label{subsec:associazione-trufor-correlazioni}
 
-Indico con $(x_i,u_i)$ le coppie osservate e con $\bar x$, $\bar u$ le loro medie. Il coefficiente di Pearson misura l'associazione lineare:
+Indico con $(v_i,w_i)$ le coppie di valori osservati e con $\bar v$, $\bar w$ le loro medie. Formalizzo il coefficiente di Pearson, introdotto nella Sottosezione~\ref{subsec:background-pearson}:
 \begin{equation}
-    r(x,u)=\frac{\sum_i(x_i-\bar x)(u_i-\bar u)}
-    {\sqrt{\sum_i(x_i-\bar x)^2\sum_i(u_i-\bar u)^2}}.
+    r(v,w)=\frac{\sum_i(v_i-\bar v)(w_i-\bar w)}
+    {\sqrt{\sum_i(v_i-\bar v)^2\sum_i(w_i-\bar w)^2}}.
     \label{eq:materiali-pearson}
 \end{equation}
-Il segno indica la direzione e il valore assoluto la forza dell'associazione. Il coefficiente Pearson varia in $[-1,1]$ ed è sensibile alle osservazioni estreme~\cite{10.1098/rspl.1895.0041}. Spearman misura invece l'associazione monotona applicando Pearson ai ranghi, con rango medio in caso di parità:
+Il segno indica la direzione e il valore assoluto la forza dell'associazione. Il coefficiente di Pearson varia in $[-1,1]$ ed è sensibile alle osservazioni estreme~\cite{10.1098/rspl.1895.0041}. Per il coefficiente di Spearman, introdotto nella Sottosezione~\ref{subsec:background-spearman}, applico Pearson ai ranghi, con rango medio in caso di parità:
 \begin{equation}
-    \rho_s(x,u)=r\!\left(\operatorname{rank}(x),\operatorname{rank}(u)\right).
+    \rho_s(v,w)=r\!\left(\operatorname{rank}(v),\operatorname{rank}(w)\right).
     \label{eq:materiali-spearman}
 \end{equation}
 Anche Spearman varia in $[-1,1]$. Entrambi i coefficienti sono indefiniti per una variabile costante e non stabiliscono rapporti causali~\cite{ca468a70-0be4-389a-b0b9-5dd1ff52b33f}.
@@ -168,15 +158,14 @@ Calcolo i due coefficienti tra $t_i$ e $c_i$ sulle 1.211 osservazioni, con test 
 \end{table}
 
 \subsection{Regressione lineare sul punteggio continuo}
-\label{subsec:materiali-ols}
-\label{subsec:risultati-trufor-lineare}
+\label{subsec:associazione-trufor-ols}
 
 Stimo una regressione lineare con intercetta sulle 1.211 osservazioni:
 \begin{equation}
     c_i=\beta_0+\beta_1t_i+\varepsilon_i,
     \label{eq:materiali-ols}
 \end{equation}
-dove $\beta_1$ esprime la variazione media dello score di engagement associata a un incremento unitario di TruFor. Il metodo dei minimi quadrati ordinari, OLS (Ordinary Least Squares), stima i parametri minimizzando gli scarti quadratici~\cite{James2013}:
+dove $\beta_0$ è l'intercetta, $\beta_1$ esprime la variazione media dello score di engagement associata a un incremento unitario di TruFor e $\varepsilon_i$ è il termine di errore dell'osservazione $i$. Il metodo dei minimi quadrati ordinari, OLS (Ordinary Least Squares), stima i parametri minimizzando gli scarti quadratici~\cite{James2013}:
 \begin{equation}
     (\widehat\beta_0,\widehat\beta_1)=\operatorname*{arg\,min}_{\beta_0,\beta_1}
     \sum_i[c_i-(\beta_0+\beta_1t_i)]^2.
@@ -211,7 +200,7 @@ Il modello spiega circa lo $0{,}3\%$ della variabilità nel campione (Tabella~\r
 \subsection{GLM per le due classi di engagement}
 \label{subsec:risultati-trufor-glm}
 
-Dopo l'esclusione dell'intervallo centrale, stimo il GLM con TruFor come unico predittore e con intercetta:
+Dopo l'esclusione dell'intervallo centrale, stimo il GLM~\cite{68aee965-a8a0-3e72-9f89-8d89ae91a62b} con TruFor come unico predittore e con intercetta:
 \begin{equation}
     \log\frac{p_i}{1-p_i}=\beta_0+\beta_1t_i.
     \label{eq:materiali-glm}
@@ -244,15 +233,14 @@ Ottengo $R^2_{\mathrm{McF}}=0{,}0009$ (Tabella~\ref{tab:risultati-trufor-glm}). 
 Il solo TruFor mostra un'associazione debole con l'engagement e una capacità predittiva limitata nel campione. Il punteggio riassume gli indizi del rilevatore: non misura l'intenzione comunicativa o l'esposizione degli utenti al post. Queste analisi riguardano l'engagement e restano distinte dalla valutazione forense del Capitolo~\ref{chap:localizzazione-descrizione}.
 
 \section{Associazioni delle caratteristiche visive}
-\label{sec:metodi-feature-visive}
-\label{sec:risultati-feature-visive}
+\label{sec:associazione-visive}
 
 Uso le 19 caratteristiche dell'immagine intera, definite nel Capitolo~\ref{chap:caratteristiche-visive}, per due confronti. Esamino prima le associazioni di ciascuna misura con engagement e TruFor. Valuto poi il blocco visivo nel GLM, insieme al punteggio TruFor.
 
 \subsection{Protocollo delle correlazioni}
 \label{subsec:metodi-feature-correlazioni}
 
-Ripeto il confronto con Pearson e Spearman, definiti nella Sezione~\ref{subsec:materiali-correlazioni}. Con ciascun metodo, per ogni caratteristica $j$ calcolo due correlazioni sulle osservazioni disponibili:
+Ripeto il confronto con Pearson~\cite{10.1098/rspl.1895.0041} e Spearman~\cite{ca468a70-0be4-389a-b0b9-5dd1ff52b33f}, definiti nella Sottosezione~\ref{subsec:associazione-trufor-correlazioni}. Con ciascun metodo, per ogni caratteristica $j$ calcolo due correlazioni sulle osservazioni disponibili:
 \begin{equation}
     a_j=\operatorname{corr}(f_{ij},c_i),
     \qquad
@@ -331,15 +319,15 @@ Le associazioni con l'engagement restano inferiori a $0{,}15$ in valore assoluto
 
 Stimo un GLM non penalizzato con TruFor e le 19 caratteristiche standardizzate: sottraggo la media e divido per la deviazione standard calcolate sul campione. Ogni coefficiente visivo esprime così la variazione dei log-odds per un incremento di una deviazione standard, a parità degli altri predittori. La Tabella~\ref{tab:associazione-visive-coefficienti} riporta i coefficienti, gli intervalli al $95\%$ e i p-value non corretti dei test di Wald. Uso il test di Wald per verificare, per ciascun coefficiente, l’ipotesi nulla che sia uguale a zero~\cite{60455556-c6b2-37bb-9077-b6ce7e1443d8}.
 
-Rispetto al solo TruFor, lo pseudo-$R^2_{\mathrm{McF}}$ passa da $0{,}0009$ a $0{,}0624$ e $Q_{\mathrm{CV}}$ da $-0{,}0060$ a $0{,}0278$. Il blocco visivo migliora quindi entrambi gli indici nel protocollo adottato. Confronto questo incremento con quello del testo nella Sezione~\ref{sec:risultati-confronto-blocchi}.
+Rispetto al solo TruFor, lo pseudo-$R^2_{\mathrm{McF}}$ passa da $0{,}0009$ a $0{,}0624$ e $Q_{\mathrm{CV}}$ da $-0{,}0060$ a $0{,}0278$. Il blocco visivo migliora quindi entrambi gli indici nel protocollo adottato. Confronto questo incremento con quello del testo nella Sezione~\ref{sec:associazione-confronto-blocchi}.
 
-Applico Benjamini--Hochberg ai 19 p-value visivi, escludendo intercetta e TruFor dalla famiglia di verifiche~\cite{10.1111/j.2517-6161.1995.tb02031.x}. Uso la soglia $0{,}05$ sul valore corretto $p_{\mathrm{BH}}$, indicato con \texttt{q} nel report. Solo \texttt{aspect\_ratio} supera questa soglia: $\beta=-0{,}2177$ per deviazione standard e $p_{\mathrm{BH}}=0{,}0219$. La correzione riguarda il modello TruFor e visive, non il modello completo.
+Applico Benjamini--Hochberg ai 19 p-value visivi, escludendo intercetta e TruFor dalla famiglia di verifiche~\cite{10.1111/j.2517-6161.1995.tb02031.x}. Considero significativo un coefficiente quando il valore corretto $p_{\mathrm{BH}}$, indicato con \texttt{q} nel report, è inferiore a $0{,}05$. Solo \texttt{aspect\_ratio} risulta significativo dopo la correzione: $\beta=-0{,}2177$ per deviazione standard e $p_{\mathrm{BH}}=0{,}0219<0{,}05$. La correzione riguarda il modello TruFor e visive, non il modello completo.
 
-Il rapporto larghezza/altezza presenta un'associazione negativa condizionata agli altri predittori inclusi. Account, piattaforma e periodo rimangono fuori dal modello: non ricavo quindi una prescrizione sul formato che aumenterebbe l'engagement. Le altre caratteristiche, incluso il calore cromatico, non superano la soglia corretta; questo esito non prova l'assenza di una loro associazione nella popolazione.
+Il rapporto larghezza/altezza presenta un'associazione negativa condizionata agli altri predittori inclusi. Account, piattaforma e periodo rimangono fuori dal modello: non ricavo quindi una prescrizione sul formato che aumenterebbe l'engagement. I coefficienti delle altre caratteristiche, incluso il calore cromatico, non risultano significativi dopo la correzione; questo esito non prova l'assenza di una loro associazione nella popolazione.
 
 \begin{table}[htbp]
     \centering\small
-    \caption{Coefficienti delle 19 caratteristiche nel GLM TruFor e visive. Gli intervalli sono al $95\%$ e i p-value sono non corretti. Dopo Benjamini--Hochberg~\cite{10.1111/j.2517-6161.1995.tb02031.x} soltanto il rapporto d'aspetto supera la soglia $0{,}05$ ($p_{\mathrm{BH}}=0{,}0219$). Fonte: \texttt{classification\_visual\_text.txt}.}
+    \caption{Coefficienti delle 19 caratteristiche nel GLM TruFor e visive. Gli intervalli sono al $95\%$ e i p-value sono non corretti. Dopo Benjamini--Hochberg~\cite{10.1111/j.2517-6161.1995.tb02031.x} soltanto il rapporto d'aspetto risulta significativo, con $p_{\mathrm{BH}}=0{,}0219<0{,}05$. Fonte: \texttt{classification\_visual\_text.txt}.}
     \label{tab:associazione-visive-coefficienti}
     \begin{tabular}{@{}lrrr@{}}
         \toprule
@@ -370,25 +358,26 @@ Il rapporto larghezza/altezza presenta un'associazione negativa condizionata agl
 
 \newpage
 \section{Contributo del testo delle regioni sospette}
-\label{sec:risultati-classificazione}
+\label{sec:associazione-testo}
 
 Valuto due rappresentazioni dello stesso testo: i pesi delle parole e le componenti PCA. In entrambi i casi includo il punteggio TruFor. Distinguo le prestazioni della logistica regolarizzata dalla stima dei GLM, perché rispondono a finalità diverse.
 
 \subsection{Preparazione e rappresentazioni testuali}
-\label{subsec:metodi-classificazione-preparazione}
-\label{subsec:materiali-tfidf}
+\label{subsec:associazione-testo-preparazione}
 
 Rimuovo le stop word italiane e inglesi, normalizzate come le descrizioni, e \texttt{nomask}. Estraggo unigrammi di almeno due caratteri. Conservo i termini presenti in almeno cinque descrizioni e in non più del $40\%$ del campione; fra quelli ammessi mantengo al massimo i cento più frequenti.
 
-Indico con $f_{ij}$ le occorrenze della parola $j$ nella descrizione $i$ e con $d_j$ il numero di descrizioni che la contengono. Uso la variante TF-IDF con regolarizzazione delle frequenze documentali~\cite{scikit-learn}:
+Indico con $n_{ij}$ le occorrenze della parola $j$ nella descrizione $i$ e con $d_j$ il numero di descrizioni che la contengono. Uso la variante TF-IDF con regolarizzazione delle frequenze documentali~\cite{scikit-learn}:
 \begin{equation}
-    a_{ij}=f_{ij}\left[1+\log\left(\frac{1+n}{1+d_j}\right)\right],
+    a_{ij}=n_{ij}\left[1+\log\left(\frac{1+n}{1+d_j}\right)\right],
     \qquad x_{ij}=\frac{a_{ij}}{\sqrt{\sum_k a_{ik}^2}}.
     \label{eq:classificazione-tfidf}
 \end{equation}
 Normalizzo ogni riga alla norma euclidea unitaria. Se nessun termine appartiene al vocabolario, mantengo un vettore nullo. Questo accade anche per \texttt{nomask}: la codifica unisce quindi assenza di descrizione e assenza di parole conservate dai filtri.
 
-Per la seconda rappresentazione centro le colonne TF-IDF, senza standardizzarle, e applico la PCA~\cite{jolliffe2016principal}. Fisso la varianza da conservare al $90\%$ e ottengo 61 componenti. Una riga TF-IDF nulla può avere coordinate PCA diverse da zero per effetto della centratura. TruFor rimane separato e non entra nella PCA. Riassumo la configurazione nella Tabella~\ref{tab:classificazione-parametri}.
+Per la seconda rappresentazione centro le colonne TF-IDF, senza standardizzarle, e applico la PCA~\cite{jolliffe2016principal}. Fisso la varianza da conservare al $90\%$ e ottengo 61 componenti. Una riga TF-IDF nulla può avere coordinate PCA diverse da zero per effetto della centratura. TruFor rimane separato e non entra nella PCA.
+
+Per i GLM regolarizzati indico con $\alpha$ l'intensità della penalizzazione. La \emph{penalità L1}, detta \emph{lasso}, usa la somma dei valori assoluti dei coefficienti; \emph{elastic net} combina L1 e L2. La quota L1 regola questa combinazione: 0 corrisponde a ridge, 1 a lasso e i valori intermedi a elastic net. Riassumo la configurazione nella Tabella~\ref{tab:classificazione-parametri}.
 
 \begin{table}[htbp]
     \centering
@@ -416,7 +405,7 @@ Per la seconda rappresentazione centro le colonne TF-IDF, senza standardizzarle,
 \subsection{Prestazioni della regressione logistica}
 \label{subsec:risultati-classificazione-logistica}
 
-Con \path{classification_logistic_regression.py} addestro la logistica L2, con $C=1$ e massimo 1.000 iterazioni. Uso \texttt{cross\_val\_predict} con le cinque partizioni stratificate della Sezione~\ref{subsec:metodi-classificazione-validazione}. Per gli odds ratio riaddestro invece il modello sull'intero campione.
+Con \path{classification_logistic_regression.py} addestro la logistica L2, con $C=1$ e massimo 1.000 iterazioni. Uso \texttt{cross\_val\_predict} con le cinque partizioni stratificate della Sottosezione~\ref{subsec:metodi-classificazione-validazione}. Per gli odds ratio riaddestro invece il modello sull'intero campione.
 
 La Tabella~\ref{tab:risultati-classificazione-logistica} confronta cento parole TF-IDF e 61 componenti PCA, sempre con TruFor. Ottengo un'accuratezza del $59{,}4\%$, circa 8,2 punti percentuali sopra la baseline del $51{,}2\%$. Il TF-IDF presenta AUC e $Q_{\mathrm{CV}}$ leggermente maggiori. La riduzione dei predittori conserva quindi una prestazione vicina a quella della rappresentazione lessicale.
 
@@ -439,11 +428,11 @@ Entrambe le configurazioni classificano correttamente 710 casi (Tabella~\ref{tab
 
 \begin{table}[htbp]
     \centering\small
-    \caption{Conteggi delle matrici di confusione in validazione, con classe positiva 1 e soglia $0{,}5$. TP e TN indicano i casi corretti; FP e FN gli errori. Fonte: \texttt{classification\_logistic\_regression.txt}.}
+    \caption{Conteggi delle matrici di confusione in validazione, con classe positiva 1 e soglia $0{,}5$. TP (True Positives) e TN (True Negatives) indicano rispettivamente i veri positivi e i veri negativi; FP (False Positives) e FN (False Negatives) indicano i falsi positivi e i falsi negativi. Fonte: \texttt{classification\_logistic\_regression.txt}.}
     \label{tab:associazione-confusioni}
     \begin{tabular}{@{}lrrrrr@{}}
         \toprule
-        Testo, con TruFor & TP & TN & FP & FN & Totale corrette \\
+        Testo, con TruFor & TP & TN & FP & FN & \shortstack{Previsioni\\corrette} \\
         \midrule
         TF-IDF & 293 & 417 & 195 & 290 & 710 \\
         TF-IDF con PCA & 297 & 413 & 199 & 286 & 710 \\
@@ -452,8 +441,7 @@ Entrambe le configurazioni classificano correttamente 710 casi (Tabella~\ref{tab
 \end{table}
 
 \subsection{Stima dei GLM sulle rappresentazioni testuali}
-\label{subsec:metodi-classificazione-glm}
-\label{subsec:risultati-classificazione-glm}
+\label{subsec:associazione-testo-glm}
 
 Con \path{classification_glm.py} stimo i GLM per massima verosimiglianza tramite \emph{IRLS (Iteratively Reweighted Least Squares)}, cioè minimi quadrati iterativamente ripesati. Includo l'intercetta e controllo convergenza e finitezza della log-verosimiglianza. Se il controllo fallisce, uso ridge con $\alpha=0{,}0007$, senza errori standard o p-value. La regolarizzazione stabilizza la stima in presenza di problemi come la separazione; il solo fallimento numerico non ne costituisce una diagnosi completa~\cite{10.1093/biomet/71.1.1}.
 
@@ -475,14 +463,14 @@ Sul TF-IDF il GLM non penalizzato non supera il controllo di convergenza e ricor
 
 \newpage
 \subsection{Interpretazione del contributo testuale}
-\label{sec:discussione-contenuto}
+\label{subsec:associazione-testo-interpretazione}
 
 Il GLM con testo PCA raggiunge $Q_{\mathrm{CV}}=0{,}0234$, rispetto a $-0{,}0060$ del solo TruFor, nelle stesse partizioni. Il risultato sostiene l'utilità di studiare il contenuto selezionato, entro i limiti del protocollo. Non dimostra che descrivere le regioni sospette sia meglio che descrivere l'immagine intera: manca un classificatore basato su descrizioni dell'immagine intera ottenute con gli stessi strumenti. Il contributo osservato appartiene alla rappresentazione prodotta dalla pipeline nel suo insieme.
 
 \section{Ricerca esplorativa degli iperparametri}
 \label{sec:associazione-grid-search}
 
-La grid search confronta tutte le combinazioni di un insieme prefissato di iperparametri. Uso la modalità \texttt{--grid-search} di \path{classification_glm.py} per esplorare i filtri documentali e la penalità del GLM sul TF-IDF, sempre insieme a TruFor. Il parametro $\alpha$ controlla l'intensità della penalità; la quota L1 ne distingue la componente lasso da quella ridge. La ricerca non usa la PCA e non seleziona il parametro $C$ della logistica L2. Considero le combinazioni della Tabella~\ref{tab:associazione-grid-parametri}, mantenendo il limite di cento parole e lo stesso campione di 1.195 osservazioni.
+Applico la grid search introdotta nella Sottosezione~\ref{subsec:metodi-classificazione-validazione} tramite la modalità \texttt{--grid-search} di \path{classification_glm.py} per esplorare i filtri documentali e la penalità del GLM sul TF-IDF, sempre insieme a TruFor. Il parametro $\alpha$ controlla l'intensità della penalità; la quota L1 ne distingue la componente lasso da quella ridge. La ricerca non usa la PCA e non seleziona il parametro $C$ della logistica L2. Considero le combinazioni della Tabella~\ref{tab:associazione-grid-parametri}, mantenendo il limite di cento parole e lo stesso campione di 1.195 osservazioni.
 
 \begin{table}[htbp]
     \centering\small
@@ -523,8 +511,7 @@ Il massimo è $Q_{\mathrm{CV}}=0{,}0647$, con \texttt{min\_df}=5, \texttt{max\_d
 \end{table}
 
 \section{Confronto dei blocchi informativi}
-\label{sec:risultati-confronto-blocchi}
-\label{sec:discussione-predizione}
+\label{sec:associazione-confronto-blocchi}
 
 Con \path{classification_visual_text.py} confronto quattro GLM non penalizzati sulle stesse 1.195 osservazioni e con le stesse partizioni: TruFor; TruFor e testo PCA; TruFor e caratteristiche visive; tutti i predittori insieme. I modelli includono l'intercetta, esclusa dal conteggio dei predittori. Il testo descrive le regioni sospette, mentre le 19 caratteristiche standardizzate descrivono l'immagine intera.
 
@@ -550,14 +537,14 @@ La Tabella~\ref{tab:risultati-confronto-blocchi} e la Figura~\ref{fig:classifica
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{classificazione_confronto_modelli.pdf}
-    \caption{Adattamento e validazione dei quattro GLM. I quadrati indicano $R^2_{\mathrm{McF}}$ sui dati di stima; i cerchi indicano $Q_{\mathrm{CV}}$, distinto dallo pseudo-$R^2$ in-sample nonostante l'etichetta comune dell'asse. Valori più alti indicano un risultato migliore; zero corrisponde al riferimento basato sulla frequenza delle classi e valori negativi indicano un risultato peggiore del riferimento. La validazione riguarda la stima dei coefficienti del modello: TF-IDF, PCA e standardizzazione sono stimati sull'intero campione. Fonte: \texttt{classification\_visual\_text.txt}.}
+    \caption{Adattamento e validazione dei quattro GLM. I quadrati indicano $R^2_{\mathrm{McF}}$ sui dati di stima; i cerchi indicano $Q_{\mathrm{CV}}$ in validazione incrociata. Valori più alti indicano un risultato migliore; zero corrisponde al riferimento basato sulla frequenza delle classi e valori negativi indicano un risultato peggiore del riferimento. La validazione riguarda la stima dei coefficienti del modello: TF-IDF, PCA e standardizzazione sono stimati sull'intero campione. Fonte: \texttt{classification\_visual\_text.txt}.}
     \label{fig:classificazione-confronto-modelli}
 \end{figure}
 
 \newpage
-Il modello completo raggiunge il maggiore adattamento in-sample, $0{,}1605$, ma $Q_{\mathrm{CV}}$ scende a $0{,}0128$. Aggiungere le caratteristiche visive al testo migliora quindi il fit sui dati di stima senza migliorare la prestazione nel protocollo adottato. Un maggiore numero di coefficienti può rendere la stima più sensibile al campione. Anche una sovrapposizione fra informazioni visive e testuali è possibile, ma il risultato non dimostra che i due blocchi siano ridondanti.
+Il modello completo raggiunge il maggiore adattamento in-sample, $0{,}1605$, ma $Q_{\mathrm{CV}}$ scende a $0{,}0128$. Aggiungere le caratteristiche visive al testo migliora quindi il fit sui dati di stima senza migliorare la prestazione nel protocollo adottato. Per rispondere anche alla domanda sul contributo aggiuntivo delle descrizioni, confronto il modello completo con quello che comprende già TruFor e le caratteristiche visive: aggiungendo il testo, $Q_{\mathrm{CV}}$ passa da $0{,}0278$ a $0{,}0128$. Nel confronto osservato il testo non migliora quindi questo riferimento più informativo, pur migliorando quello basato sul solo TruFor. Un maggiore numero di coefficienti può rendere la stima più sensibile al campione. Anche una sovrapposizione fra informazioni visive e testuali è possibile, ma il risultato non dimostra che i due blocchi siano ridondanti.
 
-Confronto inoltre le coppie annidate con il test del rapporto di verosimiglianza: $\Lambda=D_{\mathrm{ridotto}}-D_{\mathrm{esteso}}$, dove $D$ è la devianza. Sotto l'ipotesi nulla e le condizioni di regolarità uso il riferimento asintotico $\chi^2$, con gradi di libertà pari ai parametri aggiunti. Confronto ciascun modello intermedio con TruFor e il completo con TruFor e testo. I due modelli intermedi non sono annidati fra loro.
+Confronto inoltre le coppie di \emph{modelli annidati}: in questi confronti ottengo il modello ridotto ponendo a zero i coefficienti dei predittori aggiunti nel modello esteso. Uso la \emph{devianza} $D=2(\ell_{\mathrm{saturo}}-\ell_{\mathrm{modello}})$, che confronta la log-verosimiglianza del modello con quella del \emph{modello saturo}, capace di riprodurre esattamente ogni osservazione. La statistica del \emph{test del rapporto di verosimiglianza} è $\Lambda=D_{\mathrm{ridotto}}-D_{\mathrm{esteso}}$. Sotto l'ipotesi nulla e le condizioni di regolarità uso il riferimento asintotico $\chi^2$, con gradi di libertà pari al numero dei parametri aggiunti. Confronto ciascun modello intermedio con TruFor e il completo con TruFor e testo. I due modelli intermedi non sono annidati fra loro.
 
 I test della Tabella~\ref{tab:associazione-rapporti-verosimiglianza} riguardano i coefficienti aggiunti sotto le ipotesi del GLM. Il risultato del modello completo rende concreta la distinzione: un test significativo accompagna un peggioramento in validazione. La significatività statistica non garantisce un vantaggio predittivo su nuovi dati.
 
@@ -576,22 +563,21 @@ I test della Tabella~\ref{tab:associazione-rapporti-verosimiglianza} riguardano 
     \end{tabular}
 \end{table}
 
-Rispetto alla domanda di ricerca, osservo un contributo predittivo modesto delle rappresentazioni arricchite. Il testo e le caratteristiche visive aggiunti separatamente migliorano il riferimento TruFor; combinarli non migliora ulteriormente l'indice in validazione. Questa conclusione riguarda il campione e il protocollo adottati, con preparazione dei predittori prima della suddivisione.
+Rispetto alla domanda di ricerca, osservo un contributo predittivo modesto delle rappresentazioni arricchite. Il testo e le caratteristiche visive aggiunti separatamente migliorano il riferimento TruFor. Il confronto con il modello che include già le caratteristiche visive non mostra invece un vantaggio predittivo aggiuntivo delle descrizioni. Questa conclusione riguarda il campione e il protocollo adottati, con preparazione dei predittori prima della suddivisione; non dimostra l'assenza di informazione utile nel testo in altri campioni o con altre rappresentazioni.
 
 \section{Interpretazione delle previsioni sulle parole}
-\label{sec:risultati-spiegazioni}
-\label{sec:discussione-spiegazioni}
+\label{sec:associazione-spiegazioni}
 
 Con \path{classification_lime_shap.py} riaddestro la logistica su TruFor e sulle cento colonne TF-IDF dell'intero campione. Ispeziono il modello attraverso il report \path{classification_explanations.txt}. Le misure riguardano le osservazioni usate per stimarlo e non costituiscono una nuova valutazione predittiva.
 
 \subsection{Protocollo delle spiegazioni}
 \label{subsec:metodi-classificazione-spiegazioni}
 
-Calcolo l'importanza per permutazione come calo dell'AUC sul campione di stima. Ripeto il rimescolamento trenta volte per predittore, con seme 42. Riporto media e deviazione standard: quest'ultima descrive le permutazioni a modello fisso, non l'incertezza dovuta a nuovi campioni. Il criterio del report ``media maggiore di due deviazioni standard'' è descrittivo e non sostituisce un p-value.
+Calcolo l'importanza per permutazione~\cite{JMLR:v20:18-760} come calo dell'AUC sul campione di stima. Ripeto il rimescolamento trenta volte per predittore, con seme 42. Riporto media e deviazione standard: quest'ultima descrive le permutazioni a modello fisso, non l'incertezza dovuta a nuovi campioni. Il criterio del report ``media maggiore di due deviazioni standard'' è descrittivo e non sostituisce un p-value.
 
-Per SHAP uso il mascheramento indipendente e tutte le osservazioni come riferimento. In questa configurazione il contributo della variabile $j$ al predittore lineare è $\phi_{ij}=\beta_j(u_{ij}-\bar u_j)$, espresso nei log-odds. Ordino le variabili tramite la media $n^{-1}\sum_i|\phi_{ij}|$ e ricavo la direzione dal segno del coefficiente logistico. La media dei contributi con segno sullo stesso riferimento è invece nulla.
+Per SHAP~\cite{NIPS2017_8a20a862} uso il \emph{mascheramento indipendente} delle variabili tabulari: i valori delle variabili temporaneamente escluse vengono sostituiti con quelli del campione di riferimento, senza condizionarli ai valori delle variabili mantenute. L'operazione riguarda le colonne TruFor e TF-IDF, non i pixel dell'immagine; uso tutte le osservazioni come riferimento. In questa configurazione il contributo della variabile $j$ al predittore lineare è $\phi_{ij}=\beta_j(u_{ij}-\bar u_j)$, espresso nei log-odds. Ordino le variabili tramite la media $n^{-1}\sum_i|\phi_{ij}|$ e ricavo la direzione dal segno del coefficiente logistico. La media dei contributi con segno sullo stesso riferimento è invece nulla.
 
-Per LIME uso la variante tabulare senza discretizzare le variabili continue, con seme 42. Perturbo i valori numerici TF-IDF e TruFor e adatto un surrogato locale della probabilità della classe 1~\cite{ribeiro2016whyitrustyou}. Seleziono cinque osservazioni a posizioni equidistanti nell'ordinamento delle probabilità previste. I pesi del surrogato possono riguardare anche termini assenti dalla descrizione: non rappresentano automaticamente contributi additivi alla singola previsione.
+Per LIME uso la variante tabulare senza discretizzare le variabili continue, con seme 42. Con le impostazioni predefinite, genero le perturbazioni campionando indipendentemente i valori TF-IDF e TruFor da distribuzioni normali con media e deviazione standard stimate sull'intero campione. Adatto una regressione ridge alle probabilità della classe 1 prodotte dal classificatore per questi dati. Assegno alle perturbazioni pesi che diminuiscono esponenzialmente con il quadrato della distanza euclidea dall'osservazione da spiegare, calcolata sulle variabili standardizzate: i punti più vicini incidono quindi maggiormente sul surrogato locale~\cite{ribeiro2016whyitrustyou}. Seleziono cinque osservazioni a posizioni equidistanti nell'ordinamento delle probabilità previste. I coefficienti del surrogato possono riguardare anche termini assenti dalla descrizione: non rappresentano automaticamente contributi additivi alla singola previsione.
 
 \subsection{Coefficienti, frequenza e importanza globale}
 \label{subsec:risultati-spiegazioni-globali}
@@ -611,7 +597,7 @@ La Figura~\ref{fig:classificazione-parole-barre} riporta le otto parole con magg
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{classificazione_parole_barre.pdf}
-    \caption{Otto parole più importanti per media $|\mathrm{SHAP}|$ sul campione di stima, divise per segno del coefficiente. I valori sono nei log-odds, non variazioni percentuali di probabilità, effetti causali o misure di significatività. Fonte: \texttt{classification\_explanations.txt}.}
+    \caption{Otto parole più importanti per media $|\mathrm{SHAP}|$~\cite{NIPS2017_8a20a862} sul campione di stima, divise per segno del coefficiente. I valori sono nei log-odds, non variazioni percentuali di probabilità, effetti causali o misure di significatività. Fonte: \texttt{classification\_explanations.txt}.}
     \label{fig:classificazione-parole-barre}
 \end{figure}
 
@@ -619,7 +605,7 @@ Le due misure della Tabella~\ref{tab:associazione-parole-importanza} rispondono 
 
 \begin{table}[htbp]
     \centering\small
-    \caption{Confronto fra SHAP e importanza per permutazione per le due parole principali di ciascun segno nella Figura~\ref{fig:classificazione-parole-barre}. Dispersione su 30 permutazioni a modello fisso. Fonte: \texttt{classification\_explanations.txt}.}
+    \caption{Confronto fra SHAP~\cite{NIPS2017_8a20a862} e importanza per permutazione~\cite{JMLR:v20:18-760} per le due parole principali di ciascun segno nella Figura~\ref{fig:classificazione-parole-barre}. Dispersione su 30 permutazioni a modello fisso. Fonte: \texttt{classification\_explanations.txt}.}
     \label{tab:associazione-parole-importanza}
     \begin{tabular}{@{}lcrr@{}}
         \toprule
@@ -639,14 +625,14 @@ Leggo le parole come indizi della rappresentazione automatica. Poiché il testo 
 \subsection{Due esempi locali con LIME}
 \label{subsec:risultati-spiegazioni-locali}
 
-Mostro i due casi estremi fra i cinque selezionati, identificati dai primi otto caratteri del file. Il caso \texttt{c43374c2} ha $\widehat p=0{,}05$ e classe osservata 0: la descrizione menziona un uomo davanti a un televisore e contiene \texttt{ore} e \texttt{maggio}. Il caso \texttt{ca9681c6} ha $\widehat p=0{,}86$ e classe osservata 1: la stringa menziona un manifesto con un uomo e una donna e include \texttt{partito}.
+Mostro i due casi estremi fra i cinque selezionati, identificati dai primi otto caratteri del nome del file. Il caso \texttt{c43374c2} ha $\widehat p=0{,}05$ e classe osservata 0: la descrizione menziona un uomo davanti a un televisore e contiene \texttt{ore} e \texttt{maggio}. Il caso \texttt{ca9681c6} ha $\widehat p=0{,}86$ e classe osservata 1: la stringa menziona un manifesto con un uomo e una donna e include \texttt{partito}.
 
 Nella Tabella~\ref{tab:risultati-lime}, il peso di \texttt{ore} nel secondo caso descrive la sensibilità del surrogato alle perturbazioni, benché il termine sia assente.
 
 \begin{table}[!htbp]
     \centering
     \small
-    \caption{Coefficienti LIME dei due casi estremi sul campione di stima. ``Presente'' indica se il termine compare nella descrizione. Fonte: \texttt{classification\_explanations.txt}.}
+    \caption{Coefficienti LIME~\cite{ribeiro2016whyitrustyou} dei due casi estremi sul campione di stima. ``Presente'' indica se il termine compare nella descrizione. Fonte: \texttt{classification\_explanations.txt}.}
     \label{tab:risultati-lime}
     \begin{tabular}{@{}llcr@{}}
         \toprule

@@ -15,14 +15,14 @@ Presento poi i descrittori visivi dell'immagine (Sezione~\ref{sec:background-fea
 Nel progetto uso TruFor già addestrato: il punteggio globale fornisce un riferimento per la classificazione dell'engagement, mentre le mappe guidano la selezione delle regioni da descrivere. Ne presento il funzionamento per chiarire quali informazioni ricavo e quali errori possono influenzare la mia pipeline.
 
 \subsection{Rilevamento e localizzazione delle manipolazioni}
-\label{sec:background-rilevamento-localizzazione}
+\label{subsec:background-rilevamento-localizzazione}
 
 Isolo due compiti dell'analisi. Il \emph{rilevamento} classifica un'immagine come autentica o manipolata. La \emph{localizzazione} indica le regioni che il sistema segnala come manipolate. Descrivo questo compito con una \emph{segmentazione binaria}: il sistema assegna ciascun pixel alla classe ``autentico'' o ``manipolato''~\cite{Guillaro_2023_CVPR}.
 
 Osservo manipolazioni come il copia-incolla e l'inserimento di contenuti sintetici. Valuto positiva la classe ``manipolato'' e negativa la classe ``autentico''. Questa convenzione vale sia per le immagini nel rilevamento sia per i pixel nella localizzazione. TruFor può segnalare come manipolate anche regioni autentiche, producendo falsi positivi a livello di pixel. Nel rilevamento, i falsi positivi possono costituire una parte consistente delle segnalazioni quando le manipolazioni sono poco frequenti. Quando interpreto i risultati, distinguo quindi gli errori di localizzazione dagli errori di rilevamento.
 
 \subsection{Indizi visivi e impronta Noiseprint++}
-\label{sec:background-noiseprint}
+\label{subsec:background-noiseprint}
 
 L'immagine RGB descrive il contenuto visibile, come colori e forme. Dall'immagine l'\emph{estrattore Noiseprint++} ricava un'\emph{impronta}: una rappresentazione numerica delle tracce lasciate dall'acquisizione e dalle elaborazioni successive. TruFor analizza la fotografia e l'impronta con due rami distinti della rete, poi unisce le informazioni estratte. Usa così sia gli indizi visivi sia le tracce di elaborazione per localizzare possibili manipolazioni.
 
@@ -31,9 +31,9 @@ Noiseprint++ estende \emph{Noiseprint}, un'impronta che rappresenta le tracce de
 Gli autori utilizzano 24.700 immagini acquisite con 1.475 modelli di fotocamera. Ne estraggono porzioni di $64 \times 64$ pixel. L'addestramento segue un criterio \emph{contrastivo}: produce impronte simili nelle aree che condividono le stesse proprietà e diverse nelle aree che differiscono. Le proprietà richieste sono il modello di fotocamera, la posizione nello spazio e la storia delle elaborazioni. Durante l'addestramento, gli sviluppatori simulano elaborazioni con 512 combinazioni di ridimensionamento, compressione e variazioni di illuminazione.
 
 \subsection{Architettura e apprendimento}
-\label{sec:background-trufor-architettura}
+\label{subsec:background-trufor-architettura}
 
-Il sistema elabora l'RGB e Noiseprint++ attraverso due rami. Ogni ramo estrae delle \emph{caratteristiche}, rappresentazioni numeriche delle informazioni della figura. La fusione delle caratteristiche usa una rete di tipo \emph{Transformer}, che apprende relazioni tra gli elementi delle rappresentazioni.
+Il sistema elabora l'RGB e Noiseprint++ attraverso due rami. Ogni ramo estrae delle \emph{caratteristiche}, rappresentazioni numeriche delle informazioni della figura. La fusione delle caratteristiche usa una rete di tipo \emph{Transformer}, basata sul meccanismo di \emph{attenzione}: per aggiornare la rappresentazione di un elemento, combina le informazioni degli altri elementi con pesi calcolati in funzione della loro rilevanza per quello considerato. In questo modo può mettere in relazione anche posizioni distanti.
 
 L'\emph{encoder} estrae le caratteristiche che alimentano due \emph{decoder}. Ciascun decoder produce una mappa con la stessa risoluzione della fotografia.
 
@@ -75,7 +75,7 @@ Riassumo nella Figura~\ref{fig:trufor-mappe} il percorso dall'immagine alle due 
 \end{figure}
 
 \newpage
-Gli autori addestrano TruFor in tre fasi, che riassumo nella Tabella~\ref{tab:trufor-addestramento}. La prima usa il criterio contrastivo descritto nella Sezione~\ref{sec:background-noiseprint}. Nella seconda usano un apprendimento \emph{supervisionato}: gli autori accompagnano gli esempi con le risposte di riferimento. Per ogni istantanea una \emph{maschera di riferimento}, o \emph{ground truth}, indica la classe ``autentico'' o ``manipolato'' di ciascun pixel.
+Gli autori addestrano TruFor in tre fasi, che riassumo nella Tabella~\ref{tab:trufor-addestramento}. La prima usa il criterio contrastivo descritto nella Sottosezione~\ref{subsec:background-noiseprint}. Nella seconda usano un apprendimento \emph{supervisionato}: gli autori accompagnano gli esempi con le risposte di riferimento. Per ogni istantanea una \emph{maschera di riferimento}, o \emph{ground truth}, indica la classe ``autentico'' o ``manipolato'' di ciascun pixel.
 
 Nella terza fase il decoder della confidenza apprende come stimare la \emph{True Class Probability}, la probabilità che il modello assegna alla classe corretta di ciascun pixel. Questa quantità assume valori alti quando la previsione favorisce la classe corretta. Il decoder della confidenza apprende così come stimare l'affidabilità della mappa delle anomalie.
 
@@ -98,26 +98,26 @@ Nella terza fase il decoder della confidenza apprende come stimare la \emph{True
 \end{table}
 
 \subsection{Output e loro interpretazione}
-\label{sec:background-trufor-output}
+\label{subsec:background-trufor-output}
 
-TruFor restituisce la mappa delle anomalie e la mappa di confidenza, definite nella Sezione~\ref{sec:background-trufor-architettura}, insieme a un punteggio globale.
+TruFor restituisce la mappa delle anomalie e la mappa di confidenza, definite nella Sottosezione~\ref{subsec:background-trufor-architettura}, insieme a un punteggio globale.
 
 La visualizzazione della mappa delle anomalie come mappa di calore evidenzia le regioni da esaminare. Interpreto queste regioni insieme alla mappa di confidenza, per distinguere le segnalazioni che il sistema considera affidabili da quelle che richiedono cautela.
 
 Nel confronto con la letteratura, gli scienziati osservano che numerosi metodi ricavano la valutazione dell'intera fotografia dalle previsioni sui singoli pixel. Gli errori nelle previsioni locali possono così portare a segnalare come manipolata un'immagine autentica. TruFor usa la mappa di confidenza per ridurre il peso delle previsioni meno affidabili.
 
-Il \emph{punteggio globale}, o \emph{integrity score}, esprime la valutazione sul media nel suo complesso. TruFor calcola le statistiche, come media e massimo, delle mappe attraverso il \emph{pooling}, un'operazione di aggregazione. Il classificatore usa queste informazioni per calcolare il punteggio globale.
+Il \emph{punteggio globale}, o \emph{integrity score}, esprime la valutazione sul media nel suo complesso. Il valore appartiene all'intervallo $[0,1]$; cresce all'aumentare dell'evidenza di manipolazione rilevata dal modello. TruFor calcola le statistiche, come media e massimo, delle mappe attraverso il \emph{pooling}, un'operazione di aggregazione. Il classificatore usa queste informazioni per calcolare il punteggio globale.
 
 Nell'interpretazione seguo la priorità proposta dagli autori: considero prima il punteggio globale e poi esamino le mappe dei casi segnalati.
 
 \subsection{Risultati riportati e confronto con la letteratura}
-\label{sec:background-trufor-risultati}
+\label{subsec:background-trufor-risultati}
 
 Esamino i risultati per valutare due proprietà: la \emph{generalizzazione}, la capacità di riconoscere manipolazioni diverse da quelle di addestramento, e la \emph{robustezza}, la capacità di mantenere le prestazioni dopo trasformazioni dell'immagine. Gli esperimenti comprendono fotoritocchi e manipolazioni locali prodotte con modelli generativi.
 
 Confronto TruFor con \emph{CAT-Net v2}, una rete neurale che combina il contenuto RGB e le tracce della compressione JPEG per localizzare le manipolazioni. Negli esperimenti CAT-Net v2 occupa il secondo posto per F1-score medio a livello di pixel. Riporto il confronto nella Tabella~\ref{tab:trufor-medie}~\cite{Guillaro_2023_CVPR}.
 
-Per la localizzazione, l'F1-score combina precisione e richiamo a livello di pixel. Per il rilevamento, l'AUC (Area Under the Curve) misura l'area sotto la curva ROC (Receiver Operating Characteristic), che mette in relazione i tassi di veri e falsi positivi al variare della soglia. L'accuratezza bilanciata misura invece la media delle percentuali di riconoscimento delle due classi. Valori maggiori indicano prestazioni migliori per tutte e tre le metriche.
+Per la localizzazione, l'F1-score combina precisione e richiamo a livello di pixel. La \emph{precisione} è la quota di pixel correttamente segnalati come manipolati sul totale dei pixel segnalati. Il \emph{richiamo} è la quota di pixel manipolati nel riferimento che il modello individua. Per il rilevamento, l'AUC (Area Under the Curve) misura l'area sotto la curva ROC (Receiver Operating Characteristic), che mette in relazione i tassi di veri e falsi positivi al variare della soglia. L'accuratezza bilanciata misura invece la media delle percentuali di riconoscimento delle due classi. Valori maggiori indicano prestazioni migliori per tutte e tre le metriche.
 
 \begin{table}[htbp]
     \centering
@@ -138,7 +138,7 @@ Per la localizzazione, l'F1-score combina precisione e richiamo a livello di pix
 
 TruFor supera CAT-Net v2 nelle quattro medie. Separo i risultati con soglia fissa da quelli con soglia ottimale: gli autori scelgono quest'ultima massimizzando l'F1-score per ogni figura, usando la maschera di riferimento. La soglia fissa permette invece di valutare le previsioni puntuali senza questa scelta specifica.
 
-Distinguo due dataset: \emph{OpenForensics} contiene manipolazioni locali di volti basate su reti generative avversarie GAN (Generative Adversarial Networks); \emph{CocoGlide} include manipolazioni locali prodotte con \emph{GLIDE}, un modello a diffusione. La Tabella~\ref{tab:trufor-generative} mostra i risultati per questi dataset.
+Distinguo due dataset: \emph{OpenForensics} contiene manipolazioni locali di volti basate su \emph{reti generative avversarie}, GAN (Generative Adversarial Networks), nelle quali un generatore impara a produrre immagini in competizione con un discriminatore che cerca di distinguerle da quelle reali; \emph{CocoGlide} include manipolazioni locali prodotte con \emph{GLIDE}, un \emph{modello a diffusione} che genera immagini a partire da rumore casuale, rimuovendolo progressivamente. La Tabella~\ref{tab:trufor-generative} mostra i risultati per questi dataset.
 
 \begin{table}[htbp]
     \centering
@@ -162,10 +162,10 @@ CAT-Net v2 supera TruFor su OpenForensics; TruFor supera CAT-Net v2 su CocoGlide
 
 Gli autori valutano anche immagini transitate su Facebook e WhatsApp. Il confronto include CAT-Net v2, IF-OSN e MVSS-Net. \emph{IF-OSN} è un metodo progettato per individuare manipolazioni sui social. Il suo addestramento simula le degradazioni introdotte dalle piattaforme. \emph{MVSS-Net} è una rete neurale che combina indizi del rumore e dei bordi delle regioni manipolate per il rilevamento e l'individuazione delle aree interessate.
 
-Nei tre dataset della Tabella~4, TruFor supera questi metodi nell'F1-score con soglia fissa~\cite{Guillaro_2023_CVPR}. Questi risultati motivano la scelta di TruFor per le immagini politiche sui social media. Le prestazioni riportate riguardano i dataset dei creatori di TruFor; la valutazione sul dataset della tesi resta un passaggio distinto.
+Nei tre dataset della Tabella~4 del lavoro citato, TruFor supera questi metodi nell'F1-score con soglia fissa~\cite{Guillaro_2023_CVPR}. Questi risultati motivano la scelta di TruFor per le immagini politiche sui social media. Le prestazioni riportate riguardano i dataset dei creatori di TruFor; la valutazione sul dataset della tesi resta un passaggio distinto.
 
 \subsection{Ambito di applicazione e limiti}
-\label{sec:background-trufor-limiti}
+\label{subsec:background-trufor-limiti}
 
 Gli autori circoscrivono le capacità di TruFor alle manipolazioni locali. Il rilevamento delle immagini interamente generate resta fuori dalle capacità del sistema. La ricerca di incoerenze locali richiede regioni autentiche come riferimento. Differenzio quindi l'inserimento di contenuti sintetici in una fotografia dalla generazione totale.
 
@@ -176,7 +176,7 @@ Mostro un esempio nella Figura~\ref{fig:trufor-limiti-generazione}, ottenuta ese
     \captionsetup{type=figure}
     \centering
     \includegraphics[width=\linewidth]{trufor_limiti.pdf}
-    \caption[Mappe TruFor di un ritratto con cornice e di un'immagine sintetica]{Mappe delle anomalie prodotte da TruFor alla risoluzione originale. Uso la stessa scala da 0 (blu) a 1 (rosso), senza applicare soglie o invertire le mappe. I punteggi indicati sono quelli globali del rilevatore. A: ritratto con cornice grafica, senza copyright, fonte \href{https://commons.wikimedia.org/wiki/File:Rakesh_Brahma,_EM_Bodoland_Territorial_Region.jpg}{Swrang Borgoary, Wikimedia Commons}. B: immagine sintetica generata con Gemini 3.1 Pro.}
+    \caption[Mappe TruFor~\cite{Guillaro_2023_CVPR} di un ritratto con cornice e di un'immagine sintetica]{Mappe delle anomalie prodotte da TruFor alla risoluzione originale. Uso la stessa scala da 0 (blu) a 1 (rosso), senza applicare soglie o invertire le mappe. I punteggi indicati sono quelli globali del rilevatore. A: ritratto con cornice grafica, senza copyright, fonte \href{https://commons.wikimedia.org/wiki/File:Rakesh_Brahma,_EM_Bodoland_Territorial_Region.jpg}{Swrang Borgoary, Wikimedia Commons}. B: immagine sintetica generata con Gemini 3.1 Pro.}
     \label{fig:trufor-limiti-generazione}
 \end{minipage}
 \bigskip
@@ -197,7 +197,7 @@ Per rappresentare l'intensità riprendo i pesi dei canali di colore della raccom
 
 Le misure di dettaglio si collegano agli studi sulla messa a fuoco e alla rassegna degli operatori di misura~\cite{903548,PERTUZ20131415}. Per la sfocatura confronto le variazioni tra pixel vicini prima e dopo un ulteriore filtraggio~\cite{creteroffet:hal-00232709}.
 
-Per il colore uso una misura di vivacità cromatica~\cite{10.1117/12.477378}. Considero anche gli studi sul rapporto tra colore ed emozioni~\cite{Jonauskaite2024}; definisco il calore della pipeline attraverso il bilanciamento dei canali rosso e blu. Per la distribuzione delle intensità uso anche l'entropia~\cite{6773024}.
+Per il colore uso una misura di vivacità cromatica~\cite{10.1117/12.477378}. Considero anche gli studi sul rapporto tra colore ed emozioni~\cite{Jonauskaite2024}. Nella pipeline misuro inoltre il bilanciamento tra i canali rosso e blu dell'immagine. Per la distribuzione delle intensità uso anche l'entropia~\cite{6773024}.
 
 Gli operatori di gradiente e il rilevamento dei bordi forniscono gli strumenti per descrivere le variazioni locali e la struttura dell'immagine~\cite{996,4767851}.
 
@@ -213,9 +213,9 @@ La localizzazione indica quali pixel esaminare. Per studiare l'associazione tra 
 \subsection{BLIP e la generazione delle didascalie}
 \label{subsec:background-blip}
 
-BLIP (Bootstrapping Language-Image Pre-training) apprende da coppie immagine-testo. L'encoder visivo è un Vision Transformer: divide l'immagine in patch e le rappresenta come una sequenza di vettori. L'architettura \emph{MED (Multimodal mixture of Encoder-Decoder)} combina questa rappresentazione con tre modalità testuali: codifica del solo testo, codifica del testo insieme all'immagine e generazione di testo condizionata dall'immagine~\cite{pmlr-v162-li22n}.
+BLIP (Bootstrapping Language-Image Pre-training) apprende da coppie immagine-testo. L'encoder visivo è un Vision Transformer: divide l'immagine in \emph{patch}, cioè piccoli blocchi di pixel, e le rappresenta come una sequenza di vettori. L'architettura \emph{MED (Multimodal mixture of Encoder-Decoder)} combina questa rappresentazione con tre modalità testuali: codifica del solo testo, codifica del testo insieme all'immagine e generazione di testo condizionata dall'immagine~\cite{pmlr-v162-li22n}.
 
-Per distinguere le ultime due modalità considero il funzionamento dell'attenzione. L'\emph{attenzione incrociata} permette al componente testuale di pesare le informazioni visive in funzione del testo elaborato. L'encoder testuale usa un'attenzione bidirezionale, che considera anche le parole successive. Il decoder usa invece un'attenzione causale: quando produce una nuova unità può consultare soltanto quelle già disponibili. Encoder e decoder condividono parte dei parametri, ma mantengono separati gli strati di attenzione interna.
+Per distinguere le ultime due modalità considero come viene applicata l'attenzione introdotta nella Sottosezione~\ref{subsec:background-trufor-architettura}. L'\emph{attenzione incrociata} permette al componente testuale di pesare le informazioni visive in funzione del testo elaborato. L'encoder testuale usa un'attenzione bidirezionale, che considera anche le parole successive. Il decoder usa invece un'attenzione causale: quando produce una nuova unità può consultare soltanto quelle già disponibili. Encoder e decoder condividono parte dei parametri, ma mantengono separati gli strati di attenzione interna.
 
 La generazione procede un \emph{token}, un'unità del vocabolario del modello, alla volta. Un token può corrispondere a una parte di parola. Indico con $J$ l'immagine fornita al modello e con $s_1,\ldots,s_L$ i token di una didascalia, incluso il simbolo finale. La sua probabilità si scompone come:
 \begin{equation}
@@ -244,7 +244,7 @@ Il preaddestramento combina i tre obiettivi della Tabella~\ref{tab:blip-obiettiv
     \end{tabular}
 \end{table}
 
-Gli autori affrontano anche il rumore nelle coppie raccolte dal web con CapFilt (Captioning and Filtering). Adattano un generatore e un filtro su coppie annotate di COCO. Il generatore aggiunge didascalie sintetiche; il filtro scarta i testi giudicati incoerenti, sia originali sia generati. Le coppie conservate, unite a quelle annotate, servono per preaddestrare un nuovo modello.
+Gli autori affrontano anche il rumore nelle coppie raccolte dal web con CapFilt (Captioning and Filtering). Adattano un generatore e un filtro su coppie annotate di \emph{COCO}, una raccolta di immagini con annotazioni, tra cui didascalie testuali. Il generatore aggiunge didascalie sintetiche; il filtro scarta i testi giudicati incoerenti, sia originali sia generati. Le coppie conservate, unite a quelle annotate, servono per preaddestrare un nuovo modello.
 
 Nel progetto uso il modello già addestrato per ottenere una descrizione del contenuto selezionato dalla maschera. Nella mia pipeline eseguo soltanto l'inferenza. Una didascalia può non cogliere tutti i dettagli: il testo prodotto va interpretato come una stima del contenuto visivo.
 
@@ -255,7 +255,7 @@ Una didascalia può descrivere il ritratto e lo sfondo di un manifesto senza rip
 
 \emph{CRAFT (Character Region Awareness for Text detection)} individua le regioni da passare al riconoscitore. La rete convoluzionale produce due mappe: la \emph{mappa delle regioni} localizza i caratteri e la \emph{mappa di affinità} evidenzia i collegamenti tra caratteri adiacenti della stessa parola~\cite{DBLP:journals/corr/abs-1904-01941}. Applicando soglie alle mappe, il metodo individua le \emph{componenti connesse}, cioè insiemi contigui di pixel, e le racchiude in riquadri. L'output indica dove leggere, senza ancora trascrivere il testo.
 
-Una volta localizzate le scritte, occorre trascriverle. La \emph{CRNN (Convolutional Recurrent Neural Network)} elabora ciascuna area testuale. Gli strati convoluzionali ne estraggono una sequenza di vettori, leggendo le caratteristiche per colonne da sinistra a destra. Gli strati ricorrenti \emph{LSTM (Long Short-Term Memory)} bidirezionali usano il contesto nei due versi. Per ogni elemento della sequenza, la rete produce una distribuzione sui caratteri possibili e su un simbolo speciale di assenza di carattere, detto \emph{blank}~\cite{DBLP:journals/corr/ShiBY15}.
+Una volta localizzate le scritte, occorre trascriverle. La \emph{CRNN (Convolutional Recurrent Neural Network)} elabora ciascuna area testuale. Gli strati convoluzionali ne estraggono una sequenza di vettori, leggendo le caratteristiche per colonne da sinistra a destra. Gli strati ricorrenti \emph{LSTM (Long Short-Term Memory)} mantengono una memoria interna lungo la sequenza: meccanismi appresi regolano quali informazioni conservare, aggiornare e usare per produrre l'output, consentendo di cogliere dipendenze anche tra posizioni distanti. La versione bidirezionale elabora la sequenza nei due versi, usando così sia il contesto precedente sia quello successivo. Per ogni elemento della sequenza, la rete produce una distribuzione sui caratteri possibili e su un simbolo speciale di assenza di carattere, detto \emph{blank}~\cite{DBLP:journals/corr/ShiBY15}.
 
 La trascrizione usa il criterio \emph{CTC (Connectionist Temporal Classification)}. Per ottenere la stringa finale, si accorpano i simboli uguali consecutivi e si eliminano i blank~\cite{10.1145/1143844.1143891}.
 
@@ -275,7 +275,7 @@ Con l'OCR localizzo e trascrivo le scritte nelle regioni selezionate dalla masch
 \section{Strumenti statistici per l'analisi dell'engagement}
 \label{sec:background-analisi-engagement}
 
-Per studiare le relazioni tra il punteggio di TruFor, le caratteristiche visive, il testo e l'engagement uso misure di associazione, rappresentazioni numeriche e modelli statistici. Presento ciascuno strumento separatamente, distinguendo analisi delle associazioni, predizione e interpretazione. Riporto le definizioni operative nelle Sezioni~\ref{sec:materiali-misure-statistiche} e~\ref{sec:materiali-classificazione}.
+Per studiare le relazioni tra il punteggio di TruFor, le caratteristiche visive, il testo e l'engagement uso misure di associazione, rappresentazioni numeriche e modelli statistici. Presento ciascuno strumento separatamente, distinguendo analisi delle associazioni, predizione e interpretazione. Riporto le definizioni operative dei modelli e della validazione nella Sezione~\ref{sec:associazione-impostazione}, quelle delle correlazioni e della regressione lineare nelle Sottosezioni~\ref{subsec:associazione-trufor-correlazioni} e~\ref{subsec:associazione-trufor-ols}. Descrivo la preparazione del testo nella Sottosezione~\ref{subsec:associazione-testo-preparazione} e il protocollo delle spiegazioni nella Sottosezione~\ref{subsec:metodi-classificazione-spiegazioni}.
 
 \subsection{Correlazione di Pearson}
 \label{subsec:background-pearson}
@@ -290,7 +290,7 @@ Affianco a Pearson il \emph{coefficiente di Spearman} per le associazioni monoto
 \subsection{Valore di \texorpdfstring{$p$}{p}}
 \label{subsec:background-p-value}
 
-Per interpretare i test statistici considero il valore di $p$. Distinguo la significatività statistica dall'intensità dell'associazione e dalla sua rilevanza~\cite{Wasserstein02042016}.
+Per interpretare i test statistici considero il valore di \emph{$p$}. Sotto l'ipotesi nulla e le assunzioni del test, esprime la probabilità di ottenere un risultato almeno altrettanto estremo quanto quello osservato. L'ipotesi nulla rappresenta il riferimento del test, per esempio l'assenza di associazione tra due variabili. Distinguo la significatività statistica dall'intensità dell'associazione e dalla sua rilevanza~\cite{Wasserstein02042016}.
 
 \subsection{Regressione lineare}
 \label{subsec:background-ols}
@@ -315,7 +315,7 @@ Affianco alla rappresentazione lessicale una versione ridotta mediante \emph{PCA
 \subsection{Regressione logistica regolarizzata}
 \label{subsec:background-logistica}
 
-Uso la regressione logistica per stimare la probabilità della classe di engagement superiore alle aspettative. Per la classificazione applico una penalità L2, che limita l'ampiezza dei coefficienti. Valuto le previsioni mediante validazione incrociata, usando accuratezza e AUC per descrivere la capacità di distinguere le due classi.
+Uso la regressione logistica per stimare la probabilità della classe di engagement superiore alle aspettative. Per la classificazione applico una penalità L2, che limita l'ampiezza dei coefficienti~\cite{josef_perktold_2024_10984387}. Valuto le previsioni mediante validazione incrociata, usando accuratezza e AUC per descrivere la capacità di distinguere le due classi.
 
 \subsection{GLM binomiale per l'analisi statistica}
 \label{subsec:background-glm}
