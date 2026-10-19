@@ -1,0 +1,72 @@
+for presentations, this is a vademecum I inherited from Claudio, with whom I discussed the matter at length. Don't take these as rules, but rather as a sensible default: they are the result of lab culture accumulating over years. These follow an academic style, which is distinct from the motivational/pitch you are probably more used to when thinking of memorable presentations. They are also distinct from the lecture style, in that they still aim at persuading and driving curiosity.
+
+Combine with your outline for maximum effect: in most cases, you first slide is your motivation; your second slide is gap; your third is the outline of your novelty; your first-to-last is your implications; your second-to last the summary of your contribution. the remaining ~5 are methods and results. Expect to spend around a minute per slide, and use the slides as visual aids for what you explain (typically, through one large visual per slide): you want the audience to listen to you, not read your slides. Especially, don't be abstract: if you can use one worked example from slide 1 your communicative goals become much easier to achieve.
+
+Speak slowly.
+	The quicker you speak, the more effort the audience needs. It is even OK to take breaks of a few seconds from time to time, especially when a concept that requires some mental processing from the listeners is needed. This lets them take a break too, breathe, and maybe reflect on what you said. If you play it well, you can even attract more attention on what is coming next!
+
+Use examples and explain concepts around them, not the other way around.
+	This allows the audience to pick up more easily what you mean.
+
+Reduce the amount of text as much as you can.
+	If you see you are in need of smaller fonts with respect to the standard template to fit the text in the slide, there is already by far too much text in there.
+
+Pictures are evocative.
+	Use pictures for your examples, to show results, etc. In this way, the audience can look at the slide and listen to you. With text-intensive slides, the attendees read what is written there and disregard what you are saying (have you ever tried listening to someone while you read a book?)
+
+Avoid that animations make elements overlap.
+	When you distribute the PDF of your slides, they could appear utterly garbled.
+
+Include the presentation outline if and only if...
+	... you create break-slides where you state that you are touching the next point. Careful: the fewer these points in the ToC are (say, four, not more), the better. This sort of slide might break the flow and steal time, so be careful.
+
+Don’t you dare to hold the presentation without (***at least***) two preliminary rehearsals with the finished slides.
+	You cannot imagine how incredibly useful it can be. If you have the chance, do the after-last rehearsal in front of a colleague/friend/relative. The less s/he knows about what you did, the better -- you must make your presentation accessible to everyone, not only experts in your field.
+
+Avoid technicalities as much as possible.
+	OK, you might want to include a formula or two just to put yourself in the position of a guru, but not more. Really. Do not spend time on it anyway. Make your presentation as easy as possible to grasp for everyone. If you keep things simple, people who do are not knowledgeable in your field can at least listen to you in a fruitful way (that is, pick up the main idea). Experts will notice that you know the matter anyway, do not worry. And if they are interested in the details, they will ask for them in the questions time.
+
+Keep some extra slides.
+	Of course, you will start with an enormously big deck, which you will surely reduce after the rehearsal rounds. Do not throw the slides away, but keep them in an extra sub-deck after the last slide: It might be that an experienced guy will ask something about what you removed right from the main presented core!
+
+Do not switch back and forth between slides.
+	Switching backwards towards past slides is awful, really: It makes the audience dizzy. They lose the point at which you are. On top of that, you need some frantic clicking to get back to some slides, during which you get nervous and silent or bubbling. Then the same amount of time is needed to get again where you were. All time wasted! If you need to show again some pictures or concepts during the speech, just put another slide which is a duplicate (or sort of). Nobody will ever complain, really.
+
+Keep slides as neat as possible.
+	Clean, lean layout with no overloading of graphical/textual elements. The slides need to bear the fundamental information (keywords, basic concepts, graphs, images). You are the protagonist there, not the beamer or the projection screen. If there are too many elements in one slide, split it, and make for two (or more) cleaner slides.
+
+Put the slide number (but not the slide count) on every slide.
+	It is fundamental. It is also great for interested attendees who want to refer to some slides of yours to ask you some questions. Just the very first slide with title, author, etc. can get along without it. Just the slide number. Sometimes, you might use different slides for animation, so the number would go like “12/95”. This would immediately cause a sense of desperation in the audience (“Oh my, really, 73 more slides? Oh no”).
+
+Be careful with colours.
+	Keep the look-and-feel of the template and rely on colours as few as you can. Never use more than a handful of colours in the whole presentation (two of them usually are the ones used in the template already). Avoid similar tones because there could be colour-blind people in the audience. Remember that red means error/alert in the common perception, so use it only when you mean it. Azure, hay yellow, and pale colours in general are risky because some beamers make them completely indistinguishable from white. Do not use background colours, especially if they are dark or intense – in this way, you let those who want to print out your slides deck save quite an amount of money on toners, you know?
+
+Be careful with animations.
+	I personally use only the glow and swipe effects to insert elements in a slide. At times, some motion to drag things from one point to another. No blinking, no bouncing, no window effect. They are kitsch, low-budget tools that only distract the audience and make them perceive your style as gross. To let things disappear from a slide, it is better to make a transition to a new slide which is a duplicate of the preceding without those elements. This is a way to make your slides printer-friendly.
+
+Use sans-serif fonts.
+	Arial, Verdana, Calibri, Lucida Sans, etc. are all fonts without glyphs and decorations on letters (sans-serif). They work well with slides because they are more readable to the attendees sitting in the back lines. Serif fonts like Times New Roman work well if you have formulae (math text is shown in italic serif fonts usually).
+
+Remark what is interesting in your paper or thesis.
+	Give some hooks to attract interest in the paper. Say what can be found there, clarify that you are not explaining some technical details that can be found in the paper, and justify that part of the analysis/experiments/evaluation are not in the presentation for the sake of time but are detailed in the paper, etc. Say all that not only at the end of your presentation but also to give hooks in the course of the presentation itself. Your objective is to make people in the audience read what you wrote in the end.
+
+Keywords in your mouth AND on the slides
+	To avoid the people in the audience think you are saying something though the slides are about something else (hence, ”OK let us read the interesting email message I’ve just received”), always keep the main concepts at least mentioned by keywords in the slides -- which are a reference for the “important words” you will be using.
+	
+Citations
+	Rather than using a numeric format, like [1], [3-4], or [7], better referring to existing papers with a surname(s)/year format, such as (Someone 2016) or (Someone et al. 2017). Maybe the people in the audience know or have an idea of the paper by looking at the authors and the year of publication. With pure numbers, no chance to recognise it at first glimpse. One has to wait for the last slide(s) to understand whom you were referring to, and rarely do attendees have the time or patience for it.
+	
+Start
+	Do not start by saying your name and the title of the paper. It has been standing on the shown slide for quite a while. It is a trigger to the audience to start looking at their email. Try beginning with either (1) a challenging question, (2) a personal anecdote, or (3) a shocking fact that you and the attendees have in common or commonly understand. Straight away. Props to Conor Neill (https://www.youtube.com/watch?v=w82a1FT5o88)
+
+Don’t start your speech with “Huh", “Uhm“, “So”
+	The very first word you say for your presentations should not be an interjection. It gives a sense of insecurity to the presenter. It is hard to achieve but try to cut out these words without meaning. Especially when it has to be the first word the audience hears from you.
+
+Tell a story!
+	Tell people what you did with anecdotes, paradoxes, frankly speaking. If you do not have a real-life scenario to report on, make an example with a sample person, or animal... whatever. You even give him/her/it a name. This will increase the impact of what you talked about. Maybe the attendees will not exactly remember what you talked about but will remember that you are the guy who told the story about Camilla the cow (OK, please do not take it literally). Beware that if you opt for a story with a character (Camilla the cow, for instance), the character should reappear from time to time as a sort of protagonist of your story. Most of all, keep the protagonist in the last slide.
+
+Do not forget to add your name, surname, institution and email address in the last slide. Of course, also the paper title.
+	In this way, people can better memorize you because it is the last thing they see on the big screen. The paper title will ease people skimming through the proceedings to find it.
+
+Do not put a big "?" on the last slide or "Thank you - questions?"-like things.
+	If you ask me, I kinda hate it. It is also not only about personal tastes but a matter of good sense, perhaps. Take a snapshot of your most significant slide(s) or an excerpt thereof, which can even be the title one, and put it there as the last slide. It will ease the work of attendees who want to ask a question, to focus on what you actually said during your talk – hopefully, the sense of all you said is not "?". If you have the implementation of your work in a public code repository such as GitHub, please put a QR code and a short link to the repo. That is the place to do so. If you have a paper published on the basis of that work, or both, do the same (see the dedicated comment above).
