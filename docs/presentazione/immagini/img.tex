@@ -1,0 +1,47 @@
+% Modello per esportare una tabella o una figura TikZ in SVG.
+% Esegui questo comando dalla cartella che contiene img.tex:
+% latex -interaction=nonstopmode -halt-on-error img.tex && dvisvgm --no-fonts --exact-bbox --bbox=3pt img.dvi -o img.svg
+% --no-fonts converte i testi in tracciati; --bbox aggiunge un margine di 3pt.
+% L'SVG ha sfondo trasparente, salvo i riempimenti definiti nella figura.
+
+% In DVI usa il driver SVG di TikZ; con pdflatex lascia il driver PDF.
+\RequirePackage{ifpdf}
+\ifpdf\else
+    \def\pgfsysdriver{pgfsys-dvisvgm.def}
+\fi
+
+\documentclass[11pt,border=3pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{lmodern}
+
+% Tabelle: righe orizzontali, colonne personalizzate e celle su più righe.
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{makecell}
+
+% Figure TikZ: colori, frecce, coordinate e posizionamento dei nodi.
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,fit,backgrounds,
+    shapes.geometric,shapes.symbols,shapes.arrows}
+\definecolor{sapred}{rgb}{0.5098039,0.1411765,0.2}
+
+\begin{document}
+
+% Sostituisci l'esempio con il contenuto da esportare:
+%   - una tabella: da \begin{tabular} a \end{tabular};
+%   - una figura: da \begin{tikzpicture} a \end{tikzpicture}.
+% Mantieni eventuali gruppi e impostazioni locali, come \tabcolsep.
+% Non copiare il preambolo, i contenitori table/figure, \centering,
+% \caption o \label: il file esporta soltanto la tabella o il disegno.
+
+\begin{tabular}{lr}
+    \toprule
+    Voce & Valore \\
+    \midrule
+    Esempio & 1 \\
+    \bottomrule
+\end{tabular}
+
+\end{document}

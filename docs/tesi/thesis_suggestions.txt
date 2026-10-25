@@ -1,0 +1,48 @@
+## goals
+A thesis has several goals.
+1. support the evaluation of your project work.
+2. show that you can communicate scientifically.
+3. communicate the results of your work.
+
+Most students worry about 1. In reality, 99% of the times I will be the only reader of your thesis, and I already know what you did and didn't. Too few students worry about 2. However, as before, you don't need to impress me with the thesis: if you do not plan on continuing doing research, this will be a rare chance to learn how to write scientifically. 3 is your primary goal if you would like to continue doing research or care for the posterity of your work.
+
+## constraints
+- Use the latex templates the university provides. They are not beautiful, but you have better use for your time that to fight administration on this issue. 
+
+
+## structure
+0. Abstract: a few-paragraph summary of the manuscript. It should let the reader understand what the rest of the manuscript is about and what is its main takeaway.
+1. Introduction: a few-page summary the manuscript, with an emphasis on the motivation (why should anyone work on the broader problem in which your work is situated), addressed gap (which part of the problem has not been addressed so far and crucially, why), problem statement/research questions (what is the narrower problem that you address ,within the gap), novelty (how does your work fill the gap and crucially, why has it not been done before), contribution (what can others take away from your work), and implications for the work (if anyone provided a perfect solution for the gap, why would the world be better).
+2. Background & related work: a short introduction to the central concepts, as well as a review of work you build on or compare against. For a thesis, it's not crucial that you are comprehensive about the existing literature, but it is important that you provide the reader with key, state-of-the-art references as a yardstick to evaluate if your work is redundant with previous efforts, better in any way, and especially, a reasonable direction for anyone to pursue (regardless of your results).
+3. Data, materials, definitions: the formalization of your approach, including details about the data and computational frameworks used
+4. Methods: the research design, i.e., how you do what you do, e.g., what is the architecture of your system and how are you planning on evaluating it
+5. Results: the outcomes of your work: what you found out, what you built, etc., e.g., what is the evaluation of the system
+6. Discussion: how the results reflect, surpass, vary from expectations, and what does that imply for the problem statement and addressed gap
+7. Limitations & future work: considerations in how the decisions in your research design may have affected your results, ideally with a justification of why your design was reasonable; how your work helps others bootstrap new lines of research, by direct reference to your results   
+7. Conclusions: a few-paragraph-to-page summary of the manuscript, with an emphasis on the takeaways
+
+
+## style
+These are subjective choices, but a recurring problem with theses is that they are verbose, pompous, and inaccessible, perhaps because of the misconception that if a thesis sounds difficult, it will appear smart. This is a scientific document: concise and unambiguous. Consider the following, especially if you write in English and English is not your first language.
+
+- keep verb tense consistent throughout: either present, or simple past.
+- write in first person singular or plural. 
+- write short sentences. follow a subject-verb-object sentence structure. use active voice. avoid negations. 
+- keep adjectives and adverbs to a minimum. 
+- avoid hedging.
+- introduce all concepts, symbols, and abbreviations at their first use. if you used a specific term to refer to a concept, never, ever change it, or the scientific reader will wonder if you are referring to different concepts.
+
+
+## voice
+My main suggestions are: 
+- It's more important to communicate your takeaways clearly than to record your pains and troubles in achieving them. Be generous about your results, that is why people are reading. 
+- Do follow a compelling narrative, do not write a diary. The chronological order of your project work is typically bad as a narrative, because if everything went as planned, it is unlikely you did something novel.
+- Implementation details and exceptions are best discussed *after* you establish a clear and concise picture of your work, e.g., as footnotes, appendices, limitations, follow-up sections. This typically applies to negative results as well.
+- Always offer the reason why readers should read what they are about to, and give them the option not to do so by affording random-access to your manuscript. One way to do so is to repeat yourself: say what you are about to say, say it, summarize what you said, at the granularity of chapters, sections, and even paragraphs if needed.
+- Do not make readers "figure things out": they will be frustrated and you run the risk of them understanding something different. Readers are busy, make the narrative obvious for them. 
+- visuals are king, both for the reader and the writer. I personally like to draft the whole narrative by following pictures and tables alone. 
+
+## process
+- I typically draft the whole narrative in a presentation, in images and bullet points, before getting to writing: this makes it easy to workshop the key characters and turning points of the narrative. 
+- know what you'll be writing about: sketch the whole narrative as bullet points containing the main take-home messages for each section. Bullet points should coincide with what you want the reader to remember, and should logically outline the narrative. 
+- write inside out: write the paraphrased version of the introduction, conclusions, and abstract last 

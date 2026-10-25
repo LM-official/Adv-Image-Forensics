@@ -1,0 +1,74 @@
+% !TeX encoding = UTF-8
+% Compilare con la ricetta latexmk per aggiornare anche bibliografia e riferimenti.
+% !TeX spellcheck = it_IT
+
+% Cerca la classe e il logo direttamente nel pacchetto originale.
+% Il percorso va impostato prima che la classe verifichi la presenza del logo.
+\makeatletter
+\def\input@path{{sapthesis/}}
+\makeatother
+
+\documentclass[oneside, noexaminfo]{sapthesis}
+
+\input{packages}
+
+% Frontespizio: sostituire i segnaposto e verificare i dati del corso.
+\title{Localizzazione, interpretazione ed analisi computazionale del fotoritocco nella comunicazione politica sui social media}
+% \subtitle{Eventuale sottotitolo}
+\author{Lorenzo Mercuri}
+\IDnumber{2145783}
+\course{Laurea Triennale in Informatica}
+\courseorganizer{Facoltà di Ingegneria dell'informazione, informatica e statistica}
+\AcademicYear{2025/2026}
+\advisor{Prof.~Matteo Cinelli}
+\customcoadvisorlabel{Relatore esterno}
+\coadvisor{Prof.~Mattia Samory}
+\authoremail{mercuri.2145783@studenti.uniroma1.it}
+\copyyear{2026}
+\thesistype{Tesi di laurea}
+
+\begin{document}
+
+\frontmatter
+% Il frontespizio riparte da pagina i: evita destinazioni di pagina duplicate.
+\hypersetup{pageanchor=false}
+\maketitle
+\hypersetup{pageanchor=true}
+
+
+\begin{abstract}
+In questa tesi studio l'associazione tra il contenuto delle regioni potenzialmente alterate nelle immagini politiche e l'\emph{engagement}, cioè le interazioni degli utenti con i post. Realizzo una pipeline che combina il rilevamento e la localizzazione di TruFor, 19 caratteristiche visive dell'immagine, didascalie automatiche e trascrizioni delle scritte nelle regioni selezionate. Rappresento il testo mediante pesi sulle parole e una versione a dimensionalità ridotta. Confronto le informazioni ottenute mediante regressione logistica e modelli lineari generalizzati binomiali.
+
+Analizzo post di Facebook e Instagram del periodo delle elezioni europee del 2024. Il campione finale comprende 1.195 osservazioni, classificate in base a un engagement superiore o inferiore alle aspettative dell'account. La logistica con testo e punteggio TruFor raggiunge il $59{,}4\%$ di accuratezza, contro il $51{,}2\%$ ottenuto assegnando sempre la classe più frequente. Nel confronto fra modelli binomiali, testo e caratteristiche visive aggiunti separatamente migliorano l'indice di validazione rispetto al solo TruFor. La loro combinazione migliora l'adattamento sui dati di stima, ma riduce l'indice in validazione rispetto ai due modelli intermedi.
+
+I risultati indicano una capacità predittiva modesta delle rappresentazioni nel protocollo adottato. La preparazione dei predittori sull'intero campione prima della validazione e l'assenza di suddivisioni per account o periodo limitano le conclusioni sulla generalizzazione. Uso le spiegazioni delle previsioni per ispezionare il modello, mantenendole distinte dagli effetti causali dei contenuti sull'engagement. Il lavoro fornisce uno strumento riutilizzabile e una base per confronti successivi con descrizioni dell'immagine intera e valutazioni su nuovi contesti.
+\end{abstract}
+
+\tableofcontents
+
+\mainmatter
+
+% Aggiungere un file per ogni capitolo, nell'ordine definitivo di lettura.
+% La numerazione dei capitoli viene assegnata automaticamente.
+\include{capitoli/01_introduction}
+\include{capitoli/02_background_related_work}
+\include{capitoli/03_pipeline_dataset_filtraggio}
+\include{capitoli/04_localizzazione_descrizione}
+\include{capitoli/05_caratteristiche_visive}
+\include{capitoli/06_associazione_engagement}
+\include{capitoli/07_conclusioni_limitazioni_sviluppi_futuri}
+
+\backmatter
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{\bibname}
+\bibliographystyle{ieeetr}
+\bibliography{references}
+
+% Attivare quando i ringraziamenti saranno pronti.
+% \chapter*{Ringraziamenti}
+% \addcontentsline{toc}{chapter}{Ringraziamenti}
+% Testo dei ringraziamenti.
+
+\end{document}

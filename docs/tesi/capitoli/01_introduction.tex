@@ -1,0 +1,83 @@
+% !TeX root = ../tesi.tex
+% !TeX encoding = UTF-8
+% !TeX spellcheck = it_IT
+
+\chapter{Introduzione}
+\label{chap:introduzione}
+
+I social network costituiscono uno spazio rilevante della comunicazione politica. Le immagini presentano candidati e messaggi anche attraverso ritocchi ed elementi grafici o testuali, che possono avere una funzione comunicativa senza un intento ingannevole. Studio il rapporto tra queste modifiche e l'\emph{engagement}, cioè le interazioni degli utenti con i post, per comprendere la partecipazione del pubblico alla comunicazione politica online.
+
+Strumenti forensi come TruFor rilevano e localizzano possibili manipolazioni tramite un punteggio globale e mappe delle regioni sospette~\cite{Guillaro_2023_CVPR}. Questi output segnalano indizi di alterazione, ma non descrivono il contenuto delle regioni né ne valutano l'associazione con l'engagement. Uno studio sui post politici di Instagram analizza invece il rapporto tra interazioni, categorie delle immagini, volti ed espressioni~\cite{doi:10.1177/1940161220964769}, senza distinguere il contenuto delle regioni potenzialmente alterate da quello delle altre regioni.
+
+Dal confronto tra questi due lavori individuo un ostacolo metodologico: la localizzazione forense identifica pixel sospetti, mentre l'analisi dell'engagement associa proprietà del contenuto e interazioni con il post. Occorre quindi trasformare le regioni segnalate in descrizioni confrontabili e associarle all'engagement della pubblicazione. Né gli indizi forensi né le associazioni riferite all'immagine complessiva misurano da soli il contributo di questa informazione. Realizzo questo collegamento nella pipeline: le regioni selezionate restano ipotesi del rilevatore e il contributo predittivo delle loro descrizioni va verificato empiricamente.
+
+Affronto questa domanda: \emph{quanto contribuiscono il contenuto delle regioni potenzialmente alterate e le caratteristiche visive alla classificazione dell'engagement, rispetto al solo punteggio TruFor?} Verifico inoltre se il testo aggiunga capacità predittiva quando il modello comprende già TruFor e le caratteristiche visive. Considero post politici pubblicati su Facebook e Instagram nel periodo delle elezioni europee del 2024. Uso l'indicatore di CrowdTangle per distinguere i post con engagement superiore o inferiore alle aspettative dell'account~\cite{DVN/SCCQYD_2019}, secondo la definizione della Sottosezione~\ref{subsec:dataset-engagement}.
+
+\section{Approccio e contributo}
+\label{sec:introduzione-approccio}
+
+L'elemento distintivo del progetto consiste nel descrivere le regioni potenzialmente modificate, anziché l'immagine nel suo insieme.
+
+Realizzo una pipeline che applica alle immagini una maschera ricavata dalle mappe di TruFor~\cite{Guillaro_2023_CVPR}. Descrivo il contenuto conservato con BLIP (Bootstrapping Language-Image Pre-training)~\cite{pmlr-v162-li22n} e aggiungo le scritte lette mediante OCR (Optical Character Recognition)~\cite{easyocr_software}. Trasformo il testo in vettori numerici e in una versione a dimensionalità ridotta. Affianco a queste rappresentazioni il punteggio globale di TruFor e 19 caratteristiche visive estratte dall'immagine intera.
+
+Confronto le combinazioni dei tre blocchi informativi mediante \emph{modelli lineari generalizzati}, GLM (Generalized Linear Models), della famiglia binomiale, che stimano qui la probabilità di un engagement superiore alle aspettative dell'account~\cite{68aee965-a8a0-3e72-9f89-8d89ae91a62b}. Affianco una \emph{regressione logistica regolarizzata}, che stima la stessa probabilità penalizzando l'ampiezza dei coefficienti, e strumenti che rendono leggibile il contributo delle parole alle previsioni. Descrivo i due modelli rispettivamente nelle Sottosezioni~\ref{subsec:background-glm} e~\ref{subsec:background-logistica}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        blocco/.style={draw=black!65, rounded corners=2pt, align=center,
+            font=\small, text width=2.5cm, minimum height=0.85cm, inner sep=5pt},
+        dato/.style={blocco, fill=black!4},
+        modulo/.style={blocco, fill=sapred!20},
+        flusso/.style={-{Stealth[length=2mm]}, semithick, draw=black!70}
+    ]
+        \node[dato, text width=4.4cm] (post) at (0,0)
+            {Post e immagini\\Facebook e Instagram};
+        \node[modulo, text width=4.4cm] (filtro) at (0,-1.3)
+            {Filtraggio\\del campione};
+        \node[dato] (immagini) at (0,-2.6) {Immagini};
+        \node[dato, text width=3cm] (engagement) at (4,-2.6)
+            {Engagement\\CrowdTangle};
+        \node[modulo] (trufor) at (-2,-4) {TruFor};
+        \node[modulo] (visive) at (2,-4) {Analisi visiva};
+        \node[dato] (punteggio) at (-4,-5.5) {Punteggio globale};
+        \node[dato] (mappe) at (-0.7,-5.5)
+            {Mappe TruFor};
+        \node[dato, text width=3cm] (caratteristiche) at (3.1,-5.5)
+            {Caratteristiche\\visive (19)};
+        \node[modulo, text width=3.2cm] (descrizione) at (-0.7,-7)
+            {Maschera,\\BLIP e OCR};
+        \node[dato, text width=3.2cm] (testo) at (-0.7,-8.5)
+            {Rappresentazioni\\numeriche del testo};
+        \node[modulo, text width=7cm, minimum height=1.2cm] (modelli) at (0,-10.1)
+            {Classificazione dell'engagement\\Confronto dei blocchi informativi,\\validazione e interpretazione};
+
+        \draw[flusso] (post) -- (filtro);
+        \draw[flusso] (filtro) -- (immagini);
+        \draw[flusso] (filtro.east) -| (engagement.north);
+        \draw[flusso] (immagini.south) -- ++(0,-0.2) -| (trufor.north);
+        \draw[flusso] (immagini.south) -- ++(0,-0.2) -| (visive.north);
+        \draw[flusso] (trufor.south) -- ++(0,-0.2) -| (punteggio.north);
+        \draw[flusso] (trufor.south) -- ++(0,-0.2) -| (mappe.north);
+        \draw[flusso] (visive.south) -- ++(0,-0.2) -| (caratteristiche.north);
+        \draw[flusso] (mappe) -- (descrizione);
+        \draw[flusso] (descrizione) -- (testo);
+        \draw[flusso] (testo.south) -- (testo.south |- modelli.north);
+        \draw[flusso] (punteggio.south) -- (-4,-9.25) -| ([xshift=-2.7cm]modelli.north);
+        \draw[flusso] (caratteristiche.south) -- (caratteristiche.south |- modelli.north);
+        \draw[flusso] (engagement.east) -- ++(0.4,0) |- (modelli.east);
+    \end{tikzpicture}
+    \caption{Schema della pipeline. I riquadri colorati indicano le elaborazioni; quelli grigi i dati. Le mappe TruFor guidano la selezione delle regioni da descrivere; estraggo le caratteristiche visive dall'immagine intera. Confronto i tre blocchi informativi usando l'engagement di CrowdTangle per definire le classi di riferimento.}
+    \label{fig:pipeline-generale}
+\end{figure}
+
+\section{Risultati, implicazioni e struttura della tesi}
+\label{sec:introduzione-organizzazione}
+
+Il solo punteggio di manipolazione mostra un'associazione debole con l'engagement, non statisticamente significativa alla soglia del $5\%$. Sul campione finale di 1.195 osservazioni la logistica con testo e punteggio TruFor raggiunge il $59{,}4\%$ di accuratezza, contro il $51{,}2\%$ ottenuto assegnando sempre la classe più frequente. Nei GLM, testo e caratteristiche visive aggiunti separatamente migliorano l'indice di validazione rispetto al solo TruFor. La loro combinazione migliora l'adattamento ai dati di addestramento, ma peggiora la validazione rispetto alle aggiunte separate.
+
+La capacità predittiva resta modesta: il testo migliora il riferimento basato sul solo TruFor, ma non quello che include già le caratteristiche visive. Poiché la preparazione dei dati usa l'intero campione prima della validazione e le partizioni non separano account o periodi, interpreto gli esiti come associazioni esplorative.
+
+Il lavoro offre a chi studia le campagne politiche uno strumento per collegare immagini, descrizioni e risultati e formulare ipotesi sul ruolo comunicativo delle modifiche. Un ricercatore può individuare descrizioni con termini relativi a persone o slogan, verificarne la presenza nelle regioni segnalate e confrontare l'engagement dei post, verificando su un'altra campagna le associazioni emerse. Queste orientano ulteriori indagini, senza prescrivere scelte visive che aumenterebbero le interazioni.
+
+Nel Capitolo~\ref{chap:background} presento gli strumenti e i riferimenti teorici. Nel Capitolo~\ref{chap:dataset} descrivo l'architettura della pipeline, il dataset, la misura di engagement e il filtraggio. Nel Capitolo~\ref{chap:localizzazione-descrizione} illustro l'integrazione e la valutazione di TruFor, il mascheramento e la descrizione delle regioni sospette. Nel Capitolo~\ref{chap:caratteristiche-visive} definisco le caratteristiche visive dell'immagine intera e la loro estrazione. Nel Capitolo~\ref{chap:associazione-engagement} presento i protocolli, i risultati e l'interpretazione delle analisi dell'engagement. Concludo nel Capitolo~\ref{chap:conclusioni-limitazioni-sviluppi} con la sintesi dei contributi, le limitazioni e gli sviluppi futuri.
