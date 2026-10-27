@@ -4,11 +4,7 @@ __pycache__/
 
 # Cache
 dataset/*
-scripts/temp/
+scripts/temp/*
 
 # Priority to .gitkeep
 !.gitkeep
-
-# Thesis
-docs/6 Paper TruFor.pdf
-docs/varie_tesi
